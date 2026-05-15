@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0e1c;
+  --bg2: #15152a;
+  --bg3: #1c1c35;
+  --card: #21213d;
+  --gold: #c8a84a;
+  --gold2: #e8cc7a;
+  --red: #df5858;
+  --green: #4ec48a;
+  --blue: #5082d4;
+  --orange: #d47832;
+  --purple: #8855d4;
+  --text: #ede9e0;
+  --text2: #8888aa;
+  --border: rgba(200,168,74,0.14);
+  --radius: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+
+/* ── Login ── */
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:radial-gradient(ellipse at 60% 40%, rgba(200,168,74,0.07) 0%, transparent 60%),linear-gradient(135deg,#0a0a16,#141428,#0a0a16);}
+.login-card{background:var(--bg3);border:1px solid var(--border);border-radius:18px;padding:48px 40px;width:360px;box-shadow:0 24px 64px rgba(0,0,0,0.6);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo-icon{font-size:40px;display:block;margin-bottom:8px;}
+.login-title{font-family:'Playfair Display',serif;font-size:26px;color:var(--gold);text-align:center;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text2);text-align:center;margin-bottom:28px;letter-spacing:.5px;}
+
+/* ── Form elements ── */
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px;}
+.form-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 13px;
+  color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
+.form-input:focus{border-color:var(--gold);}
+select.form-input{cursor:pointer;}
+textarea.form-input{resize:vertical;}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:var(--radius);
+  border:none;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:600;transition:all .2s;white-space:nowrap;}
+.btn-primary{background:var(--gold);color:#0e0e1c;} .btn-primary:hover{background:var(--gold2);}
+.btn-secondary{background:var(--bg3);border:1px solid var(--border);color:var(--text);} .btn-secondary:hover{border-color:var(--gold);}
+.btn-danger{background:rgba(223,88,88,.12);border:1px solid rgba(223,88,88,.28);color:var(--red);} .btn-danger:hover{background:rgba(223,88,88,.22);}
+.btn-success{background:rgba(78,196,138,.12);border:1px solid rgba(78,196,138,.28);color:var(--green);} .btn-success:hover{background:rgba(78,196,138,.22);}
+.btn-warning{background:rgba(212,120,50,.12);border:1px solid rgba(212,120,50,.28);color:var(--orange);} .btn-warning:hover{background:rgba(212,120,50,.22);}
+.btn-full{width:100%;padding:12px 18px;}
+.btn-sm{padding:5px 11px;font-size:13px;}
+.btn-xs{padding:3px 8px;font-size:12px;}
+
+.error-box{background:rgba(223,88,88,.1);border:1px solid rgba(223,88,88,.3);border-radius:var(--radius);padding:9px 13px;color:var(--red);font-size:13px;margin-bottom:14px;display:none;}
+
+/* ── App Layout ── */
+#app{display:none;min-height:100vh;}
+.sidebar{position:fixed;left:0;top:0;width:230px;height:100vh;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:200;overflow-y:auto;}
+.sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid var(--border);}
+.sidebar-logo-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--gold);font-weight:700;}
+.sidebar-logo-sub{font-size:10px;color:var(--text2);margin-top:2px;letter-spacing:1.2px;text-transform:uppercase;}
+.nav-section{padding:10px 0;border-bottom:1px solid var(--border);}
+.nav-section-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);padding:4px 20px 7px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--text2);font-size:14px;
+  font-weight:500;transition:all .2s;border-left:3px solid transparent;}
+.nav-item:hover{color:var(--text);background:rgba(200,168,74,.05);}
+.nav-item.active{color:var(--gold);background:rgba(200,168,74,.08);border-left-color:var(--gold);}
+.nav-icon{font-size:15px;width:18px;text-align:center;}
+.sidebar-footer{margin-top:auto;padding:14px 20px;border-top:1px solid var(--border);}
+.sf-name{font-size:14px;font-weight:600;color:var(--text);}
+.sf-role{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+
+.main-content{margin-left:230px;padding:22px 26px;min-height:100vh;}
+.page{display:none;} .page.active{display:block;}
+.page-title{font-family:'Playfair Display',serif;font-size:24px;color:var(--text);font-weight:600;}
+.page-sub{font-size:13px;color:var(--text2);margin-top:3px;margin-bottom:20px;}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:18px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;text-align:center;}
+.stat-val{font-size:32px;font-weight:700;font-family:'Playfair Display',serif;color:var(--gold);}
+.stat-lbl{font-size:12px;color:var(--text2);margin-top:3px;}
+
+/* ── Room chart ── */
+.floor-block{margin-bottom:20px;}
+.floor-hd{font-size:13px;font-weight:600;color:var(--gold);margin-bottom:9px;display:flex;align-items:center;gap:6px;}
+.rooms-grid{display:flex;flex-wrap:wrap;gap:7px;}
+.room-cell{width:78px;height:58px;border-radius:8px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;cursor:pointer;transition:all .18s;border:2px solid transparent;user-select:none;}
+.room-num{font-size:14px;font-weight:700;}
+.room-type{font-size:8px;text-align:center;line-height:1.2;margin-top:2px;opacity:.85;}
+.room-vacant{background:rgba(78,196,138,.1);border-color:rgba(78,196,138,.28);color:var(--green);}
+.room-vacant:hover{border-color:var(--green);transform:translateY(-2px);}
+.room-occupied{background:rgba(223,88,88,.1);border-color:rgba(223,88,88,.28);color:var(--red);}
+.room-occupied:hover{transform:translateY(-2px);}
+.room-ci{background:rgba(80,130,212,.13);border-color:rgba(80,130,212,.35);color:var(--blue);}
+.room-co{background:rgba(212,120,50,.13);border-color:rgba(212,120,50,.35);color:var(--orange);}
+.room-sel{border-color:var(--gold)!important;box-shadow:0 0 0 2px rgba(200,168,74,.3);background:rgba(200,168,74,.1)!important;color:var(--gold)!important;}
+.room-unavail{background:rgba(100,100,130,.08);border-color:rgba(100,100,130,.2);color:var(--text2);cursor:not-allowed;opacity:.6;}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);}
+.leg-dot{width:11px;height:11px;border-radius:3px;}
+
+/* ── Room picker (smaller) ── */
+.room-picker{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;max-height:300px;overflow-y:auto;}
+.room-picker .room-cell{width:62px;height:48px;}
+.room-picker .room-num{font-size:13px;}
+.room-picker .room-type{font-size:7.5px;}
+
+/* ── Table ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:8px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);
+  border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;}
+td{padding:9px 11px;border-bottom:1px solid rgba(200,168,74,.06);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(200,168,74,.025);}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-green{background:rgba(78,196,138,.14);color:var(--green);}
+.badge-red{background:rgba(223,88,88,.14);color:var(--red);}
+.badge-blue{background:rgba(80,130,212,.14);color:var(--blue);}
+.badge-orange{background:rgba(212,120,50,.14);color:var(--orange);}
+.badge-gold{background:rgba(200,168,74,.14);color:var(--gold);}
+.badge-gray{background:rgba(136,136,170,.14);color:var(--text2);}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;display:flex;
+  align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
+.modal-box{background:var(--bg3);border:1px solid var(--border);border-radius:16px;width:100%;max-width:740px;
+  margin:auto;box-shadow:0 24px 72px rgba(0,0,0,.6);animation:modalIn .18s ease;}
+@keyframes modalIn{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:none;}}
+.modal-hd{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:'Playfair Display',serif;font-size:19px;color:var(--gold);}
+.modal-close{background:none;border:none;color:var(--text2);font-size:19px;cursor:pointer;padding:3px 7px;border-radius:4px;transition:background .15s;}
+.modal-close:hover{background:rgba(255,255,255,.06);color:var(--text);}
+.modal-body{padding:22px 24px;max-height:72vh;overflow-y:auto;}
+.modal-ft{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;}
+
+/* ── Form grid ── */
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.fgfull{grid-column:1/-1;}
+.form-check{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;}
+.form-check input{accent-color:var(--gold);width:15px;height:15px;}
+
+/* ── Action bar ── */
+.action-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+
+/* ── Check-in buttons ── */
+.ci-btns{display:flex;gap:14px;margin-bottom:18px;}
+.ci-btn{flex:1;padding:22px;background:var(--card);border:2px solid var(--border);border-radius:12px;
+  cursor:pointer;text-align:center;transition:all .2s;color:var(--text);}
+.ci-btn:hover{border-color:var(--gold);background:rgba(200,168,74,.05);}
+.ci-btn-icon{font-size:28px;margin-bottom:6px;}
+.ci-btn-lbl{font-size:16px;font-weight:600;}
+.ci-btn-desc{font-size:12px;color:var(--text2);margin-top:3px;}
+
+/* ── Summary chips ── */
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 13px;
+  font-size:13px;display:flex;gap:7px;align-items:center;}
+.chip span{color:var(--gold);font-weight:700;}
+
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+.text-muted{color:var(--text2);}
+.text-gold{color:var(--gold);}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:rgba(200,168,74,.18);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(200,168,74,.35);}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="login-logo-icon">🏨</span>
+    </div>
+    <div class="login-title">Hotel Management</div>
+    <div class="login-sub">ระบบจัดการโรงแรม</div>
+    <div class="error-box" id="login-error">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+    <div class="form-group">
+      <label class="form-label">ชื่อผู้ใช้</label>
+      <input class="form-input" id="lg-user" type="text" placeholder="Username" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label class="form-label">รหัสผ่าน</label>
+      <input class="form-input" id="lg-pass" type="password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-top:6px;" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:14px;">ค่าเริ่มต้น: admin / admin123</p>
+  </div>
+</div>
+
+<!-- ═══════════════ APP ═══════════════ -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-title">🏨 Hotel System</div>
+      <div class="sidebar-logo-sub">Management</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">ภาพรวม</div>
+      <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">📊</span>Dashboard</div>
+      <div class="nav-item" onclick="showPage('roomchart')" id="nav-roomchart"><span class="nav-icon">🗓</span>Room Chart</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">การจอง</div>
+      <div class="nav-item" onclick="showPage('checkin')" id="nav-checkin"><span class="nav-icon">📋</span>Check-In</div>
+      <div class="nav-item" onclick="showPage('guests')" id="nav-guests"><span class="nav-icon">👥</span>Guest In House</div>
+      <div class="nav-item" onclick="showPage('checkout')" id="nav-checkout"><span class="nav-icon">🚪</span>Check-Out</div>
+    </div>
+    <div class="nav-section" id="admin-nav">
+      <div class="nav-section-title">ระบบ</div>
+      <div class="nav-item" onclick="showPage('users')" id="nav-users"><span class="nav-icon">⚙️</span>จัดการผู้ใช้</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sf-name" id="sf-name">-</div>
+      <div class="sf-role" id="sf-role">-</div>
+      <button class="btn btn-secondary btn-full btn-sm" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- ── Dashboard ── -->
+    <div class="page" id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub" id="dash-date"></div>
+      <div class="stats-grid" id="dash-stats"></div>
+      <div class="card">
+        <div class="card-title">ผู้เข้าพักวันนี้</div>
+        <div class="tbl-wrap" id="dash-table"></div>
+      </div>
+    </div>
+
+    <!-- ── Room Chart ── -->
+    <div class="page" id="page-roomchart">
+      <div class="page-title">Room Chart</div>
+      <div class="page-sub">ผังห้องพักทั้งหมด 78 ห้อง — คลิกห้องที่มีผู้พักเพื่อดูข้อมูล</div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(78,196,138,.5)"></div>ว่าง</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(223,88,88,.5)"></div>มีผู้พัก</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(80,130,212,.5)"></div>เช็คอินวันนี้</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(212,120,50,.5)"></div>เช็คเอาท์วันนี้</div>
+      </div>
+      <div id="rc-content"></div>
+    </div>
+
+    <!-- ── Check-In ── -->
+    <div class="page" id="page-checkin">
+      <div class="page-title">Check-In</div>
+      <div class="page-sub">บันทึกการเช็คอินผู้เข้าพัก</div>
+      <div class="chips" id="ci-summary"></div>
+      <div class="ci-btns">
+        <div class="ci-btn" onclick="openCheckinModal(false)">
+          <div class="ci-btn-icon">🛎️</div>
+          <div class="ci-btn-lbl">เช็คอิน</div>
+          <div class="ci-btn-desc">สำหรับผู้เข้าพักรายเดี่ยว</div>
+        </div>
+        <div class="ci-btn" onclick="openCheckinModal(true)">
+          <div class="ci-btn-icon">👥</div>
+          <div class="ci-btn-lbl">เช็คอินกรุ๊ป</div>
+          <div class="ci-btn-desc">เช็คอินหลายห้องพร้อมกัน</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">รายการเช็คอินวันนี้</div>
+        <div class="tbl-wrap" id="ci-today-list"></div>
+      </div>
+    </div>
+
+    <!-- ── Guest In House ── -->
+    <div class="page" id="page-guests">
+      <div class="page-title">Guest In House</div>
+      <div class="page-sub">รายชื่อผู้เข้าพักทั้งหมด</div>
+      <div class="action-bar">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <div>
+            <label class="form-label">วันที่</label>
+            <input type="date" class="form-input" id="gh-date" style="width:175px;" onchange="renderGuests()">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="printDailySummary()">🖨 พิมพ์สรุปประจำวัน</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap" id="gh-table"></div>
+      </div>
+    </div>
+
+    <!-- ── Check-Out ── -->
+    <div class="page" id="page-checkout">
+      <div class="page-title">Check-Out</div>
+      <div class="page-sub">รายการเช็คเอาท์</div>
+      <div class="action-bar">
+        <div></div>
+        <button class="btn btn-warning btn-sm" onclick="openGroupCOModal()">🚪 Check-Out Group</button>
+      </div>
+      <div class="card">
+        <div class="card-title">ผู้เข้าพักที่ยังไม่ได้เช็คเอาท์</div>
+        <div class="tbl-wrap" id="co-table"></div>
+      </div>
+    </div>
+
+    <!-- ── Users ── -->
+    <div class="page" id="page-users">
+      <div class="page-title">จัดการผู้ใช้งาน</div>
+      <div class="page-sub">เพิ่ม-ลบ บัญชีผู้ใช้งานระบบ</div>
+      <div class="action-bar">
+        <div></div>
+        <button class="btn btn-primary btn-sm" onclick="openAddUserModal()">+ เพิ่มผู้ใช้</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap" id="users-table"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════ MODAL ═══════════════ -->
+<div id="modal-overlay" class="modal-overlay" style="display:none;" onclick="overlayClick(event)">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   ROOM DEFINITIONS
+═══════════════════════════════════════ */
+const FLOORS = {
+  2:[201,202,203,204,205,206,207,208,209,210,211,212,214,215],
+  3:[301,302,303,304,305,306,307,308,309,310,311,312,314,315,316,317],
+  4:[401,402,403,404,405,406,407,408,409,410,411,412,414,415,416,417],
+  5:[501,502,503,504,505,506,507,508,509,510,511,512,514,515,516,517],
+  6:[601,602,603,604,605,606,607,608,609,610,611,612,614,615,616,617]
+};
+
+const TYPE_MAP = {
+  204:'Junior Suite Twin',205:'Junior Suite Twin',210:'Junior Suite Twin',211:'Junior Suite Twin',
+  303:'Riverview Suite Twin',304:'Riverview Suite Twin',
+  311:'Junior Suite Twin',312:'Junior Suite Twin',
+  403:'Riverview Suite Dbl',404:'Riverview Suite Dbl',
+  412:'Junior Suite Triple',414:'Junior Suite Twin',
+  503:'Riverview Suite Dbl',504:'Riverview Suite Dbl',
+  512:'Junior Suite Triple',514:'Junior Suite Triple',
+  505:'Superior Twin',507:'Superior Twin',508:'Superior Twin',511:'Superior Twin',
+  603:'Riverview Suite Dbl',604:'Riverview Suite Dbl',
+  612:'Junior Suite Triple',614:'Junior Suite Triple',
+  605:'Superior Twin',
+};
+
+function roomType(n){
+  if(TYPE_MAP[n]) return TYPE_MAP[n];
+  const f=Math.floor(n/100);
+  if(f===5||f===6) return 'Superior Dbl';
+  return 'Superior Twin';
+}
+
+function roomTypeShort(t){
+  return t.replace('Riverview Suite','RV.').replace('Junior Suite','Jr.').replace('Superior','Sup.')
+         .replace(' Twin','Tw').replace(' Dbl','Db').replace(' Triple','Tr');
+}
+
+const ALL_ROOMS = Object.values(FLOORS).flat();
+
+/* ═══════════════════════════════════════
+   STATE & STORAGE
+═══════════════════════════════════════ */
+let ST = {
+  users:[{id:'admin',username:'admin',password:'admin123',name:'Administrator',role:'admin'}],
+  bookings:[],
+  currentUser:null
+};
+
+function save(){
+  try{
+    localStorage.setItem('hms_users',JSON.stringify(ST.users));
+    localStorage.setItem('hms_bookings',JSON.stringify(ST.bookings));
+  }catch(e){}
+}
+function load(){
+  try{
+    const u=localStorage.getItem('hms_users');
+    const b=localStorage.getItem('hms_bookings');
+    if(u) ST.users=JSON.parse(u);
+    if(b) ST.bookings=JSON.parse(b);
+  }catch(e){}
+}
+
+/* ═══════════════════════════════════════
+   DATE HELPERS
+═══════════════════════════════════════ */
+function today(){return new Date().toISOString().slice(0,10);}
+function fmtDate(d){
+  if(!d) return '-';
+  const dt=new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+}
+function nights(a,b){
+  return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
+}
+function inRange(date,from,to){return date>=from && date<to;}
+
+/* ═══════════════════════════════════════
+   AUTH
+═══════════════════════════════════════ */
+function doLogin(){
+  const u=document.getElementById('lg-user').value.trim();
+  const p=document.getElementById('lg-pass').value;
+  const found=ST.users.find(x=>x.username===u&&x.password===p);
+  if(!found){document.getElementById('login-error').style.display='block';return;}
+  document.getElementById('login-error').style.display='none';
+  ST.currentUser=found;
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sf-name').textContent=found.name;
+  document.getElementById('sf-role').textContent=found.role==='admin'?'Admin':'Staff';
+  document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+  showPage('dashboard');
+}
+function doLogout(){
+  ST.currentUser=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-page').style.display='flex';
+  document.getElementById('lg-user').value='';
+  document.getElementById('lg-pass').value='';
+}
+document.getElementById('lg-pass').onkeypress=e=>{if(e.key==='Enter')doLogin();};
+document.getElementById('lg-user').onkeypress=e=>{if(e.key==='Enter')document.getElementById('lg-pass').focus();};
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const nav=document.getElementById('nav-'+page);
+  if(nav) nav.classList.add('active');
+  const renders={dashboard:renderDashboard,roomchart:renderRoomChart,checkin:renderCheckin,
+    guests:renderGuests,checkout:renderCheckout,users:renderUsers};
+  if(renders[page]) renders[page]();
+}
+
+/* ═══════════════════════════════════════
+   ROOM STATUS
+═══════════════════════════════════════ */
+function roomStatus(rn,date){
+  date=date||today();
+  const b=ST.bookings.find(x=>!x.done&&x.rooms.includes(rn)&&inRange(date,x.checkIn,x.checkOut));
+  if(!b) return{s:'vacant'};
+  if(b.checkIn===date) return{s:'ci',b};
+  if(b.checkOut===date) return{s:'co',b};
+  return{s:'occ',b};
+}
+
+function roomAvail(rn,from,to,excId){
+  return !ST.bookings.some(b=>b.id!==excId&&!b.done&&b.rooms.includes(rn)&&b.checkIn<to&&b.checkOut>from);
+}
+
+/* ═══════════════════════════════════════
+   ROOM CELL HTML
+═══════════════════════════════════════ */
+function cellHtml(rn,date,pickMode,selRooms,from,to){
+  const t=roomType(rn);
+  const ts=roomTypeShort(t);
+  let cls,clickAttr='';
+
+  if(pickMode){
+    const avail=from&&to?roomAvail(rn,from,to):true;
+    const sel=selRooms&&selRooms.includes(rn);
+    if(!avail){ cls='room-unavail'; clickAttr='';}
+    else if(sel){ cls='room-sel'; clickAttr=`onclick="toggleRoom(${rn})"`;} 
+    else{ cls='room-vacant'; clickAttr=`onclick="toggleRoom(${rn})"`;} 
+  } else {
+    const{s,b}=roomStatus(rn,date);
+    const tip=b?`title="${b.guestName}"`:'';
+    if(s==='vacant') cls='room-vacant';
+    else if(s==='ci') cls='room-ci';
+    else if(s==='co') cls='room-co';
+    else cls='room-occupied';
+    clickAttr=s!=='vacant'?`onclick="viewFromRoom(${rn})" ${tip}`:'';
+  }
+
+  return `<div class="room-cell ${cls}" ${clickAttr} data-room="${rn}">
+    <div class="room-num">${rn}</div>
+    <div class="room-type">${ts}</div>
+  </div>`;
+}
+
+function floorHtml(floorNums,date,pick,sel,from,to){
+  let html='';
+  for(const [f,rooms] of Object.entries(FLOORS)){
+    html+=`<div class="floor-block"><div class="floor-hd">🏢 ชั้น ${f} (${rooms.length} ห้อง)</div><div class="rooms-grid">`;
+    rooms.forEach(r=>{ html+=cellHtml(r,date,pick,sel,from,to); });
+    html+=`</div></div>`;
+  }
+  return html;
+}
+
+/* ═══════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════ */
+function renderDashboard(){
+  const d=today();
+  document.getElementById('dash-date').textContent='วันที่ '+fmtDate(d);
+  let vac=0,occ=0,ci=0,co=0;
+  ALL_ROOMS.forEach(r=>{
+    const{s}=roomStatus(r,d);
+    if(s==='vacant')vac++;
+    else{occ++;if(s==='ci')ci++;if(s==='co')co++;}
+  });
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-val">${ALL_ROOMS.length}</div><div class="stat-lbl">ห้องทั้งหมด</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--green)">${vac}</div><div class="stat-lbl">ห้องว่าง</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--red)">${occ}</div><div class="stat-lbl">มีผู้พัก</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${ci}</div><div class="stat-lbl">เช็คอินวันนี้</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${co}</div><div class="stat-lbl">เช็คเอาท์วันนี้</div></div>
+  `;
+  const bks=ST.bookings.filter(b=>!b.done&&inRange(d,b.checkIn,b.checkOut));
+  if(!bks.length){
+    document.getElementById('dash-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้เข้าพักวันนี้</p>';
+    return;
+  }
+  let rows='';
+  bks.forEach(b=>{
+    const n=nights(b.checkIn,b.checkOut);
+    const tot=calcTotal(b);
+    rows+=`<tr>
+      <td><strong>${b.rooms.join(', ')}</strong></td>
+      <td>${b.guestName}</td>
+      <td>${b.company||'-'}</td>
+      <td>${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</td>
+      <td>${n}</td>
+      <td>${b.includeBreakfast?b.breakfastCount+' ท่าน':'-'}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${tot.toLocaleString()}</td>
+      <td>${payLabel(b.payment)}</td>
+      <td><button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button></td>
+    </tr>`;
+  });
+  document.getElementById('dash-table').innerHTML=`<table>
+    <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันที่</th><th>คืน</th><th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+/* ═══════════════════════════════════════
+   ROOM CHART
+═══════════════════════════════════════ */
+function renderRoomChart(){
+  document.getElementById('rc-content').innerHTML=floorHtml(FLOORS,today(),false,null,null,null);
+}
+
+function viewFromRoom(rn){
+  const d=today();
+  const b=ST.bookings.find(x=>!x.done&&x.rooms.includes(rn)&&inRange(d,x.checkIn,x.checkOut));
+  if(b) viewBooking(b.id);
+}
+
+/* ═══════════════════════════════════════
+   CHECK-IN PAGE
+═══════════════════════════════════════ */
+function renderCheckin(){
+  const d=today();
+  let vac=0,occ=0,ciToday=0;
+  ALL_ROOMS.forEach(r=>{
+    const{s}=roomStatus(r,d);
+    if(s==='vacant')vac++;else{occ++;if(s==='ci')ciToday++;}
+  });
+  document.getElementById('ci-summary').innerHTML=`
+    <div class="chip">ห้องว่าง <span>${vac}</span></div>
+    <div class="chip">มีผู้พัก <span>${occ}</span></div>
+    <div class="chip">เช็คอินวันนี้ <span>${ciToday}</span></div>
+  `;
+  const todayBks=ST.bookings.filter(b=>!b.done&&b.checkIn===d);
+  if(!todayBks.length){
+    document.getElementById('ci-today-list').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ยังไม่มีการเช็คอินวันนี้</p>';
+    return;
+  }
+  let rows='';
+  todayBks.forEach(b=>{
+    rows+=`<tr>
+      <td><strong>${b.rooms.join(', ')}</strong></td>
+      <td>${b.guestName}</td>
+      <td>${b.company||'-'}</td>
+      <td>${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</td>
+      <td>${nights(b.checkIn,b.checkOut)}</td>
+      <td>${payLabel(b.payment)}</td>
+      <td><button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button></td>
+    </tr>`;
+  });
+  document.getElementById('ci-today-list').innerHTML=`<table>
+    <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันที่</th><th>คืน</th><th>ชำระ</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+/* ═══════════════════════════════════════
+   CHECK-IN MODAL
+═══════════════════════════════════════ */
+let pickRooms=[];
+let pickIsGroup=false;
+
+function openCheckinModal(isGroup){
+  pickRooms=[];
+  pickIsGroup=isGroup;
+  const d=today();
+  const tom=new Date();tom.setDate(tom.getDate()+1);
+  const tStr=tom.toISOString().slice(0,10);
+
+  showModal(`
+    <div class="modal-hd">
+      <div class="modal-title">${isGroup?'👥 เช็คอินกรุ๊ป':'🛎️ เช็คอิน'}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg2">
+        <div class="form-group fgfull"><label class="form-label">ชื่อ-นามสกุล ผู้เข้าพัก *</label>
+          <input class="form-input" id="f-name" placeholder="ชื่อ-นามสกุล"></div>
+        <div class="form-group"><label class="form-label">สัญชาติ</label>
+          <input class="form-input" id="f-nat" value="ไทย"></div>
+        <div class="form-group"><label class="form-label">หน่วยงาน / บริษัท</label>
+          <input class="form-input" id="f-co" placeholder="ชื่อบริษัท"></div>
+        <div class="form-group"><label class="form-label">เบอร์โทรศัพท์</label>
+          <input class="form-input" id="f-tel" placeholder="0xx-xxx-xxxx" type="tel"></div>
+        <div class="form-group"><label class="form-label">วันที่เข้าพัก *</label>
+          <input type="date" class="form-input" id="f-ci" value="${d}" oninput="refreshPicker()"></div>
+        <div class="form-group"><label class="form-label">วันที่ออก *</label>
+          <input type="date" class="form-input" id="f-co2" value="${tStr}" oninput="refreshPicker()"></div>
+      </div>
+      <div id="f-nights" style="font-size:13px;color:var(--gold);font-weight:600;margin:-6px 0 12px;"></div>
+
+      <div class="form-group">
+        <label class="form-label">เลือกห้องพัก * ${isGroup?'(เลือกได้หลายห้อง)':'(คลิกเลือก 1 ห้อง)'}</label>
+        <div class="room-picker" id="f-picker">${floorHtml(FLOORS,d,true,[], d, tStr)}</div>
+        <div id="f-sel-rooms" style="margin-top:7px;font-size:13px;color:var(--gold);">ยังไม่ได้เลือกห้อง</div>
+      </div>
+
+      <div class="fg2" style="margin-top:14px;">
+        <div class="form-group"><label class="form-label">ราคาห้องพัก / คืน / ห้อง (บาท)</label>
+          <input type="number" class="form-input" id="f-rprice" placeholder="0" oninput="calcDisplay()"></div>
+        <div class="form-group"><label class="form-label">ราคาอาหารเช้า / ท่าน / วัน (บาท)</label>
+          <input type="number" class="form-input" id="f-bfprice" placeholder="0" oninput="calcDisplay()"></div>
+        <div class="form-group"><label class="form-label">ผู้ใหญ่</label>
+          <input type="number" class="form-input" id="f-adults" value="1" min="1"></div>
+        <div class="form-group"><label class="form-label">เด็ก</label>
+          <input type="number" class="form-input" id="f-children" value="0" min="0"></div>
+      </div>
+
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:10px 0 6px;">
+        <label class="form-check">
+          <input type="checkbox" id="f-bf" onchange="toggleBF()"> รวมอาหารเช้า
+        </label>
+        <div id="f-bfc-wrap" style="display:none;align-items:center;gap:8px;">
+          <input type="number" class="form-input" id="f-bfc" value="1" min="1" style="width:70px;" oninput="calcDisplay()"> ท่าน
+        </div>
+        <label class="form-check">
+          <input type="checkbox" id="f-nobf"> ไม่รวมอาหารเช้า
+        </label>
+        <label class="form-check">
+          <input type="checkbox" id="f-extra"> เตียงเสริม
+        </label>
+      </div>
+
+      <div id="f-total" style="font-size:14px;font-weight:600;color:var(--gold);margin:8px 0;"></div>
+
+      <div class="form-group">
+        <label class="form-label">การชำระเงิน *</label>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:7px;">
+          <label class="form-check"><input type="radio" name="f-pay" value="cash"> เงินสด</label>
+          <label class="form-check"><input type="radio" name="f-pay" value="card"> เครดิตการ์ด</label>
+          <label class="form-check"><input type="radio" name="f-pay" value="transfer"> โอนเงิน</label>
+          <label class="form-check"><input type="radio" name="f-pay" value="pending"> รอเรียกเก็บ</label>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:10px;">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea class="form-input" id="f-note" rows="2" placeholder="หมายเหตุ"></textarea>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveCheckin()">✅ บันทึกเช็คอิน</button>
+    </div>
+  `);
+  refreshPicker();
+}
+
+function toggleBF(){
+  const on=document.getElementById('f-bf').checked;
+  document.getElementById('f-bfc-wrap').style.display=on?'flex':'none';
+  if(on) document.getElementById('f-nobf').checked=false;
+  calcDisplay();
+}
+
+function refreshPicker(){
+  const ci=val('f-ci')||today();
+  const co=val('f-co2');
+  const p=document.getElementById('f-picker');
+  if(!p) return;
+  p.innerHTML=floorHtml(FLOORS,ci,true,pickRooms,ci,co);
+  const n=ci&&co?nights(ci,co):0;
+  const el=document.getElementById('f-nights');
+  if(el) el.textContent=n>0?`จำนวน ${n} คืน`:'';
+  calcDisplay();
+}
+
+function toggleRoom(rn){
+  if(!pickIsGroup){
+    pickRooms=[rn];
+  } else {
+    const i=pickRooms.indexOf(rn);
+    if(i>=0) pickRooms.splice(i,1); else pickRooms.push(rn);
+  }
+  refreshPicker();
+  const el=document.getElementById('f-sel-rooms');
+  if(el) el.textContent=pickRooms.length?'ห้องที่เลือก: '+pickRooms.join(', '):'ยังไม่ได้เลือกห้อง';
+}
+
+function calcDisplay(){
+  const ci=val('f-ci'),co=val('f-co2');
+  const rp=parseFloat(val('f-rprice'))||0;
+  const bp=parseFloat(val('f-bfprice'))||0;
+  const bc=parseInt(val('f-bfc'))||0;
+  const bf=chk('f-bf');
+  const el=document.getElementById('f-total');
+  if(!el||!ci||!co) return;
+  const n=nights(ci,co);
+  if(n<=0){el.textContent='';return;}
+  const nr=pickRooms.length||1;
+  const rT=rp*n*nr, bT=bf?bp*bc*n:0;
+  el.textContent=`ราคารวม: ${(rT+bT).toLocaleString()} บาท  (ห้อง ${rT.toLocaleString()} + อาหารเช้า ${bT.toLocaleString()})`;
+}
+
+function saveCheckin(){
+  const name=val('f-name').trim();
+  const ci=val('f-ci'), co=val('f-co2');
+  const pay=document.querySelector('input[name="f-pay"]:checked')?.value;
+  if(!name){alert('กรุณาใส่ชื่อผู้เข้าพัก');return;}
+  if(!ci||!co||nights(ci,co)<=0){alert('กรุณาระบุวันที่ให้ถูกต้อง');return;}
+  if(!pickRooms.length){alert('กรุณาเลือกห้องพัก');return;}
+  if(!pay){alert('กรุณาเลือกประเภทการชำระเงิน');return;}
+  for(const r of pickRooms){
+    if(!roomAvail(r,ci,co)){alert(`ห้อง ${r} ถูกจองในช่วงวันนั้นแล้ว`);return;}
+  }
+  const b={
+    id:'B'+Date.now()+Math.random().toString(36).slice(2,5).toUpperCase(),
+    rooms:[...pickRooms],
+    guestName:name,
+    nationality:val('f-nat'),
+    company:val('f-co'),
+    phone:val('f-tel'),
+    checkIn:ci, checkOut:co,
+    roomPrice:parseFloat(val('f-rprice'))||0,
+    breakfastPrice:parseFloat(val('f-bfprice'))||0,
+    adults:parseInt(val('f-adults'))||1,
+    children:parseInt(val('f-children'))||0,
+    includeBreakfast:chk('f-bf'),
+    breakfastCount:parseInt(val('f-bfc'))||0,
+    extraBed:chk('f-extra'),
+    payment:pay,
+    remarks:val('f-note'),
+    done:false,
+    isGroup:pickIsGroup,
+    checkedBy:ST.currentUser.username,
+    checkedAt:new Date().toISOString()
+  };
+  ST.bookings.push(b);
+  save();
+  closeModal();
+  renderCheckin();
+  alert('✅ บันทึกการเช็คอินเรียบร้อย\nห้อง: '+b.rooms.join(', '));
+}
+
+/* ═══════════════════════════════════════
+   GUEST IN HOUSE
+═══════════════════════════════════════ */
+function renderGuests(){
+  const el=document.getElementById('gh-date');
+  if(!el.value) el.value=today();
+  const d=el.value;
+  const bks=ST.bookings.filter(b=>!b.done&&inRange(d,b.checkIn,b.checkOut));
+  if(!bks.length){
+    document.getElementById('gh-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้เข้าพักในวันที่เลือก</p>';
+    return;
+  }
+  let rows='',grand=0;
+  bks.forEach(b=>{
+    const tot=calcTotal(b); grand+=tot;
+    const n=nights(b.checkIn,b.checkOut);
+    rows+=`<tr>
+      <td><strong>${b.rooms.join(', ')}</strong></td>
+      <td>${b.guestName}<br><small class="text-muted">${b.nationality||''}</small></td>
+      <td>${b.company||'-'}</td>
+      <td>${fmtDate(b.checkIn)}</td>
+      <td>${fmtDate(b.checkOut)}</td>
+      <td style="text-align:center;">${n}</td>
+      <td style="text-align:center;">${b.includeBreakfast?b.breakfastCount+' ท่าน':'-'}</td>
+      <td style="text-align:right;">${b.roomPrice?.toLocaleString()||'-'}</td>
+      <td style="text-align:right;">${b.includeBreakfast?b.breakfastPrice?.toLocaleString()||'-':'-'}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${tot.toLocaleString()}</td>
+      <td>${payLabel(b.payment)}</td>
+      <td><button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู/พิมพ์</button></td>
+    </tr>`;
+  });
+  document.getElementById('gh-table').innerHTML=`
+    <table>
+      <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>เข้าพัก</th><th>ออก</th>
+        <th>คืน</th><th>อาหารเช้า</th><th>ราคาห้อง</th><th>ราคา BF</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="9" style="text-align:right;color:var(--text2);font-size:12px;padding:8px 11px;">ยอดรวม</td>
+        <td style="text-align:right;color:var(--gold);font-weight:700;font-size:14px;">${grand.toLocaleString()}</td>
+        <td colspan="2"></td></tr></tfoot>
+    </table>`;
+}
+
+/* ═══════════════════════════════════════
+   VIEW BOOKING
+═══════════════════════════════════════ */
+function viewBooking(id){
+  const b=ST.bookings.find(x=>x.id===id);
+  if(!b) return;
+  const n=nights(b.checkIn,b.checkOut);
+  const rT=b.roomPrice*n*b.rooms.length;
+  const bT=b.includeBreakfast?b.breakfastPrice*b.breakfastCount*n:0;
+  const tot=rT+bT;
+  showModal(`
+    <div class="modal-hd">
+      <div class="modal-title">🛎️ ข้อมูลผู้เข้าพัก</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg2">
+        <div><div class="form-label">ชื่อผู้เข้าพัก</div><div style="font-size:16px;font-weight:700;">${b.guestName}</div></div>
+        <div><div class="form-label">สัญชาติ</div><div>${b.nationality||'-'}</div></div>
+        <div><div class="form-label">บริษัท / หน่วยงาน</div><div>${b.company||'-'}</div></div>
+        <div><div class="form-label">เบอร์โทรศัพท์</div><div>${b.phone||'-'}</div></div>
+        <div><div class="form-label">ห้องพัก</div><div style="font-size:16px;font-weight:700;color:var(--gold);">${b.rooms.join(', ')}</div></div>
+        <div><div class="form-label">ประเภทห้อง</div><div style="font-size:13px;">${[...new Set(b.rooms.map(r=>roomType(r)))].join(' / ')}</div></div>
+        <div><div class="form-label">วันเข้าพัก</div><div>${fmtDate(b.checkIn)}</div></div>
+        <div><div class="form-label">วันออก</div><div>${fmtDate(b.checkOut)}</div></div>
+        <div><div class="form-label">จำนวนคืน</div><div style="font-size:20px;font-weight:700;color:var(--gold);">${n} คืน</div></div>
+        <div><div class="form-label">ผู้ใหญ่ / เด็ก</div><div>${b.adults} / ${b.children}</div></div>
+        <div><div class="form-label">ราคาห้องพัก / คืน</div><div>${b.roomPrice?.toLocaleString()||0} บาท</div></div>
+        <div><div class="form-label">อาหารเช้า</div><div>${b.includeBreakfast?b.breakfastCount+' ท่าน × '+b.breakfastPrice?.toLocaleString()+' บาท':'ไม่รวม'}</div></div>
+        <div><div class="form-label">เตียงเสริม</div><div>${b.extraBed?'✅ มี':'-'}</div></div>
+        <div><div class="form-label">การชำระเงิน</div><div>${payLabel(b.payment)}</div></div>
+      </div>
+      <hr class="divider">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:13px;color:var(--text2);">
+          <div>ราคาห้อง: ${rT.toLocaleString()} บาท</div>
+          <div>ราคาอาหารเช้า: ${bT.toLocaleString()} บาท</div>
+        </div>
+        <div style="font-size:22px;font-weight:700;color:var(--gold);">รวม ${tot.toLocaleString()} บาท</div>
+      </div>
+      ${b.remarks?`<div style="margin-top:10px;padding:9px 12px;background:var(--bg2);border-radius:6px;font-size:13px;color:var(--text2);">หมายเหตุ: ${b.remarks}</div>`:''}
+      <hr class="divider">
+      <div style="font-size:12px;color:var(--text2);">บันทึกโดย: ${b.checkedBy} | ${new Date(b.checkedAt).toLocaleString('th-TH')}</div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="printBooking('${b.id}')">🖨 พิมพ์</button>
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
+    </div>
+  `);
+}
+
+/* ═══════════════════════════════════════
+   CHECK-OUT
+═══════════════════════════════════════ */
+function renderCheckout(){
+  const d=today();
+  const active=ST.bookings.filter(b=>!b.done&&b.checkIn<=d&&b.checkOut>=d);
+  if(!active.length){
+    document.getElementById('co-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีรายการที่ต้องเช็คเอาท์</p>';
+    return;
+  }
+  let rows='';
+  active.forEach(b=>{
+    const n=nights(b.checkIn,b.checkOut);
+    const tot=calcTotal(b);
+    const dueToday=b.checkOut===d;
+    rows+=`<tr>
+      <td><strong>${b.rooms.join(', ')}</strong></td>
+      <td>${b.guestName}</td>
+      <td>${b.company||'-'}</td>
+      <td>${fmtDate(b.checkIn)}</td>
+      <td>${dueToday?`<span style="color:var(--orange);font-weight:700;">${fmtDate(b.checkOut)} ⚠️</span>`:fmtDate(b.checkOut)}</td>
+      <td>${n}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${tot.toLocaleString()}</td>
+      <td>${payLabel(b.payment)}</td>
+      <td>
+        <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
+        <button class="btn btn-xs btn-danger" style="margin-left:4px;" onclick="doCheckout('${b.id}')">Check-Out</button>
+      </td>
+    </tr>`;
+  });
+  document.getElementById('co-table').innerHTML=`<table>
+    <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>เข้าพัก</th><th>วันออก</th><th>คืน</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function doCheckout(id){
+  if(!confirm('ยืนยันการเช็คเอาท์?')) return;
+  const b=ST.bookings.find(x=>x.id===id);
+  if(b){b.done=true;b.checkedOutBy=ST.currentUser.username;b.checkedOutAt=new Date().toISOString();}
+  save();
+  renderCheckout();
+  alert('✅ เช็คเอาท์เรียบร้อย');
+}
+
+function openGroupCOModal(){
+  const d=today();
+  const active=ST.bookings.filter(b=>!b.done&&b.checkIn<=d&&b.checkOut>=d);
+  if(!active.length){alert('ไม่มีรายการที่ต้องเช็คเอาท์');return;}
+  let rows='';
+  active.forEach(b=>{
+    rows+=`<tr>
+      <td><input type="checkbox" class="grp-co" value="${b.id}" style="accent-color:var(--gold);width:15px;height:15px;"></td>
+      <td>${b.rooms.join(', ')}</td><td>${b.guestName}</td><td>${fmtDate(b.checkOut)}</td>
+    </tr>`;
+  });
+  showModal(`
+    <div class="modal-hd"><div class="modal-title">🚪 Check-Out Group</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;">
+        <input type="checkbox" id="sel-all" onchange="selAll(this)" style="accent-color:var(--gold);width:15px;height:15px;">
+        <span style="font-size:13px;color:var(--gold);font-weight:600;">เลือกทั้งหมด</span>
+      </label>
+      <div class="tbl-wrap">
+        <table><thead><tr><th></th><th>ห้อง</th><th>ชื่อ</th><th>วันออก</th></tr></thead><tbody>${rows}</tbody></table>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="doGroupCO()">🚪 เช็คเอาท์ที่เลือก</button>
+    </div>
+  `);
+}
+function selAll(cb){document.querySelectorAll('.grp-co').forEach(c=>c.checked=cb.checked);}
+function doGroupCO(){
+  const sel=[...document.querySelectorAll('.grp-co:checked')].map(c=>c.value);
+  if(!sel.length){alert('กรุณาเลือกรายการ');return;}
+  if(!confirm(`ยืนยันการเช็คเอาท์ ${sel.length} รายการ?`)) return;
+  sel.forEach(id=>{
+    const b=ST.bookings.find(x=>x.id===id);
+    if(b){b.done=true;b.checkedOutBy=ST.currentUser.username;b.checkedOutAt=new Date().toISOString();}
+  });
+  save();closeModal();renderCheckout();
+  alert(`✅ เช็คเอาท์ ${sel.length} รายการเรียบร้อย`);
+}
+
+/* ═══════════════════════════════════════
+   USERS
+═══════════════════════════════════════ */
+function renderUsers(){
+  let rows='';
+  ST.users.forEach(u=>{
+    rows+=`<tr>
+      <td>${u.username}</td><td>${u.name}</td>
+      <td><span class="badge ${u.role==='admin'?'badge-gold':'badge-blue'}">${u.role}</span></td>
+      <td>${u.id!=='admin'?`<button class="btn btn-xs btn-danger" onclick="delUser('${u.id}')">ลบ</button>`:'<span class="text-muted">-</span>'}</td>
+    </tr>`;
+  });
+  document.getElementById('users-table').innerHTML=`<table>
+    <thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ</th><th>บทบาท</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+function openAddUserModal(){
+  showModal(`
+    <div class="modal-hd"><div class="modal-title">+ เพิ่มผู้ใช้</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">ชื่อผู้ใช้</label><input class="form-input" id="nu-usr"></div>
+      <div class="form-group"><label class="form-label">ชื่อ-นามสกุล</label><input class="form-input" id="nu-name"></div>
+      <div class="form-group"><label class="form-label">รหัสผ่าน</label><input class="form-input" type="password" id="nu-pass"></div>
+      <div class="form-group"><label class="form-label">บทบาท</label>
+        <select class="form-input" id="nu-role"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveUser()">บันทึก</button>
+    </div>
+  `);
+}
+function saveUser(){
+  const usr=val('nu-usr').trim(),name=val('nu-name').trim(),pass=val('nu-pass'),role=val('nu-role');
+  if(!usr||!name||!pass){alert('กรุณากรอกข้อมูลให้ครบ');return;}
+  if(ST.users.find(u=>u.username===usr)){alert('ชื่อผู้ใช้นี้มีอยู่แล้ว');return;}
+  ST.users.push({id:'U'+Date.now(),username:usr,name,password:pass,role});
+  save();closeModal();renderUsers();
+}
+function delUser(id){
+  if(!confirm('ยืนยันการลบผู้ใช้?')) return;
+  ST.users=ST.users.filter(u=>u.id!==id);
+  save();renderUsers();
+}
+
+/* ═══════════════════════════════════════
+   PRINT
+═══════════════════════════════════════ */
+function printDailySummary(){
+  const d=document.getElementById('gh-date').value||today();
+  const bks=ST.bookings.filter(b=>!b.done&&inRange(d,b.checkIn,b.checkOut));
+  let rows='',grand=0;
+  bks.forEach(b=>{
+    const n=nights(b.checkIn,b.checkOut);
+    const rT=b.roomPrice*n*b.rooms.length;
+    const bT=b.includeBreakfast?b.breakfastPrice*b.breakfastCount*n:0;
+    const tot=rT+bT; grand+=tot;
+    rows+=`<tr>
+      <td>${b.rooms.join(', ')}</td><td>${b.guestName}</td><td>${fmtDate(b.checkIn)}</td>
+      <td>${fmtDate(b.checkOut)}</td><td>${n}</td>
+      <td>${b.includeBreakfast?b.breakfastCount+' ท่าน':'-'}</td>
+      <td>${b.roomPrice?.toLocaleString()||0}</td>
+      <td>${b.includeBreakfast?b.breakfastPrice?.toLocaleString()||0:'-'}</td>
+      <td>${tot.toLocaleString()}</td><td>${b.company||'-'}</td>
+    </tr>`;
+  });
+  openPrint(`
+    <h2 style="text-align:center;margin-bottom:4px;">สรุปรายงานประจำวัน</h2>
+    <p style="text-align:center;color:#666;margin-bottom:16px;">วันที่ ${fmtDate(d)} | จำนวน ${bks.length} ห้อง | จัดทำโดย ${ST.currentUser.name} | ${new Date().toLocaleString('th-TH')}</p>
+    <table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:13px;">
+      <thead style="background:#f0f0f0;">
+        <tr><th>ห้อง</th><th>ชื่อผู้เข้าพัก</th><th>วันเข้า</th><th>วันออก</th><th>คืน</th>
+          <th>อาหารเช้า</th><th>ราคาห้อง</th><th>ราคา BF</th><th>รวม(บาท)</th><th>บริษัท</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="8" align="right"><strong>ยอดรวมทั้งหมด</strong></td>
+        <td><strong>${grand.toLocaleString()}</strong></td><td></td></tr></tfoot>
+    </table>
+  `);
+}
+
+function printBooking(id){
+  const b=ST.bookings.find(x=>x.id===id);
+  if(!b) return;
+  const n=nights(b.checkIn,b.checkOut);
+  const rT=b.roomPrice*n*b.rooms.length;
+  const bT=b.includeBreakfast?b.breakfastPrice*b.breakfastCount*n:0;
+  const tot=rT+bT;
+  openPrint(`
+    <h2 style="text-align:center;margin-bottom:4px;">ข้อมูลผู้เข้าพัก</h2>
+    <p style="text-align:center;color:#666;margin-bottom:20px;">รหัสการจอง: ${b.id}</p>
+    <table style="font-size:14px;width:100%;border-collapse:collapse;">
+      <tr><td style="padding:6px;color:#666;width:160px;">ชื่อผู้เข้าพัก</td><td style="padding:6px;font-weight:700;">${b.guestName}</td></tr>
+      <tr><td style="padding:6px;color:#666;">สัญชาติ</td><td style="padding:6px;">${b.nationality||'-'}</td></tr>
+      <tr><td style="padding:6px;color:#666;">บริษัท/หน่วยงาน</td><td style="padding:6px;">${b.company||'-'}</td></tr>
+      <tr><td style="padding:6px;color:#666;">เบอร์โทร</td><td style="padding:6px;">${b.phone||'-'}</td></tr>
+      <tr><td style="padding:6px;color:#666;">ห้องพัก</td><td style="padding:6px;font-weight:700;">${b.rooms.join(', ')}</td></tr>
+      <tr><td style="padding:6px;color:#666;">ประเภทห้อง</td><td style="padding:6px;">${[...new Set(b.rooms.map(r=>roomType(r)))].join(', ')}</td></tr>
+      <tr><td style="padding:6px;color:#666;">วันเข้าพัก</td><td style="padding:6px;">${fmtDate(b.checkIn)}</td></tr>
+      <tr><td style="padding:6px;color:#666;">วันออก</td><td style="padding:6px;">${fmtDate(b.checkOut)}</td></tr>
+      <tr><td style="padding:6px;color:#666;">จำนวนคืน</td><td style="padding:6px;font-weight:700;">${n} คืน</td></tr>
+      <tr><td style="padding:6px;color:#666;">ผู้ใหญ่/เด็ก</td><td style="padding:6px;">${b.adults} / ${b.children}</td></tr>
+      <tr><td style="padding:6px;color:#666;">ราคาห้องพัก/คืน</td><td style="padding:6px;">${b.roomPrice?.toLocaleString()||0} บาท</td></tr>
+      <tr><td style="padding:6px;color:#666;">อาหารเช้า</td><td style="padding:6px;">${b.includeBreakfast?b.breakfastCount+' ท่าน × '+b.breakfastPrice?.toLocaleString()+' บาท':'ไม่รวม'}</td></tr>
+      <tr><td style="padding:6px;color:#666;">เตียงเสริม</td><td style="padding:6px;">${b.extraBed?'มี':'-'}</td></tr>
+      <tr><td style="padding:6px;color:#666;">การชำระเงิน</td><td style="padding:6px;">${payLabelText(b.payment)}</td></tr>
+    </table>
+    <hr style="margin:16px 0;border:1px solid #eee;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:13px;color:#666;"><div>ราคาห้อง: ${rT.toLocaleString()} บาท</div><div>ราคาอาหารเช้า: ${bT.toLocaleString()} บาท</div></div>
+      <div style="font-size:22px;font-weight:700;">ยอดรวม: ${tot.toLocaleString()} บาท</div>
+    </div>
+    ${b.remarks?`<p style="margin-top:12px;font-size:13px;color:#666;">หมายเหตุ: ${b.remarks}</p>`:''}
+    <hr style="margin:12px 0;border:1px solid #eee;">
+    <p style="font-size:12px;color:#999;">บันทึกโดย: ${b.checkedBy} | ${new Date(b.checkedAt).toLocaleString('th-TH')}</p>
+  `);
+}
+
+function openPrint(body){
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>body{font-family:'Sarabun',sans-serif;padding:20px;}@media print{body{padding:0;}}</style>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    </head><body>${body}<script>window.onload=()=>{window.print()}<\/script></body></html>`);
+  w.document.close();
+}
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+function calcTotal(b){
+  const n=nights(b.checkIn,b.checkOut);
+  const rT=(b.roomPrice||0)*n*b.rooms.length;
+  const bT=b.includeBreakfast?(b.breakfastPrice||0)*(b.breakfastCount||0)*n:0;
+  return rT+bT;
+}
+function payLabel(p){
+  return{cash:'💵 เงินสด',card:'💳 เครดิตการ์ด',transfer:'🏦 โอนเงิน',pending:'⏳ รอเรียกเก็บ'}[p]||p||'-';
+}
+function payLabelText(p){
+  return{cash:'เงินสด',card:'เครดิตการ์ด',transfer:'โอนเงิน',pending:'รอเรียกเก็บ'}[p]||p||'-';
+}
+function val(id){const e=document.getElementById(id);return e?e.value:'';}
+function chk(id){const e=document.getElementById(id);return e?e.checked:false;}
+function showModal(html){
+  document.getElementById('modal-box').innerHTML=html;
+  document.getElementById('modal-overlay').style.display='flex';
+}
+function closeModal(){document.getElementById('modal-overlay').style.display='none';}
+function overlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+load();
+</script>
+</body>
+</html>
