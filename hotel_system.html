@@ -256,7 +256,20 @@ tfoot td{border-top:1px solid var(--border);}
         <button class="btn btn-primary btn-sm" onclick="openResModal(null)">+ สร้างการจอง</button>
       </div>
 
-      <!-- รายการจองทั้งหมด -->
+      <!-- Guest Arrival (บนสุด) -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div class="section-title" style="margin-bottom:0;">✈️ Guest Arrival</div>
+          <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+            <div><label class="form-label">วันที่เข้าพัก</label>
+              <input type="date" class="form-input" id="arr-date" style="width:180px;" oninput="renderArrival()"></div>
+            <button class="btn btn-secondary btn-sm" onclick="printArrival()">🖨 พิมพ์</button>
+          </div>
+        </div>
+        <div class="tbl-wrap" id="arr-table"></div>
+      </div>
+
+      <!-- รายการจองทั้งหมด (ล่าง) -->
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           <div class="card-title" style="margin-bottom:0;">รายการจองทั้งหมด</div>
@@ -271,19 +284,6 @@ tfoot td{border-top:1px solid var(--border);}
           </div>
         </div>
         <div class="tbl-wrap" id="res-table"></div>
-      </div>
-
-      <!-- Guest Arrival -->
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-          <div class="section-title" style="margin-bottom:0;">✈️ Guest Arrival</div>
-          <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
-            <div><label class="form-label">วันที่เข้าพัก</label>
-              <input type="date" class="form-input" id="arr-date" style="width:180px;" oninput="renderArrival()"></div>
-            <button class="btn btn-secondary btn-sm" onclick="printArrival()">🖨 พิมพ์</button>
-          </div>
-        </div>
-        <div class="tbl-wrap" id="arr-table"></div>
       </div>
     </div>
 
@@ -634,14 +634,24 @@ function printRoomChart(){
 ════════════════════════════════════════ */
 function renderReservation(){
   const rCnt=ST.bookings.filter(b=>b.status===S_RES).length;
-  const cCnt=ST.bookings.filter(b=>b.status===S_CI).length;
+  // อาหารเช้ารวม: breakfastPerRoom × จำนวนห้อง (จากทุก booking ที่ status=reserved)
+  let totalBfPersons=0;
+  ST.bookings.filter(b=>b.status===S_RES&&b.includeBreakfast).forEach(b=>{
+    const nr=numRooms(b);
+    totalBfPersons+=(parseInt(b.breakfastPerRoom)||0)*nr;
+  });
   document.getElementById('res-chips').innerHTML=`
-    <div class="chip">รอเช็คอิน <span>${rCnt}</span></div>
-    <div class="chip">เช็คอินแล้ว <span>${cCnt}</span></div>`;
+    <div class="chip">รอเช็คอิน <span>${rCnt}</span> รายการ</div>
+    <div class="chip">อาหารเช้ารวม <span>${totalBfPersons}</span> ท่าน</div>`;
 
   const filter=document.getElementById('res-filter').value;
+  // Default: show only reserved (not checkedin) unless filter is explicitly set
   let bks=[...ST.bookings];
-  if(filter) bks=bks.filter(b=>b.status===filter);
+  if(filter===''){
+    bks=bks.filter(b=>b.status===S_RES);
+  } else {
+    bks=bks.filter(b=>b.status===filter);
+  }
   bks.sort((a,b)=>a.checkIn.localeCompare(b.checkIn));
 
   if(!bks.length){
@@ -656,7 +666,7 @@ function renderReservation(){
         <td>${b.company||'-'}</td>
         <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
         <td>${roomsDisplay(b)}</td>
-        <td>${b.includeBreakfast?(b.adults||0)+' ท่าน':'-'}</td>
+        <td>${b.includeBreakfast?((parseInt(b.breakfastPerRoom)||0)*numRooms(b))+' ท่าน':'-'}</td>
         <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
         <td>${payLabel(b.payment)}</td>
         <td style="white-space:nowrap;">
@@ -694,7 +704,7 @@ function renderArrival(){
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
       <td><strong>${b.guestName}</strong></td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${nights(b.checkIn,b.checkOut)}</td>
-      <td>${b.includeBreakfast?(b.adults||0)+' ท่าน':'-'}</td>
+      <td>${b.includeBreakfast?((parseInt(b.breakfastPerRoom)||0)*numRooms(b))+' ท่าน':'-'}</td>
       <td style="text-align:right;">${t.toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td>${b.status===S_RES?`<button class="btn btn-xs btn-success" onclick="doCheckinAction('${b.id}')">เช็คอิน</button>`:''}</td>
@@ -777,7 +787,9 @@ function openResModal(id){
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">เลือกหมายเลขห้องจากผังด้านล่าง หรือระบุแค่จำนวนในช่องราคาก็ได้</div>
       <div class="room-picker" id="f-picker">${floorsHtml(ciVal,true,pickRooms,ciVal,coVal,editingId)}</div>
       <div id="f-sel-rooms" style="margin-top:6px;font-size:13px;color:var(--gold);min-height:18px;">
-        ${pickRooms.length?'ห้องที่เลือก: '+[...pickRooms].sort((a,x)=>a-x).join(', '):'ยังไม่ได้เลือกหมายเลขห้อง'}</div>
+        ${pickRooms.length
+          ?`ห้องที่เลือก: ${[...pickRooms].sort((a,x)=>a-x).join(', ')} (รวม ${pickRooms.length} ห้อง)`
+          :'ยังไม่ได้เลือกหมายเลขห้อง'}</div>
 
       <div class="section-title" style="margin-top:14px;">ราคาห้องพัก</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">สามารถเพิ่มแถวราคาได้หากมีประเภทห้องหลายราคา</div>
@@ -865,13 +877,10 @@ function removeRateRow(i){
   renderRateRows();
 }
 function syncRoomCount(){
-  // Total rooms from all rate rows
   const total=formRates.reduce((s,r)=>s+(parseInt(r.count)||1),0);
-  // Update picker label count (if rooms not yet manually selected)
   if(!pickRooms.length){
     const el=document.getElementById('f-sel-rooms');
-    if(el&&el.textContent.includes('ยังไม่ได้เลือก'))
-      el.textContent=`ยังไม่ได้เลือกหมายเลขห้อง (จำนวน ${total} ห้อง)`;
+    if(el) el.textContent=`ยังไม่ได้เลือกหมายเลขห้อง (จำนวน ${total} ห้อง จากช่องราคา)`;
   }
 }
 
@@ -908,9 +917,14 @@ function toggleRoom(rn){
   if(i>=0) pickRooms.splice(i,1); else pickRooms.push(rn);
   refreshPicker();
   const sel=document.getElementById('f-sel-rooms');
-  if(sel) sel.textContent=pickRooms.length
-    ?'ห้องที่เลือก: '+[...pickRooms].sort((a,x)=>a-x).join(', ')
-    :'ยังไม่ได้เลือกหมายเลขห้อง';
+  if(sel){
+    if(pickRooms.length){
+      const sorted=[...pickRooms].sort((a,x)=>a-x);
+      sel.textContent=`ห้องที่เลือก: ${sorted.join(', ')} (รวม ${pickRooms.length} ห้อง)`;
+    } else {
+      sel.textContent='ยังไม่ได้เลือกหมายเลขห้อง';
+    }
+  }
   calcDisplay();
 }
 function calcDisplay(){
