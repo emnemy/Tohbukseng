@@ -166,6 +166,22 @@ tfoot td{border-top:1px solid var(--border);}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:rgba(200,168,74,.18);border-radius:3px;}
 ::-webkit-scrollbar-thumb:hover{background:rgba(200,168,74,.32);}
+
+/* ROOM AVAILABLE CALENDAR */
+.ra-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.ra-day-hd{text-align:center;font-size:11px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;padding:4px 0;letter-spacing:.5px;}
+.ra-day{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:8px 6px;min-height:80px;cursor:default;transition:all .15s;position:relative;}
+.ra-day:hover{border-color:var(--gold);transform:translateY(-1px);}
+.ra-day.today{border-color:var(--purple);box-shadow:0 0 0 1px var(--purple);}
+.ra-day.other-month{opacity:.35;}
+.ra-day.past{opacity:.5;}
+.ra-day-num{font-size:13px;font-weight:700;margin-bottom:5px;}
+.ra-day.today .ra-day-num{color:var(--purple);}
+.ra-avail-bar{height:5px;border-radius:3px;margin-bottom:6px;transition:width .3s;}
+.ra-avail-text{font-size:11px;font-weight:700;}
+.ra-total-text{font-size:10px;color:var(--text2);margin-top:1px;}
 </style>
 </head>
 <body>
@@ -204,6 +220,7 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="nav-section-title">ภาพรวม</div>
       <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">📊</span>Dashboard</div>
       <div class="nav-item" onclick="showPage('roomchart')" id="nav-roomchart"><span class="nav-icon">🗓</span>Room Chart</div>
+      <div class="nav-item" onclick="showPage('roomavail')" id="nav-roomavail"><span class="nav-icon">📅</span>Room Available</div>
     </div>
     <div class="nav-section">
       <div class="nav-section-title">การจอง</div>
@@ -328,6 +345,26 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="card"><div class="tbl-wrap" id="gh-table"></div></div>
     </div>
 
+    <!-- ROOM AVAILABLE -->
+    <div class="page" id="page-roomavail">
+      <div class="page-title">Room Available</div>
+      <div class="page-sub">ปฏิทินห้องว่างรายเดือน</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="raChangeMonth(-1)">◀ เดือนก่อน</button>
+        <div id="ra-month-label" style="font-size:18px;font-weight:700;color:var(--gold);min-width:200px;text-align:center;"></div>
+        <button class="btn btn-secondary btn-sm" onclick="raChangeMonth(1)">เดือนถัดไป ▶</button>
+        <button class="btn btn-secondary btn-sm" onclick="raGoToday()">วันนี้</button>
+      </div>
+      <!-- Legend -->
+      <div class="legend" style="margin-bottom:14px;">
+        <div class="leg-item"><div class="leg-dot" style="background:#4ec48a;"></div>ว่างมาก (≥50%)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#d47832;"></div>ว่างปานกลาง (20-49%)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#df5858;"></div>ว่างน้อย (&lt;20%)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(136,85,212,.5);"></div>วันนี้</div>
+      </div>
+      <div id="ra-calendar"></div>
+    </div>
+
     <!-- CHECK-OUT -->
     <div class="page" id="page-checkout">
       <div class="page-title">Check-Out</div>
@@ -339,6 +376,24 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="card">
         <div class="card-title">ห้องที่เช็คเอาท์วันนี้</div>
         <div class="tbl-wrap" id="co-table"></div>
+      </div>
+      <!-- Check-Out History -->
+      <div class="card">
+        <div class="section-title" style="margin-bottom:12px;">🔍 Check-Out History</div>
+        <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+          <div>
+            <label class="form-label">วันที่เช็คเอาท์</label>
+            <input type="date" class="form-input" id="coh-date" style="width:180px;" oninput="searchCheckoutHistory()">
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <label class="form-label">ชื่อลูกค้า / บริษัท / ห้อง</label>
+            <input type="text" class="form-input" id="coh-name" placeholder="ค้นหา..." oninput="searchCheckoutHistory()">
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="clearCheckoutHistory()">✕ ล้าง</button>
+        </div>
+        <div class="tbl-wrap" id="coh-table">
+          <p style="color:var(--text2);padding:14px;text-align:center;">กรอกวันที่หรือชื่อเพื่อค้นหาประวัติ</p>
+        </div>
       </div>
     </div>
 
@@ -461,7 +516,7 @@ document.getElementById('lg-user').onkeypress=e=>{if(e.key==='Enter')document.ge
 /* ════════════════════════════════════════
    NAVIGATION
 ════════════════════════════════════════ */
-const PAGE_RENDERS={dashboard:renderDashboard,roomchart:renderRoomChart,reservation:renderReservation,
+const PAGE_RENDERS={dashboard:renderDashboard,roomchart:renderRoomChart,roomavail:renderRoomAvail,reservation:renderReservation,
   checkin:renderCheckin,guests:renderGuests,checkout:renderCheckout,users:renderUsers};
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1356,6 +1411,197 @@ function renderGuests(){
 /* ════════════════════════════════════════
    CHECK-OUT
 ════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   ROOM AVAILABLE CALENDAR
+════════════════════════════════════════ */
+let raYear=0, raMonth=0;
+function renderRoomAvail(){
+  if(!raYear){const n=new Date();raYear=n.getFullYear();raMonth=n.getMonth();}
+  buildRaCalendar();
+}
+function raChangeMonth(delta){
+  raMonth+=delta;
+  if(raMonth>11){raMonth=0;raYear++;}
+  if(raMonth<0){raMonth=11;raYear--;}
+  buildRaCalendar();
+}
+function raGoToday(){
+  const n=new Date();raYear=n.getFullYear();raMonth=n.getMonth();
+  buildRaCalendar();
+}
+function countVacantRooms(dateStr){
+  let occ=0;
+  ALL_ROOMS.forEach(r=>{
+    const {s}=roomStatusAt(r,dateStr);
+    if(s!=='vacant') occ++;
+  });
+  return ALL_ROOMS.length-occ;
+}
+function buildRaCalendar(){
+  const TOTAL=ALL_ROOMS.length;
+  const thNames=['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const monthNamesTH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const todayStr=today();
+  const firstDay=new Date(raYear,raMonth,1);
+  const lastDay=new Date(raYear,raMonth+1,0);
+  const startDow=firstDay.getDay(); // 0=sun
+  const totalDays=lastDay.getDate();
+
+  document.getElementById('ra-month-label').textContent=
+    `${monthNamesTH[raMonth]} ${raYear+543}`;
+
+  // build day headers
+  let html=`<div class="ra-grid" style="margin-bottom:6px;">`;
+  thNames.forEach(d=>html+=`<div class="ra-day-hd">${d}</div>`);
+  html+=`</div><div class="ra-grid">`;
+
+  // blank cells before month start
+  for(let i=0;i<startDow;i++){
+    html+=`<div class="ra-day other-month"></div>`;
+  }
+
+  // each day of month
+  for(let d=1;d<=totalDays;d++){
+    const dateStr=`${raYear}-${String(raMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const vac=countVacantRooms(dateStr);
+    const pct=vac/TOTAL;
+    const isToday=dateStr===todayStr;
+    const isPast=dateStr<todayStr;
+
+    // color by availability
+    let barColor,textColor;
+    if(pct>=0.5){barColor='#4ec48a';textColor='var(--green)';}
+    else if(pct>=0.2){barColor='#d47832';textColor='var(--orange)';}
+    else{barColor='#df5858';textColor='var(--red)';}
+
+    const pctW=Math.round(pct*100);
+    html+=`<div class="ra-day${isToday?' today':''}${isPast?' past':''}"
+      onclick="raShowDayDetail('${dateStr}')" style="cursor:pointer;">
+      <div class="ra-day-num">${d}</div>
+      <div style="background:rgba(255,255,255,.07);border-radius:3px;height:5px;margin-bottom:6px;">
+        <div class="ra-avail-bar" style="background:${barColor};width:${pctW}%;"></div>
+      </div>
+      <div class="ra-avail-text" style="color:${textColor};">ว่าง ${vac}</div>
+      <div class="ra-total-text">จาก ${TOTAL} ห้อง</div>
+    </div>`;
+  }
+
+  // blank cells after month end
+  const endDow=(startDow+totalDays-1)%7;
+  if(endDow<6){
+    for(let i=endDow+1;i<=6;i++) html+=`<div class="ra-day other-month"></div>`;
+  }
+  html+=`</div>`;
+  document.getElementById('ra-calendar').innerHTML=html;
+}
+
+function raShowDayDetail(dateStr){
+  const TOTAL=ALL_ROOMS.length;
+  let vacRooms=[],occList=[];
+  ALL_ROOMS.forEach(r=>{
+    const {s,b}=roomStatusAt(r,dateStr);
+    if(s==='vacant') vacRooms.push(r);
+    else occList.push({r,s,b});
+  });
+  occList.sort((a,x)=>a.r-x.r);
+
+  const statusLabel={res:'จองแล้ว',ci:'เช็คอินวันนี้',occ:'มีผู้พัก',co:'เช็คเอาท์วันนี้'};
+  let occRows=occList.map(({r,s,b})=>`<tr>
+    <td><strong style="color:var(--gold);">${r}</strong></td>
+    <td>${roomType(r)}</td>
+    <td><span class="badge ${{res:'badge-purple',ci:'badge-blue',occ:'badge-red',co:'badge-orange'}[s]||'badge-gray'}">${statusLabel[s]||s}</span></td>
+    <td>${b?b.guestName:'-'}</td>
+    <td>${b?fmtDate(b.checkOut):'-'}</td>
+  </tr>`).join('');
+
+  const vacStr=vacRooms.length?vacRooms.sort((a,x)=>a-x).join(', '):'ไม่มีห้องว่าง';
+  showModal(`
+    <div class="modal-hd">
+      <div class="modal-title">📅 ${fmtDate(dateStr)}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="chip">ว่าง <span>${vacRooms.length}</span></div>
+        <div class="chip">มีผู้พัก <span>${occList.length}</span></div>
+        <div class="chip">รวม <span>${TOTAL}</span> ห้อง</div>
+      </div>
+      ${vacRooms.length?`<div style="margin-bottom:12px;">
+        <div class="form-label" style="margin-bottom:6px;">ห้องว่าง</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">
+          ${vacRooms.sort((a,x)=>a-x).map(r=>`<span style="background:rgba(78,196,138,.12);border:1px solid rgba(78,196,138,.3);
+            border-radius:6px;padding:3px 10px;font-size:13px;font-weight:700;color:var(--green);">${r}</span>`).join('')}
+        </div>
+      </div>`:''}
+      ${occList.length?`<div class="section-title" style="margin-bottom:8px;">ห้องที่มีการจอง/เข้าพัก</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>ห้อง</th><th>ประเภท</th><th>สถานะ</th><th>ชื่อ</th><th>วันออก</th></tr></thead>
+          <tbody>${occRows}</tbody>
+        </table></div>`:''}
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
+    </div>`);
+}
+
+/* ════════════════════════════════════════
+   CHECK-OUT HISTORY
+════════════════════════════════════════ */
+function searchCheckoutHistory(){
+  const srchDate=document.getElementById('coh-date')?.value||'';
+  const srchQ=(document.getElementById('coh-name')?.value||'').trim().toLowerCase();
+  if(!srchDate&&!srchQ){
+    document.getElementById('coh-table').innerHTML=
+      '<p style="color:var(--text2);padding:14px;text-align:center;">กรอกวันที่หรือชื่อเพื่อค้นหาประวัติ</p>';
+    return;
+  }
+  let bks=ST.bookings.filter(b=>b.status===S_CO);
+  if(srchDate) bks=bks.filter(b=>b.checkOut===srchDate||b.checkIn===srchDate);
+  if(srchQ) bks=bks.filter(b=>
+    (b.guestName||'').toLowerCase().includes(srchQ)||
+    (b.company||'').toLowerCase().includes(srchQ)||
+    (b.rooms||[]).some(r=>String(r).includes(srchQ))
+  );
+  bks.sort((a,b)=>(b.checkedOutAt||b.checkOut).localeCompare(a.checkedOutAt||a.checkOut));
+  if(!bks.length){
+    document.getElementById('coh-table').innerHTML=
+      '<p style="color:var(--text2);padding:14px;text-align:center;">ไม่พบประวัติที่ตรงกับเงื่อนไข</p>';
+    return;
+  }
+  let rows='';
+  bks.forEach(b=>{
+    const n=nights(b.checkIn,b.checkOut);
+    rows+=`<tr>
+      <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
+      <td><strong>${b.guestName}</strong><br><small class="text-muted">${b.nationality||''}</small></td>
+      <td>${b.company||'-'}</td>
+      <td>${guestTypeLabel(b.guestType)}</td>
+      <td>${fmtDate(b.checkIn)}</td>
+      <td>${fmtDate(b.checkOut)}</td>
+      <td style="text-align:center;">${n}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td>${payLabel(b.payment)}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
+      </td></tr>`;
+  });
+  document.getElementById('coh-table').innerHTML=`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">พบ ${bks.length} รายการ</div>
+    <table>
+      <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>ประเภท</th>
+        <th>วันเข้า</th><th>วันออก</th><th>คืน</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+function clearCheckoutHistory(){
+  const d=document.getElementById('coh-date');
+  const n=document.getElementById('coh-name');
+  if(d)d.value='';if(n)n.value='';
+  document.getElementById('coh-table').innerHTML=
+    '<p style="color:var(--text2);padding:14px;text-align:center;">กรอกวันที่หรือชื่อเพื่อค้นหาประวัติ</p>';
+}
+
 function renderCheckout(){
   const d=today();
   document.getElementById('co-sub').textContent=`รายการเช็คเอาท์วันที่ ${fmtDate(d)}`;
