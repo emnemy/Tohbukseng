@@ -649,7 +649,7 @@ function printRoomChart(){
     <p style="text-align:center;color:#666;margin-bottom:14px;">${ALL_ROOMS.length} ห้อง | พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}</p>
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;">
       <span>🟢 ว่าง</span><span>🟣 จองแล้ว</span><span>🔵 เช็คอินวันนี้</span><span>🔴 มีผู้พัก</span><span>🟠 เช็คเอาท์</span>
-    </div>${html}`);
+    </div>${html}`, `Room Chart — ${fmtDate(d)}`);
 }
 
 /* ════════════════════════════════════════
@@ -1522,7 +1522,7 @@ function printDailySummary(){
         <tr style="background:#f9f9f9;"><td colspan="10" align="right"><strong>ยอดรวมทั้งสิ้น</strong></td>
           <td align="right"><strong style="font-size:14px;">${(grandRoom+grandBf).toLocaleString()}</strong></td><td></td></tr>
       </tfoot>
-    </table>`);
+    </table>`, `สรุปผู้เข้าพัก ${fmtDate(d)}`);
 }
 
 function printArrival(){
@@ -1552,7 +1552,7 @@ function printArrival(){
       <tbody>${trs}</tbody>
       <tfoot><tr><td colspan="8" align="right"><strong>ยอดรวม</strong></td>
         <td align="right"><strong>${tot.toLocaleString()}</strong></td><td></td></tr></tfoot>
-    </table>`);
+    </table>`, `Guest Arrival — ${fmtDate(d)}`);
 }
 
 function printRoomingList(id){
@@ -1611,7 +1611,7 @@ function printRoomingList(id){
         <span>รหัสการจอง: ${b.id}</span>
         <span>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')}</span>
       </div>
-    </div>`);
+    </div>`, `Rooming List — ${b.guestName}`);
 }
 
 function printBookingAll(id){
@@ -1652,7 +1652,8 @@ function printBookingAll(id){
     </div>
     ${b.remarks?`<p style="margin-top:10px;font-size:13px;color:#666;">หมายเหตุ: ${b.remarks}</p>`:''}
     <hr style="margin:10px 0;">
-    <p style="font-size:11px;color:#999;">บันทึกโดย: ${b.createdBy||'-'} | ${b.createdAt?new Date(b.createdAt).toLocaleString('th-TH'):''}</p>`);
+    <p style="font-size:11px;color:#999;">บันทึกโดย: ${b.createdBy||'-'} | ${b.createdAt?new Date(b.createdAt).toLocaleString('th-TH'):''}</p>`,
+    `ข้อมูลการจอง — ${b.guestName}`);
 }
 
 function printBookingByRoom(id){
@@ -1713,15 +1714,91 @@ function printBookingByRoom(id){
   });
   openPrint(`
     <h2 style="text-align:center;margin-bottom:14px;">ข้อมูลการจอง — แยกรายห้อง (เรียงลำดับหมายเลขห้อง)</h2>
-    ${sections}`);
+    ${sections}`, `ใบจอง แยกรายห้อง — ${b.guestName}`);
 }
 
-function openPrint(body){
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>body{font-family:'Sarabun',sans-serif;padding:18px;}@media print{body{padding:0;}}</style>
-    </head><body>${body}<script>window.onload=()=>window.print()<\/script></body></html>`);
+function openPrint(body, docTitle){
+  const title = docTitle || 'Hotel Document';
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;background:#e8e8e8;color:#111;}
+
+    /* ── Top bar (screen only) ── */
+    .pdf-bar{
+      position:sticky;top:0;z-index:200;
+      background:#1a1a2e;border-bottom:2px solid #c8a84a;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px 20px;gap:12px;flex-wrap:wrap;
+    }
+    .pdf-bar-left{display:flex;align-items:center;gap:10px;}
+    .pdf-bar-icon{font-size:20px;}
+    .pdf-bar-title{color:#c8a84a;font-size:14px;font-weight:700;}
+    .pdf-bar-hint{color:#aaa;font-size:12px;margin-top:2px;}
+    .pdf-btn{
+      background:#c8a84a;color:#0e0e1c;border:none;
+      padding:9px 22px;border-radius:7px;cursor:pointer;
+      font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;
+      display:flex;align-items:center;gap:6px;white-space:nowrap;
+      transition:background .15s;
+    }
+    .pdf-btn:hover{background:#e8cc7a;}
+    .pdf-btn-icon{font-size:16px;}
+
+    /* ── Page wrapper ── */
+    .page-wrap{
+      background:#fff;
+      max-width:210mm;
+      margin:20px auto;
+      padding:16mm 18mm;
+      min-height:297mm;
+      box-shadow:0 4px 20px rgba(0,0,0,.18);
+    }
+
+    /* ── Print mode ── */
+    @media print{
+      .pdf-bar{display:none!important;}
+      body{background:#fff;}
+      .page-wrap{
+        max-width:100%;margin:0;padding:8mm 10mm;
+        box-shadow:none;min-height:auto;
+      }
+    }
+    @page{size:A4 portrait;margin:10mm;}
+
+    /* ── Content helpers ── */
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th,td{padding:6px 9px;vertical-align:middle;}
+    h2,h3{font-family:'Sarabun',sans-serif;}
+  </style>
+</head>
+<body>
+
+  <div class="pdf-bar">
+    <div class="pdf-bar-left">
+      <div class="pdf-bar-icon">📄</div>
+      <div>
+        <div class="pdf-bar-title">${title}</div>
+        <div class="pdf-bar-hint">กด <strong style="color:#e8cc7a;">บันทึก PDF</strong> → เลือก "Save as PDF" หรือ "บันทึกเป็น PDF" แล้วกด Save</div>
+      </div>
+    </div>
+    <button class="pdf-btn" onclick="window.print()">
+      <span class="pdf-btn-icon">💾</span> บันทึก PDF
+    </button>
+  </div>
+
+  <div class="page-wrap">
+    ${body}
+  </div>
+
+</body>
+</html>`);
   w.document.close();
 }
 
