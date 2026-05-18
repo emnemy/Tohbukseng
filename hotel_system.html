@@ -1287,7 +1287,7 @@ function renderGuests(){
   });
   rows.sort((a,x)=>a.rn-x.rn);
 
-  // Totals (per unique booking) - ราคารวมทั้งหมด (ทุกคืน) สำหรับ footer
+  // Totals (per unique booking) - นับจำนวน BF รวมจากทุกห้องที่รวมอาหารเช้า
   const seen=new Set();
   let grandRoom=0,totalBfP=0;
   bks.forEach(b=>{
@@ -1299,7 +1299,6 @@ function renderGuests(){
   });
 
   document.getElementById('gh-chips').innerHTML=`
-    <div class="chip">การจอง <span>${seen.size}</span></div>
     <div class="chip">รวม <span>${rows.length}</span> ห้อง</div>
     <div class="chip">อาหารเช้า <span>${totalBfP}</span> ท่าน</div>
     <div class="chip">ยอดรวม <span>${grandRoom.toLocaleString()}</span> บาท</div>`;
@@ -1314,7 +1313,8 @@ function renderGuests(){
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotalGuests=b.includeBreakfast?`${bdBfPr.toLocaleString()} บาท / ${gCount} ท่าน`:'-';
+    // ราคา BF รวม = bdBfPrice × guestCount (แสดงเฉพาะห้องที่รวม BF)
+    const bfTotal=b.includeBreakfast?(bdBfPr*gCount).toLocaleString():'-';
     html+=`<tr>
       <td><strong style="font-size:15px;color:var(--gold);">${rnStr}</strong></td>
       <td>${b.guestName}<br><small class="text-muted">${b.nationality||''}</small></td>
@@ -1322,9 +1322,9 @@ function renderGuests(){
       <td>${guestTypeLabel(b.guestType)}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td>
       <td style="text-align:center;">${n}</td>
-      <td style="text-align:center;">${b.includeBreakfast?gCount+' ท่าน':'-'}</td>
+      <td style="text-align:center;">${gCount > 0 ? gCount+' ท่าน' : '-'}</td>
       <td style="text-align:right;">${bdRoomPr.toLocaleString()}</td>
-      <td style="text-align:right;">${bfTotalGuests}</td>
+      <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${pricePerNight.toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
@@ -1334,7 +1334,7 @@ function renderGuests(){
   });
   document.getElementById('gh-table').innerHTML=`<table>
     <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>ประเภท</th><th>เข้าพัก</th><th>ออก</th><th>คืน</th>
-      <th>BF(ท่าน)</th><th>ราคาห้อง/คืน</th><th>ราคา BF/ท่าน</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <th>จำนวนผู้พัก</th><th>ราคาห้อง/คืน</th><th>ราคา BF</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${html}</tbody>
     <tfoot>
       <tr><td colspan="10" style="text-align:right;font-weight:700;">ยอดรวมทั้งสิ้น</td>
@@ -1492,17 +1492,18 @@ function printDailySummary(){
   let trs='';
   rows.forEach(({rnStr,b,roomIdx})=>{
     const n=nights(b.checkIn,b.checkOut);
-    const rCost=roomRateCostForIdx(b,roomIdx,n);
+    const rCost=roomRateCostForIdx(b,roomIdx,1); // ราคาต่อ 1 คืน
     const bdRoomPr=b.bdRoomPrice||0;
-    const bdBfPr=b.bdBfPrice||(b.includeBreakfast?b.breakfastPrice||0:0);
-    const bfPerRoom=parseInt(b.breakfastPerRoom)||0;
+    const bdBfPr=b.bdBfPrice||0;
+    const gCount=parseInt(b.guestCount)||0;
+    const bfTotal=b.includeBreakfast?(bdBfPr*gCount).toLocaleString():'-';
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${b.includeBreakfast?bfPerRoom+' ท่าน':'-'}</td>
+      <td>${gCount > 0 ? gCount+' ท่าน' : '-'}</td>
       <td style="text-align:right;">${bdRoomPr.toLocaleString()}</td>
-      <td style="text-align:right;">${b.includeBreakfast?bdBfPr.toLocaleString():'-'}</td>
+      <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;"><strong>${rCost.toLocaleString()}</strong></td>
       <td>${payText(b.payment)}</td></tr>`;
   });
@@ -1513,7 +1514,7 @@ function printDailySummary(){
     <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">
       <thead style="background:#f0f0f0;">
         <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th><th>เข้าพัก</th><th>ออก</th>
-          <th>คืน</th><th>BF(ท่าน)</th><th>ราคาห้อง/คืน</th><th>ราคา BF/ท่าน</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th></tr>
+          <th>คืน</th><th>จำนวนผู้พัก</th><th>ราคาห้อง/คืน</th><th>ราคา BF</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th></tr>
       </thead>
       <tbody>${trs}</tbody>
       <tfoot>
