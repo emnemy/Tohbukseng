@@ -1889,7 +1889,15 @@ function printRoomingList(id){
 function printBookingAll(id){
   const b=ST.bookings.find(x=>x.id===id);if(!b) return;
   const n=nights(b.checkIn,b.checkOut);
-  const rT=calcRoomAmt(b),bT=calcBfAmt(b);
+  const rT=calcRoomAmt(b);
+  const nRooms=numRooms(b);
+  const bdRoomPr=b.bdRoomPrice||0;
+  const bdBfPr=b.bdBfPrice||0;
+  const gCount=parseInt(b.guestCount)||0;
+  const totalBfPersons=gCount*nRooms;
+  const bdRoomTotal=bdRoomPr*nRooms;
+  const bdBfTotal=bdBfPr*totalBfPersons;
+
   openPrint(`
     <h2 style="text-align:center;margin-bottom:4px;">ข้อมูลการจองห้องพัก</h2>
     <p style="text-align:center;color:#666;margin-bottom:20px;">รหัส: ${b.id}</p>
@@ -1899,29 +1907,48 @@ function printBookingAll(id){
       <tr><td style="padding:6px;color:#666;">บริษัท/หน่วยงาน</td><td style="padding:6px;">${b.company||'-'}</td></tr>
       <tr><td style="padding:6px;color:#666;">เบอร์โทร</td><td style="padding:6px;">${b.phone||'-'}</td></tr>
       <tr><td style="padding:6px;color:#666;">ห้องพัก</td><td style="padding:6px;font-weight:700;">${roomsDisplay(b)}</td></tr>
-      <tr><td style="padding:6px;color:#666;">จำนวนห้อง</td><td style="padding:6px;">${numRooms(b)} ห้อง</td></tr>
+      <tr><td style="padding:6px;color:#666;">จำนวนห้อง</td><td style="padding:6px;">${nRooms} ห้อง</td></tr>
       <tr><td style="padding:6px;color:#666;">วันเข้าพัก</td><td style="padding:6px;">${fmtDate(b.checkIn)}</td></tr>
       <tr><td style="padding:6px;color:#666;">วันออก</td><td style="padding:6px;">${fmtDate(b.checkOut)}</td></tr>
       <tr><td style="padding:6px;color:#666;">จำนวนคืน</td><td style="padding:6px;font-weight:700;">${n} คืน</td></tr>
       <tr><td style="padding:6px;color:#666;">ราคาห้องพัก</td><td style="padding:6px;">${
-        (b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:numRooms(b)}])
+        (b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:nRooms}])
         .map(r=>`${(r.price||0).toLocaleString()} บาท/คืน × ${r.count} ห้อง`).join('<br>')
       }</td></tr>
-      <tr><td style="padding:6px;color:#666;">อาหารเช้า</td><td style="padding:6px;">${b.includeBreakfast
-        ?`${(b.breakfastPrice||0).toLocaleString()} บาท × ${b.breakfastPerRoom||0} ท่าน/ห้อง`
-        :(b.noBreakfast?'ไม่รวมอาหารเช้า':'-')}</td></tr>
+      <tr><td style="padding:6px;color:#666;">อาหารเช้า</td><td style="padding:6px;">${b.includeBreakfast?'✅ รวมอาหารเช้า':(b.noBreakfast?'❌ ไม่รวมอาหารเช้า':'-')}</td></tr>
+      <tr><td style="padding:6px;color:#666;">จำนวนผู้พัก</td><td style="padding:6px;">${gCount > 0 ? gCount+' ท่าน/ห้อง' : '-'}</td></tr>
       <tr><td style="padding:6px;color:#666;">เตียงเสริม</td><td style="padding:6px;">${b.extraBed?'มี':'-'}</td></tr>
       <tr><td style="padding:6px;color:#666;">การชำระเงิน</td><td style="padding:6px;">${payText(b.payment)}</td></tr>
     </table>
     <hr style="margin:14px 0;">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
+
+    <!-- ราคารวมหลัก -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div style="font-size:13px;color:#666;">
-        ${(b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:numRooms(b)}])
+        ${(b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:nRooms}])
           .map(r=>`<div>ราคาห้อง: ${(r.price||0).toLocaleString()} × ${r.count} ห้อง × ${n} คืน = ${((r.price||0)*(r.count||1)*n).toLocaleString()} บาท</div>`).join('')}
-        <div>ราคาอาหารเช้า: ${bT.toLocaleString()} บาท</div>
       </div>
-      <div style="font-size:20px;font-weight:700;">รวม ${(rT+bT).toLocaleString()} บาท</div>
+      <div style="font-size:20px;font-weight:700;">รวม ${rT.toLocaleString()} บาท</div>
     </div>
+
+    <!-- กรอบเบรกดาวน์ราคา (ข้อมูลอ้างอิงเท่านั้น) -->
+    ${(bdRoomPr>0||bdBfPr>0)?`
+    <div style="border:1px solid #ddd;border-radius:8px;padding:12px 16px;background:#f9f9f9;margin-top:4px;">
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
+        📊 เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น)
+      </div>
+      ${bdRoomPr>0?`
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+        <span style="color:#555;">ค่าห้องพัก ${bdRoomPr.toLocaleString()} บาท/คืน × ${nRooms} ห้อง</span>
+        <strong>= ${bdRoomTotal.toLocaleString()} บาท</strong>
+      </div>`:''}
+      ${bdBfPr>0&&b.includeBreakfast?`
+      <div style="display:flex;justify-content:space-between;font-size:13px;">
+        <span style="color:#555;">ค่าอาหารเช้า ${bdBfPr.toLocaleString()} บาท × ${totalBfPersons} ท่าน (${gCount} ท่าน × ${nRooms} ห้อง)</span>
+        <strong>= ${bdBfTotal.toLocaleString()} บาท</strong>
+      </div>`:''}
+    </div>`:''}
+
     ${b.remarks?`<p style="margin-top:10px;font-size:13px;color:#666;">หมายเหตุ: ${b.remarks}</p>`:''}
     <hr style="margin:10px 0;">
     <p style="font-size:11px;color:#999;">บันทึกโดย: ${b.createdBy||'-'} | ${b.createdAt?new Date(b.createdAt).toLocaleString('th-TH'):''}</p>`,
