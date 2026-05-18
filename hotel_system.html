@@ -706,10 +706,9 @@ function searchBookings(){
       <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
-        <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
+        <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
         <button class="btn btn-xs btn-secondary" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>
-        ${b.status===S_RES?`<button class="btn btn-xs btn-success" style="margin-left:3px;" onclick="doCheckinAction('${b.id}')">เช็คอิน</button>
-        <button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
+        ${b.status===S_RES?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
         ${b.status===S_CI?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="doCheckout('${b.id}')">เช็คเอาท์</button>`:''}
       </td></tr>`;
   });
@@ -747,10 +746,14 @@ function renderArrival(){
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
       <td><strong>${b.guestName}</strong></td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${nights(b.checkIn,b.checkOut)}</td>
-      <td>${b.includeBreakfast?((parseInt(b.breakfastPerRoom)||0)*numRooms(b))+' ท่าน':'-'}</td>
+      <td>${b.includeBreakfast?(b.guestCount||0)+' ท่าน':'-'}</td>
       <td style="text-align:right;">${t.toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
-      <td>${b.status===S_RES?`<button class="btn btn-xs btn-success" onclick="doCheckinAction('${b.id}')">เช็คอิน</button>`:''}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
+        <button class="btn btn-xs btn-secondary" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>
+        ${b.status===S_RES?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
+      </td>
     </tr>`;
   });
   document.getElementById('arr-table').innerHTML=`<table>
@@ -1119,9 +1122,9 @@ function viewBooking(id){
       ${b.checkedInAt?`<div class="text-sm text-muted">เช็คอินโดย: ${b.checkedInBy} | ${new Date(b.checkedInAt).toLocaleString('th-TH')}</div>`:''}
     </div>
     <div class="modal-ft">
+      <button class="btn btn-secondary btn-sm" onclick="printRoomingList('${b.id}')">📋 Rooming List</button>
       <button class="btn btn-secondary btn-sm" onclick="printBookingAll('${b.id}')">🖨 พิมพ์ข้อมูล</button>
       ${b.rooms&&b.rooms.length>1?`<button class="btn btn-secondary btn-sm" onclick="printBookingByRoom('${b.id}')">🖨 แยกรายห้อง</button>`:''}
-      ${b.status===S_RES?`<button class="btn btn-success btn-sm" onclick="closeModal();doCheckinAction('${b.id}')">✅ เช็คอิน</button>`:''}
       ${b.status===S_CI?`<button class="btn btn-danger btn-sm" onclick="closeModal();doCheckout('${b.id}')">🚪 เช็คเอาท์</button>`:''}
       <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
     </div>`);
@@ -1183,15 +1186,21 @@ function openAssignModal(id){
   assignId=id; pickRooms=[];
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
+  const maxRooms=b.roomCount||1;
   showModal(`
     <div class="modal-hd">
       <div class="modal-title">🏷️ กำหนดหมายเลขห้อง</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="color:var(--text2);font-size:13px;margin-bottom:10px;">
-        จำนวนห้องที่จอง: <strong style="color:var(--gold);">${b.roomCount} ห้อง</strong>
-        | ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)} | ${b.guestName}</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+        <div style="background:rgba(200,168,74,.1);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:13px;">
+          จองไว้ <strong style="color:var(--gold);font-size:15px;">${maxRooms}</strong> ห้อง
+          | ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}
+          | ${b.guestName}
+        </div>
+        <div id="assign-counter" style="font-size:13px;color:var(--text2);">เลือกแล้ว 0 / ${maxRooms} ห้อง</div>
+      </div>
       <div class="room-picker" id="f-picker">${floorsHtml(b.checkIn,true,[],b.checkIn,b.checkOut,id)}</div>
       <div id="f-sel-rooms" style="margin-top:7px;font-size:13px;color:var(--gold);">ยังไม่ได้เลือกห้อง</div>
     </div>
@@ -1200,10 +1209,58 @@ function openAssignModal(id){
       <button class="btn btn-success" onclick="confirmAssign()">✅ ยืนยันเช็คอิน</button>
     </div>`);
 }
-function confirmAssign(){
-  if(!pickRooms.length){alert('กรุณาเลือกห้องพัก');return;}
+function toggleAssignRoom(rn){
   const b=ST.bookings.find(x=>x.id===assignId);
   if(!b) return;
+  const maxRooms=b.roomCount||1;
+  const i=pickRooms.indexOf(rn);
+  if(i>=0){
+    pickRooms.splice(i,1);
+  } else {
+    if(pickRooms.length>=maxRooms){
+      alert(`เลือกได้สูงสุด ${maxRooms} ห้อง ตามจำนวนที่จองไว้`);return;
+    }
+    pickRooms.push(rn);
+  }
+  // refresh picker
+  const p=document.getElementById('f-picker');
+  if(p) p.innerHTML=floorsHtmlAssign(b.checkIn,pickRooms,b.checkIn,b.checkOut,assignId);
+  const counter=document.getElementById('assign-counter');
+  if(counter) counter.textContent=`เลือกแล้ว ${pickRooms.length} / ${maxRooms} ห้อง`;
+  const sel=document.getElementById('f-sel-rooms');
+  if(sel){
+    sel.textContent=pickRooms.length
+      ?`ห้องที่เลือก: ${[...pickRooms].sort((a,x)=>a-x).join(', ')} (รวม ${pickRooms.length} ห้อง)`
+      :'ยังไม่ได้เลือกห้อง';
+  }
+}
+function floorsHtmlAssign(date,selRooms,from,to,excId){
+  let h='';
+  for(const [f,rooms] of Object.entries(FLOORS)){
+    h+=`<div class="floor-block"><div class="floor-hd">🏢 ชั้น ${f}</div><div class="rooms-grid">`;
+    rooms.forEach(r=>{
+      const t=roomType(r);
+      const avail=from&&to?roomAvail(r,from,to,excId):true;
+      const sel=selRooms&&selRooms.includes(r);
+      let cls,extra='';
+      if(!avail) cls='room-unavail';
+      else if(sel){cls='room-sel';extra=`onclick="toggleAssignRoom(${r})"` ;}
+      else{cls='room-vacant';extra=`onclick="toggleAssignRoom(${r})"` ;}
+      h+=`<div class="room-cell ${cls}" ${extra} data-room="${r}">
+        <div class="room-num">${r}</div><div class="room-type-lbl">${t}</div></div>`;
+    });
+    h+=`</div></div>`;
+  }
+  return h;
+}
+function confirmAssign(){
+  const b=ST.bookings.find(x=>x.id===assignId);
+  if(!b) return;
+  const maxRooms=b.roomCount||1;
+  if(!pickRooms.length){alert('กรุณาเลือกห้องพัก');return;}
+  if(pickRooms.length!==maxRooms){
+    if(!confirm(`จองไว้ ${maxRooms} ห้อง แต่เลือก ${pickRooms.length} ห้อง ต้องการดำเนินการต่อหรือไม่?`)) return;
+  }
   b.rooms=[...pickRooms].sort((a,x)=>a-x);
   b.roomCount=b.rooms.length;
   b.status=S_CI;
@@ -1230,7 +1287,7 @@ function renderGuests(){
   });
   rows.sort((a,x)=>a.rn-x.rn);
 
-  // Totals (per unique booking)
+  // Totals (per unique booking) - ราคารวมทั้งหมด (ทุกคืน) สำหรับ footer
   const seen=new Set();
   let grandRoom=0,totalBfP=0;
   bks.forEach(b=>{
@@ -1253,7 +1310,7 @@ function renderGuests(){
   let html='';
   rows.forEach(({rnStr,b,roomIdx})=>{
     const n=nights(b.checkIn,b.checkOut);
-    const rCost=roomRateCostForIdx(b,roomIdx,n);
+    const pricePerNight=roomRateCostForIdx(b,roomIdx,1); // ราคาต่อ 1 คืน
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
@@ -1268,7 +1325,7 @@ function renderGuests(){
       <td style="text-align:center;">${b.includeBreakfast?gCount+' ท่าน':'-'}</td>
       <td style="text-align:right;">${bdRoomPr.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotalGuests}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${rCost.toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${pricePerNight.toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
@@ -1496,6 +1553,65 @@ function printArrival(){
       <tfoot><tr><td colspan="8" align="right"><strong>ยอดรวม</strong></td>
         <td align="right"><strong>${tot.toLocaleString()}</strong></td><td></td></tr></tfoot>
     </table>`);
+}
+
+function printRoomingList(id){
+  const b=ST.bookings.find(x=>x.id===id);
+  if(!b) return;
+  const n=nights(b.checkIn,b.checkOut);
+  const roomList=b.rooms&&b.rooms.length
+    ?[...b.rooms].sort((a,x)=>parseInt(a)-parseInt(x))
+    :Array.from({length:b.roomCount||1},()=>'-');
+
+  let rows='';
+  roomList.forEach((rn,idx)=>{
+    const pricePerNight=roomRateCostForIdx(b,idx,1);
+    rows+=`<tr style="height:36px;">
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${idx+1}</td>
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;font-weight:700;font-size:15px;">${rn!=='-'?rn:'-'}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;">${b.guestName}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;">${b.company||'-'}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;">${rn!=='-'?roomType(parseInt(rn)):'-'}</td>
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkIn)}</td>
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkOut)}</td>
+      <td style="text-align:right;border:1px solid #ccc;padding:5px 8px;">${pricePerNight>0?pricePerNight.toLocaleString():'-'}</td>
+    </tr>`;
+  });
+
+  openPrint(`
+    <div style="font-family:'Sarabun',sans-serif;">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Rooming List</div>
+        <table style="font-size:12px;color:#555;border-collapse:collapse;width:auto;">
+          <tr><td style="padding:1px 10px 1px 0;">ชื่อผู้จอง:</td><td><strong>${b.guestName}</strong></td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">บริษัท:</td><td>${b.company||'-'}</td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">วันเข้าพัก:</td><td><strong>${fmtDate(b.checkIn)}</strong></td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">วันออก:</td><td><strong>${fmtDate(b.checkOut)}</strong></td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">จำนวนคืน:</td><td>${n} คืน</td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">จำนวนห้อง:</td><td>${roomList.length} ห้อง</td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">การชำระเงิน:</td><td>${payText(b.payment)}</td></tr>
+        </table>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f5f5f5;">
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:center;width:50px;">ลำดับ</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:center;width:90px;">หมายเลขห้อง</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:left;">ชื่อลูกค้า</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:left;">ชื่อบริษัท</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:left;">ประเภทห้อง</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:center;width:90px;">วันที่เข้า</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:center;width:90px;">วันที่ออก</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:right;width:90px;">ราคา/คืน</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="margin-top:20px;display:flex;justify-content:space-between;font-size:12px;color:#777;">
+        <span>รหัสการจอง: ${b.id}</span>
+        <span>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')}</span>
+      </div>
+    </div>`);
 }
 
 function printBookingAll(id){
