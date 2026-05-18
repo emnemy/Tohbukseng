@@ -1355,12 +1355,12 @@ function renderGuests(){
   bks.forEach(b=>{
     if(!seen.has(b.id)){
       seen.add(b.id);
-      grandRoom+=calcRoomAmt(b);
     }
   });
-  // รวม BF ทุกแถวห้องพัก (guestCount = จำนวนผู้พักต่อห้อง)
-  rows.forEach(({b})=>{
+  // รวม BF และ ราคาห้อง/คืน จากทุกแถวห้อง
+  rows.forEach(({b,roomIdx})=>{
     if(b.includeBreakfast) totalBfP+=(parseInt(b.guestCount)||0);
+    grandRoom+=roomRateCostForIdx(b,roomIdx,1);
   });
 
   document.getElementById('gh-chips').innerHTML=`
@@ -1740,20 +1740,20 @@ function printDailySummary(){
   });
   rows.sort((a,x)=>a.rn-x.rn);
 
-  // คำนวณ totals ต่อ "ห้อง" (เหมือน Guest In House)
+  // คำนวณ totals จาก per-night ที่แสดงในคอลัมน์จริง
   const seen=new Set();
-  let grandRoomTotal=0;
-  bks.forEach(b=>{if(!seen.has(b.id)){seen.add(b.id);grandRoomTotal+=calcRoomAmt(b);}});
+  bks.forEach(b=>{seen.add(b.id);});
 
-  // BF รวมต่อห้อง (guestCount × bdBfPrice ต่อแถว)
-  let totalBfP=0, sumBdRoom=0, sumBdBf=0;
-  rows.forEach(({b})=>{
+  let totalBfP=0, sumBdRoom=0, sumBdBf=0, sumRoomPerNight=0;
+  rows.forEach(({b,roomIdx})=>{
+    const rCost=roomRateCostForIdx(b,roomIdx,1);
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
     if(b.includeBreakfast) totalBfP+=gCount;
     sumBdRoom+=bdRoomPr;
     if(b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
+    sumRoomPerNight+=rCost;
   });
 
   let trs='';
@@ -1790,7 +1790,7 @@ function printDailySummary(){
           <td colspan="8" align="right"><strong>รวม</strong></td>
           <td align="right"><strong>${sumBdRoom.toLocaleString()}</strong></td>
           <td align="right"><strong>${sumBdBf.toLocaleString()}</strong></td>
-          <td align="right"><strong>${grandRoomTotal.toLocaleString()}</strong></td>
+          <td align="right"><strong>${sumRoomPerNight.toLocaleString()}</strong></td>
           <td></td>
         </tr>
       </tfoot>
