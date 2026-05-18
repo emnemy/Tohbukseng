@@ -1739,16 +1739,27 @@ function printDailySummary(){
     roomList.forEach((rn,idx)=>rows.push({rn:parseInt(rn)||9999,rnStr:String(rn),b,roomIdx:idx}));
   });
   rows.sort((a,x)=>a.rn-x.rn);
+
+  // คำนวณ totals ต่อ "ห้อง" (เหมือน Guest In House)
   const seen=new Set();
-  let grandRoom=0,grandBf=0,totalBfP=0;
-  bks.forEach(b=>{
-    if(!seen.has(b.id)){seen.add(b.id);grandRoom+=calcRoomAmt(b);grandBf+=calcBfAmt(b);
-      if(b.includeBreakfast)totalBfP+=(parseInt(b.breakfastPerRoom)||0)*numRooms(b);}
+  let grandRoomTotal=0;
+  bks.forEach(b=>{if(!seen.has(b.id)){seen.add(b.id);grandRoomTotal+=calcRoomAmt(b);}});
+
+  // BF รวมต่อห้อง (guestCount × bdBfPrice ต่อแถว)
+  let totalBfP=0, sumBdRoom=0, sumBdBf=0;
+  rows.forEach(({b})=>{
+    const gCount=parseInt(b.guestCount)||0;
+    const bdBfPr=b.bdBfPrice||0;
+    const bdRoomPr=b.bdRoomPrice||0;
+    if(b.includeBreakfast) totalBfP+=gCount;
+    sumBdRoom+=bdRoomPr;
+    if(b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
   });
+
   let trs='';
   rows.forEach(({rnStr,b,roomIdx})=>{
     const n=nights(b.checkIn,b.checkOut);
-    const rCost=roomRateCostForIdx(b,roomIdx,1); // ราคาต่อ 1 คืน
+    const rCost=roomRateCostForIdx(b,roomIdx,1);
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
@@ -1757,27 +1768,31 @@ function printDailySummary(){
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${gCount > 0 ? gCount+' ท่าน' : '-'}</td>
+      <td>${gCount>0?gCount+' ท่าน':'-'}</td>
       <td style="text-align:right;">${bdRoomPr.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;"><strong>${rCost.toLocaleString()}</strong></td>
       <td>${payText(b.payment)}</td></tr>`;
   });
+
   openPrint(`
     <h2 style="text-align:center;margin-bottom:4px;">สรุปรายงานผู้เข้าพักประจำวัน</h2>
     <p style="text-align:center;color:#666;margin-bottom:6px;">วันที่ ${fmtDate(d)}</p>
-    <p style="text-align:center;color:#666;margin-bottom:16px;">${seen.size} การจอง | ${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน | จัดทำโดย: ${ST.currentUser.name}</p>
+    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน | จัดทำโดย: ${ST.currentUser.name}</p>
     <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">
       <thead style="background:#f0f0f0;">
         <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th><th>เข้าพัก</th><th>ออก</th>
           <th>คืน</th><th>จำนวนผู้พัก</th><th>ราคาห้อง/คืน</th><th>ราคา BF</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th></tr>
       </thead>
       <tbody>${trs}</tbody>
-      <tfoot>
-        <tr><td colspan="10" align="right"><strong>ราคาห้องรวม</strong></td><td align="right"><strong>${grandRoom.toLocaleString()}</strong></td><td></td></tr>
-        <tr><td colspan="10" align="right"><strong>อาหารเช้ารวม (${totalBfP} ท่าน)</strong></td><td align="right"><strong>${grandBf.toLocaleString()}</strong></td><td></td></tr>
-        <tr style="background:#f9f9f9;"><td colspan="10" align="right"><strong>ยอดรวมทั้งสิ้น</strong></td>
-          <td align="right"><strong style="font-size:14px;">${(grandRoom+grandBf).toLocaleString()}</strong></td><td></td></tr>
+      <tfoot style="background:#f5f5f5;">
+        <tr>
+          <td colspan="8" align="right"><strong>รวม</strong></td>
+          <td align="right"><strong>${sumBdRoom.toLocaleString()}</strong></td>
+          <td align="right"><strong>${sumBdBf.toLocaleString()}</strong></td>
+          <td align="right"><strong>${grandRoomTotal.toLocaleString()}</strong></td>
+          <td></td>
+        </tr>
       </tfoot>
     </table>`, `สรุปผู้เข้าพัก ${fmtDate(d)}`);
 }
