@@ -1287,15 +1287,18 @@ function renderGuests(){
   });
   rows.sort((a,x)=>a.rn-x.rn);
 
-  // Totals (per unique booking) - นับจำนวน BF รวมจากทุกห้องที่รวมอาหารเช้า
+  // Totals - นับ BF ต่อ "ห้อง" ไม่ใช่ต่อ "การจอง"
   const seen=new Set();
   let grandRoom=0,totalBfP=0;
   bks.forEach(b=>{
     if(!seen.has(b.id)){
       seen.add(b.id);
       grandRoom+=calcRoomAmt(b);
-      if(b.includeBreakfast) totalBfP+=(parseInt(b.guestCount)||0);
     }
+  });
+  // รวม BF ทุกแถวห้องพัก (guestCount = จำนวนผู้พักต่อห้อง)
+  rows.forEach(({b})=>{
+    if(b.includeBreakfast) totalBfP+=(parseInt(b.guestCount)||0);
   });
 
   document.getElementById('gh-chips').innerHTML=`
