@@ -18,10 +18,13 @@ body.theme-forest{--bg:#0b1a12;--bg2:#112218;--bg3:#162d1e;--card:#1a3424;}
 body.theme-navy{--bg:#040d1a;--bg2:#081224;--bg3:#0e1d35;--card:#122245;}
 body.theme-charcoal{--bg:#111111;--bg2:#1a1a1a;--bg3:#222222;--card:#2a2a2a;}
 body.theme-wine{--bg:#160b0e;--bg2:#200f14;--bg3:#2b151b;--card:#341c23;}
-body.theme-light{
-  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#f8f9fa;--card:#ffffff;
-  --text:#1a1a2e;--text2:#6c757d;--border:rgba(200,168,74,.25);
-}
+body.theme-light{--bg:#f0f2f5;--bg2:#ffffff;--bg3:#f8f9fa;--card:#ffffff;--text:#1a1a2e;--text2:#6c757d;--border:rgba(200,168,74,.25);}
+body.theme-ocean{--bg:#051520;--bg2:#081f2d;--bg3:#0d2b3e;--card:#10364f;}
+body.theme-purple{--bg:#0e0a1a;--bg2:#160f28;--bg3:#1e1535;--card:#261c42;}
+body.theme-teal{--bg:#061618;--bg2:#0a2024;--bg3:#0e2b30;--card:#12363c;}
+body.theme-amber{--bg:#160f04;--bg2:#211608;--bg3:#2d1f0c;--card:#382711;}
+body.theme-rose{--bg:#160810;--bg2:#200c18;--bg3:#2b1122;--card:#36152c;}
+body.theme-moss{--bg:#0f1408;--bg2:#171e0c;--bg3:#1f2a10;--card:#273514;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
 
@@ -249,13 +252,19 @@ tfoot td{border-top:1px solid var(--border);}
       <div style="margin-bottom:10px;">
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">ธีมสี</div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;">
-          <button onclick="setTheme('')" title="Navy Dark" style="width:22px;height:22px;border-radius:50%;background:#0e0e1c;border:2px solid var(--gold);cursor:pointer;" id="th-default"></button>
-          <button onclick="setTheme('slate')" title="Slate" style="width:22px;height:22px;border-radius:50%;background:#0d1117;border:2px solid #444;cursor:pointer;" id="th-slate"></button>
-          <button onclick="setTheme('forest')" title="Forest" style="width:22px;height:22px;border-radius:50%;background:#0b1a12;border:2px solid #2d5a3d;cursor:pointer;" id="th-forest"></button>
-          <button onclick="setTheme('navy')" title="Navy" style="width:22px;height:22px;border-radius:50%;background:#040d1a;border:2px solid #1e4080;cursor:pointer;" id="th-navy"></button>
-          <button onclick="setTheme('charcoal')" title="Charcoal" style="width:22px;height:22px;border-radius:50%;background:#111;border:2px solid #555;cursor:pointer;" id="th-charcoal"></button>
-          <button onclick="setTheme('wine')" title="Wine" style="width:22px;height:22px;border-radius:50%;background:#160b0e;border:2px solid #7a2035;cursor:pointer;" id="th-wine"></button>
-          <button onclick="setTheme('light')" title="Light" style="width:22px;height:22px;border-radius:50%;background:#f0f2f5;border:2px solid #c8a84a;cursor:pointer;" id="th-light"></button>
+          <button onclick="setTheme('')"       title="Dark Gold (Default)" style="width:22px;height:22px;border-radius:50%;background:#0e0e1c;border:2px solid #c8a84a;cursor:pointer;" id="th-default"></button>
+          <button onclick="setTheme('slate')"   title="Slate"    style="width:22px;height:22px;border-radius:50%;background:#0d1117;border:2px solid #30363d;cursor:pointer;" id="th-slate"></button>
+          <button onclick="setTheme('charcoal')"title="Charcoal" style="width:22px;height:22px;border-radius:50%;background:#111111;border:2px solid #555;cursor:pointer;"   id="th-charcoal"></button>
+          <button onclick="setTheme('navy')"    title="Navy"     style="width:22px;height:22px;border-radius:50%;background:#040d1a;border:2px solid #1e4080;cursor:pointer;" id="th-navy"></button>
+          <button onclick="setTheme('ocean')"   title="Ocean"    style="width:22px;height:22px;border-radius:50%;background:#051520;border:2px solid #0e6494;cursor:pointer;" id="th-ocean"></button>
+          <button onclick="setTheme('teal')"    title="Teal"     style="width:22px;height:22px;border-radius:50%;background:#061618;border:2px solid #0e8a8a;cursor:pointer;" id="th-teal"></button>
+          <button onclick="setTheme('forest')"  title="Forest"   style="width:22px;height:22px;border-radius:50%;background:#0b1a12;border:2px solid #2d5a3d;cursor:pointer;" id="th-forest"></button>
+          <button onclick="setTheme('moss')"    title="Moss"     style="width:22px;height:22px;border-radius:50%;background:#0f1408;border:2px solid #4a6320;cursor:pointer;" id="th-moss"></button>
+          <button onclick="setTheme('purple')"  title="Purple"   style="width:22px;height:22px;border-radius:50%;background:#0e0a1a;border:2px solid #6633aa;cursor:pointer;" id="th-purple"></button>
+          <button onclick="setTheme('wine')"    title="Wine"     style="width:22px;height:22px;border-radius:50%;background:#160b0e;border:2px solid #7a2035;cursor:pointer;" id="th-wine"></button>
+          <button onclick="setTheme('rose')"    title="Rose"     style="width:22px;height:22px;border-radius:50%;background:#160810;border:2px solid #8b3060;cursor:pointer;" id="th-rose"></button>
+          <button onclick="setTheme('amber')"   title="Amber"    style="width:22px;height:22px;border-radius:50%;background:#160f04;border:2px solid #8b5e10;cursor:pointer;" id="th-amber"></button>
+          <button onclick="setTheme('light')"   title="Light"    style="width:22px;height:22px;border-radius:50%;background:#f0f2f5;border:2px solid #c8a84a;cursor:pointer;" id="th-light"></button>
         </div>
       </div>
       <button class="btn btn-secondary btn-full btn-sm" onclick="doLogout()">ออกจากระบบ</button>
@@ -447,18 +456,30 @@ const FLOORS = {
   6:[601,602,603,604,605,606,607,608,609,610,611,612,614,615,616,617]
 };
 const TYPE_MAP={
-  204:'Jr.Suite Tw',205:'Jr.Suite Tw',210:'Jr.Suite Tw',211:'Jr.Suite Tw',
-  303:'RV.Suite Tw',304:'RV.Suite Tw',311:'Jr.Suite Tw',312:'Jr.Suite Tw',
-  403:'RV.Suite Db',404:'RV.Suite Db',412:'Jr.Suite Tr',414:'Jr.Suite Tw',
-  503:'RV.Suite Db',504:'RV.Suite Db',512:'Jr.Suite Tr',514:'Jr.Suite Tr',
-  505:'Superior Tw',507:'Superior Tw',508:'Superior Tw',511:'Superior Tw',
-  603:'RV.Suite Db',604:'RV.Suite Db',612:'Jr.Suite Tr',614:'Jr.Suite Tr',605:'Superior Tw'
+  204:'Jr.Suite Twn',205:'Jr.Suite Twn',210:'Jr.Suite Twn',211:'Jr.Suite Twn',
+  303:'R.Suite Twn',304:'R.Suite Twn',311:'Jr.Suite Twn',312:'Jr.Suite Twn',
+  403:'R.Suite Dbl',404:'R.Suite Dbl',412:'Jr.Suite Trp',414:'Jr.Suite Twn',
+  503:'R.Suite Dbl',504:'R.Suite Dbl',512:'Jr.Suite Trp',514:'Jr.Suite Trp',
+  505:'Superior Twn',507:'Superior Twn',508:'Superior Twn',511:'Superior Twn',
+  603:'R.Suite Dbl',604:'R.Suite Dbl',612:'Jr.Suite Trp',614:'Jr.Suite Trp',605:'Superior Twn'
+};
+const TYPE_FULL_MAP={
+  'Superior Twn':'Superior Twin',
+  'Superior Dbl':'Superior Double',
+  'Jr.Suite Twn':'Junior Suite Twin',
+  'Jr.Suite Trp':'Junior Suite Triple',
+  'R.Suite Twn':'Riverview Suite Twin',
+  'R.Suite Dbl':'Riverview Suite Double'
 };
 const ALL_ROOMS = Object.values(FLOORS).flat();
 function roomType(n){
   if(TYPE_MAP[n]) return TYPE_MAP[n];
   const f=Math.floor(n/100);
-  return (f===5||f===6)?'Superior Db':'Superior Tw';
+  return (f===5||f===6)?'Superior Dbl':'Superior Twn';
+}
+function roomTypeFull(n){
+  const short=roomType(n);
+  return TYPE_FULL_MAP[short]||short;
 }
 
 /* ════════════════════════════════════════
@@ -1175,8 +1196,8 @@ function viewBooking(id){
         <div><div class="form-label">ห้องพัก</div>
           <div style="font-size:15px;font-weight:700;color:var(--gold);">${roomsDisplay(b)}</div>
           ${b.rooms&&b.rooms.length?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">
-            ${[...new Set(b.rooms.map(r=>roomType(r)))].map(t=>{
-              const cnt=b.rooms.filter(r=>roomType(r)===t).length;
+            ${[...new Set(b.rooms.map(r=>roomTypeFull(r)))].map(t=>{
+              const cnt=b.rooms.filter(r=>roomTypeFull(r)===t).length;
               return `${t}${cnt>1?' ('+cnt+' ห้อง)':''}`;
             }).join(' · ')}
           </div>`:''}
@@ -1416,10 +1437,12 @@ function renderGuests(){
       <td>${b.guestName}<br><small class="text-muted">${b.nationality||''}</small></td>
       <td>${b.company||'-'}</td>
       <td>${guestTypeLabel(b.guestType)}</td>
-      <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td>
+      <td>${fmtDate(b.checkIn)}</td>
+      <td style="${b.checkOut===d?'color:var(--orange);font-weight:700;':''}">
+        ${fmtDate(b.checkOut)}${b.checkOut===d?'&nbsp;🔔':''}
+      </td>
       <td style="text-align:center;">${n}</td>
       <td style="text-align:center;">${gCount > 0 ? gCount+' ท่าน' : '-'}</td>
-      <td style="text-align:right;">${bdRoomPr.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${pricePerNight.toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
@@ -1874,7 +1897,7 @@ function printRoomingList(id){
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;font-weight:700;font-size:15px;">${rn!=='-'?rn:'-'}</td>
       <td style="border:1px solid #ccc;padding:5px 8px;">${b.guestName}</td>
       <td style="border:1px solid #ccc;padding:5px 8px;">${b.company||'-'}</td>
-      <td style="border:1px solid #ccc;padding:5px 8px;">${rn!=='-'?roomType(parseInt(rn)):'-'}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;">${rn!=='-'?roomTypeFull(parseInt(rn)):'-'}</td>
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkIn)}</td>
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkOut)}</td>
       <td style="text-align:right;border:1px solid #ccc;padding:5px 8px;">${pricePerNight>0?pricePerNight.toLocaleString():'-'}</td>
@@ -1940,8 +1963,8 @@ function printBookingAll(id){
       <tr><td style="padding:6px;color:#666;">ห้องพัก</td><td style="padding:6px;font-weight:700;">${roomsDisplay(b)}</td></tr>
       <tr><td style="padding:6px;color:#666;">ประเภทห้อง</td><td style="padding:6px;">${
         b.rooms&&b.rooms.length
-          ? [...new Set(b.rooms.map(r=>roomType(r)))].map(t=>{
-              const cnt=b.rooms.filter(r=>roomType(r)===t).length;
+          ? [...new Set(b.rooms.map(r=>roomTypeFull(r)))].map(t=>{
+              const cnt=b.rooms.filter(r=>roomTypeFull(r)===t).length;
               return `${t}${cnt>1?' ('+cnt+' ห้อง)':''}`;
             }).join(', ')
           : '-'
@@ -2019,7 +2042,7 @@ function printBookingByRoom(id){
           <div>
             <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;">Room Number</div>
             <div style="font-size:54px;font-weight:900;color:#222;line-height:1;">${rn}</div>
-            <div style="font-size:12px;color:#666;">${roomType(rn)}</div>
+            <div style="font-size:12px;color:#666;">${roomTypeFull(rn)}</div>
           </div>
           <div style="text-align:right;font-size:12px;color:#888;">
             <div>รหัสการจอง</div><div style="font-weight:600;color:#333;">${b.id}</div>
@@ -2159,11 +2182,10 @@ function overlayClick(e){if(e.target===document.getElementById('modal-overlay'))
    THEME SWITCHER
 ════════════════════════════════════════ */
 function setTheme(name){
-  const themes=['slate','forest','navy','charcoal','wine','light'];
+  const themes=['slate','forest','navy','charcoal','wine','light','ocean','purple','teal','amber','rose','moss'];
   themes.forEach(t=>document.body.classList.remove('theme-'+t));
   if(name) document.body.classList.add('theme-'+name);
   try{localStorage.setItem('hms_theme',name);}catch(e){}
-  // update button active state
   document.querySelectorAll('[id^="th-"]').forEach(btn=>{
     btn.style.outline='none';btn.style.boxShadow='none';
   });
