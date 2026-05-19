@@ -13,6 +13,15 @@
   --text:#ede9e0;--text2:#8888aa;
   --border:rgba(200,168,74,.14);--radius:8px;
 }
+body.theme-slate{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--card:#21262d;}
+body.theme-forest{--bg:#0b1a12;--bg2:#112218;--bg3:#162d1e;--card:#1a3424;}
+body.theme-navy{--bg:#040d1a;--bg2:#081224;--bg3:#0e1d35;--card:#122245;}
+body.theme-charcoal{--bg:#111111;--bg2:#1a1a1a;--bg3:#222222;--card:#2a2a2a;}
+body.theme-wine{--bg:#160b0e;--bg2:#200f14;--bg3:#2b151b;--card:#341c23;}
+body.theme-light{
+  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#f8f9fa;--card:#ffffff;
+  --text:#1a1a2e;--text2:#6c757d;--border:rgba(200,168,74,.25);
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
 
@@ -236,6 +245,19 @@ tfoot td{border-top:1px solid var(--border);}
     <div class="sidebar-footer">
       <div class="sf-name" id="sf-name">-</div>
       <div class="sf-role" id="sf-role">-</div>
+      <!-- Theme Switcher -->
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">ธีมสี</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">
+          <button onclick="setTheme('')" title="Navy Dark" style="width:22px;height:22px;border-radius:50%;background:#0e0e1c;border:2px solid var(--gold);cursor:pointer;" id="th-default"></button>
+          <button onclick="setTheme('slate')" title="Slate" style="width:22px;height:22px;border-radius:50%;background:#0d1117;border:2px solid #444;cursor:pointer;" id="th-slate"></button>
+          <button onclick="setTheme('forest')" title="Forest" style="width:22px;height:22px;border-radius:50%;background:#0b1a12;border:2px solid #2d5a3d;cursor:pointer;" id="th-forest"></button>
+          <button onclick="setTheme('navy')" title="Navy" style="width:22px;height:22px;border-radius:50%;background:#040d1a;border:2px solid #1e4080;cursor:pointer;" id="th-navy"></button>
+          <button onclick="setTheme('charcoal')" title="Charcoal" style="width:22px;height:22px;border-radius:50%;background:#111;border:2px solid #555;cursor:pointer;" id="th-charcoal"></button>
+          <button onclick="setTheme('wine')" title="Wine" style="width:22px;height:22px;border-radius:50%;background:#160b0e;border:2px solid #7a2035;cursor:pointer;" id="th-wine"></button>
+          <button onclick="setTheme('light')" title="Light" style="width:22px;height:22px;border-radius:50%;background:#f0f2f5;border:2px solid #c8a84a;cursor:pointer;" id="th-light"></button>
+        </div>
+      </div>
       <button class="btn btn-secondary btn-full btn-sm" onclick="doLogout()">ออกจากระบบ</button>
     </div>
   </aside>
@@ -1150,7 +1172,15 @@ function viewBooking(id){
         <div><div class="form-label">สัญชาติ</div>${b.nationality||'-'}</div>
         <div><div class="form-label">บริษัท/หน่วยงาน</div>${b.company||'-'}</div>
         <div><div class="form-label">เบอร์โทร</div>${b.phone||'-'}</div>
-        <div><div class="form-label">ห้องพัก</div><div style="font-size:15px;font-weight:700;color:var(--gold);">${roomsDisplay(b)}</div></div>
+        <div><div class="form-label">ห้องพัก</div>
+          <div style="font-size:15px;font-weight:700;color:var(--gold);">${roomsDisplay(b)}</div>
+          ${b.rooms&&b.rooms.length?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">
+            ${[...new Set(b.rooms.map(r=>roomType(r)))].map(t=>{
+              const cnt=b.rooms.filter(r=>roomType(r)===t).length;
+              return `${t}${cnt>1?' ('+cnt+' ห้อง)':''}`;
+            }).join(' · ')}
+          </div>`:''}
+        </div>
         <div><div class="form-label">จำนวนห้อง</div>${numRooms(b)} ห้อง</div>
         <div><div class="form-label">วันเข้าพัก</div>${fmtDate(b.checkIn)}</div>
         <div><div class="form-label">วันออก</div>${fmtDate(b.checkOut)}</div>
@@ -1339,7 +1369,8 @@ function renderGuests(){
   const el=document.getElementById('gh-date');
   if(!el.value) el.value=today();
   const d=el.value;
-  const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>d);
+  // รวมห้องที่ checkOut = วันนี้ด้วย เพราะยังไม่ได้เช็คเอาท์จริง
+  const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>=d);
 
   // Expand per room, track index within booking for rate lookup
   let rows=[];
@@ -1732,7 +1763,7 @@ function delUser(id){
 ════════════════════════════════════════ */
 function printDailySummary(){
   const d=document.getElementById('gh-date').value||today();
-  const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>d);
+  const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>=d);
   let rows=[];
   bks.forEach(b=>{
     const roomList=b.rooms&&b.rooms.length?b.rooms:['?'];
@@ -1907,6 +1938,14 @@ function printBookingAll(id){
       <tr><td style="padding:6px;color:#666;">บริษัท/หน่วยงาน</td><td style="padding:6px;">${b.company||'-'}</td></tr>
       <tr><td style="padding:6px;color:#666;">เบอร์โทร</td><td style="padding:6px;">${b.phone||'-'}</td></tr>
       <tr><td style="padding:6px;color:#666;">ห้องพัก</td><td style="padding:6px;font-weight:700;">${roomsDisplay(b)}</td></tr>
+      <tr><td style="padding:6px;color:#666;">ประเภทห้อง</td><td style="padding:6px;">${
+        b.rooms&&b.rooms.length
+          ? [...new Set(b.rooms.map(r=>roomType(r)))].map(t=>{
+              const cnt=b.rooms.filter(r=>roomType(r)===t).length;
+              return `${t}${cnt>1?' ('+cnt+' ห้อง)':''}`;
+            }).join(', ')
+          : '-'
+      }</td></tr>
       <tr><td style="padding:6px;color:#666;">จำนวนห้อง</td><td style="padding:6px;">${nRooms} ห้อง</td></tr>
       <tr><td style="padding:6px;color:#666;">วันเข้าพัก</td><td style="padding:6px;">${fmtDate(b.checkIn)}</td></tr>
       <tr><td style="padding:6px;color:#666;">วันออก</td><td style="padding:6px;">${fmtDate(b.checkOut)}</td></tr>
@@ -2116,6 +2155,25 @@ function overlayClick(e){if(e.target===document.getElementById('modal-overlay'))
 /* ════════════════════════════════════════
    INIT
 ════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   THEME SWITCHER
+════════════════════════════════════════ */
+function setTheme(name){
+  const themes=['slate','forest','navy','charcoal','wine','light'];
+  themes.forEach(t=>document.body.classList.remove('theme-'+t));
+  if(name) document.body.classList.add('theme-'+name);
+  try{localStorage.setItem('hms_theme',name);}catch(e){}
+  // update button active state
+  document.querySelectorAll('[id^="th-"]').forEach(btn=>{
+    btn.style.outline='none';btn.style.boxShadow='none';
+  });
+  const active=document.getElementById('th-'+(name||'default'));
+  if(active) active.style.boxShadow='0 0 0 2px var(--gold),0 0 0 4px rgba(200,168,74,.3)';
+}
+(function initTheme(){
+  try{const t=localStorage.getItem('hms_theme');if(t!==null)setTheme(t);}catch(e){}
+})();
+
 load();
 </script>
 </body>
