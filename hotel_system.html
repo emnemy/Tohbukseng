@@ -412,7 +412,7 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="page-sub" id="co-sub"></div>
       <div class="action-bar">
         <div class="chips" id="co-chips" style="margin-bottom:0;"></div>
-        <button class="btn btn-warning btn-sm" onclick="openGroupCOModal()">🚪 Check-Out Group</button>
+        <button class="btn btn-secondary btn-sm" onclick="printDepartureList()">🖨 Guest Departure List</button>
       </div>
       <div class="card">
         <div class="card-title">ห้องที่เช็คเอาท์วันนี้</div>
@@ -690,12 +690,20 @@ function roomsDisplay(b){
 function renderDashboard(){
   const d=today();
   document.getElementById('dash-date').textContent='วันที่ '+fmtDate(d);
-  let vac=0,res=0,occ=0,ci=0,co=0;
+  let vac=0,res=0,occ=0,ci=0,coDone=0,coPending=0;
   ALL_ROOMS.forEach(r=>{
-    const{s}=roomStatusAt(r,d);
+    const{s,b}=roomStatusAt(r,d);
     if(s==='vacant')vac++;
     else if(s==='res')res++;
-    else{occ++;if(s==='ci')ci++;if(s==='co')co++;}
+    else{
+      occ++;
+      if(s==='ci')ci++;
+      if(s==='co'){
+        // ตรวจสอบว่า booking นี้เช็คเอาท์จริงแล้วหรือยัง
+        if(b&&b.status===S_CO) coDone++;
+        else coPending++;
+      }
+    }
   });
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card"><div class="stat-val">${ALL_ROOMS.length}</div><div class="stat-lbl">ห้องทั้งหมด</div></div>
@@ -703,7 +711,11 @@ function renderDashboard(){
     <div class="stat-card"><div class="stat-val" style="color:var(--purple)">${res}</div><div class="stat-lbl">จองแล้ว</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--red)">${occ}</div><div class="stat-lbl">มีผู้พัก</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${ci}</div><div class="stat-lbl">เช็คอินวันนี้</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${co}</div><div class="stat-lbl">เช็คเอาท์วันนี้</div></div>`;
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--orange)">${coPending}</div>
+      <div class="stat-lbl">เช็คเอาท์วันนี้</div>
+      ${coDone>0?`<div style="font-size:10px;color:var(--text2);margin-top:2px;">ดำเนินการแล้ว ${coDone}</div>`:''}
+    </div>`;
   const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>d);
   if(!bks.length){document.getElementById('dash-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้เข้าพักวันนี้</p>';return;}
   let rows='';
@@ -1698,6 +1710,74 @@ function clearCheckoutHistory(){
   if(d)d.value='';if(n)n.value='';
   document.getElementById('coh-table').innerHTML=
     '<p style="color:var(--text2);padding:14px;text-align:center;">กรอกวันที่หรือชื่อเพื่อค้นหาประวัติ</p>';
+}
+
+function printDepartureList(){
+  const d=today();
+  // ดึงทุก booking ที่มีกำหนด checkOut วันนี้ (ทั้งยังไม่และเช็คเอาท์แล้ว)
+  const bks=ST.bookings.filter(b=>(b.status===S_CI||b.status===S_CO)&&b.checkOut===d);
+  let rows=[];
+  bks.forEach(b=>{
+    const roomList=b.rooms&&b.rooms.length?b.rooms:['?'];
+    roomList.forEach((rn,idx)=>rows.push({rn:parseInt(rn)||9999,rnStr:String(rn),b,roomIdx:idx}));
+  });
+  rows.sort((a,x)=>a.rn-x.rn);
+
+  const seen=new Set();
+  let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0;
+  rows.forEach(({b,roomIdx})=>{
+    const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const gCount=parseInt(b.guestCount)||0;
+    const bdBfPr=b.bdBfPrice||0;
+    const bdRoomPr=b.bdRoomPrice||0;
+    if(b.includeBreakfast) totalBfP+=gCount;
+    sumBdRoom+=bdRoomPr;
+    if(b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
+    sumRoomTotal+=rCost;
+    seen.add(b.id);
+  });
+
+  let trs='';
+  rows.forEach(({rnStr,b,roomIdx})=>{
+    const n=nights(b.checkIn,b.checkOut);
+    const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const bdRoomPr=b.bdRoomPrice||0;
+    const bdBfPr=b.bdBfPrice||0;
+    const gCount=parseInt(b.guestCount)||0;
+    const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
+    const statusTxt=b.status===S_CO?'✅ เช็คเอาท์แล้ว':'⏳ รอเช็คเอาท์';
+    trs+=`<tr>
+      <td><strong>${rnStr}</strong></td>
+      <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
+      <td>${fmtDate(b.checkIn)}</td><td>${n}</td>
+      <td>${gCount>0?gCount+' ท่าน':'-'}</td>
+      <td style="text-align:right;">${bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString()}</td>
+      <td style="text-align:right;">${bfTotal}</td>
+      <td style="text-align:right;"><strong>${rCost.toLocaleString()}</strong></td>
+      <td>${payText(b.payment)}</td>
+      <td>${statusTxt}</td></tr>`;
+  });
+
+  openPrint(`
+    <h2 style="text-align:center;margin-bottom:4px;">Guest Departure List</h2>
+    <p style="text-align:center;color:#666;margin-bottom:6px;">วันที่ ${fmtDate(d)}</p>
+    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน | จัดทำโดย: ${ST.currentUser.name}</p>
+    <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">
+      <thead style="background:#f0f0f0;">
+        <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th><th>เข้าพัก</th>
+          <th>คืน</th><th>จำนวนผู้พัก</th><th>ราคาห้อง/คืน</th><th>ราคา BF</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th><th>สถานะ</th></tr>
+      </thead>
+      <tbody>${trs}</tbody>
+      <tfoot style="background:#f5f5f5;">
+        <tr>
+          <td colspan="7" align="right"><strong>รวม</strong></td>
+          <td align="right"><strong>${sumBdRoom>0?sumBdRoom.toLocaleString():sumRoomTotal.toLocaleString()}</strong></td>
+          <td align="right"><strong>${sumBdBf>0?sumBdBf.toLocaleString():'-'}</strong></td>
+          <td align="right"><strong>${sumRoomTotal.toLocaleString()}</strong></td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>`, `Guest Departure List — ${fmtDate(d)}`);
 }
 
 function renderCheckout(){
