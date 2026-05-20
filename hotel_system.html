@@ -1458,14 +1458,19 @@ function renderGuests(){
     document.getElementById('gh-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้เข้าพักในวันที่เลือก</p>';return;}
 
   let html='';
+  let sumBdRoom=0, sumBdBf=0, sumRoomTotal=0;
   rows.forEach(({rnStr,b,roomIdx})=>{
     const n=nights(b.checkIn,b.checkOut);
-    const pricePerNight=roomRateCostForIdx(b,roomIdx,1); // ราคาต่อ 1 คืน
+    const pricePerNight=roomRateCostForIdx(b,roomIdx,1);
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    // ราคา BF รวม = bdBfPrice × guestCount (แสดงเฉพาะห้องที่รวม BF)
-    const bfTotal=b.includeBreakfast?(bdBfPr*gCount).toLocaleString():'-';
+    const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
+    // display ราคาห้อง/คืน: ถ้าไม่ได้ตั้ง bdRoomPrice ให้ fallback ใช้ pricePerNight
+    const displayBdRoom=bdRoomPr>0?bdRoomPr:pricePerNight;
+    sumBdRoom+=displayBdRoom;
+    sumBdBf+=(b.includeBreakfast&&bdBfPr>0)?(bdBfPr*gCount):0;
+    sumRoomTotal+=pricePerNight;
     html+=`<tr>
       <td><strong style="font-size:15px;color:var(--gold);">${rnStr}</strong></td>
       <td>${b.guestName}<br><small class="text-muted">${b.nationality||''}</small></td>
@@ -1476,7 +1481,8 @@ function renderGuests(){
         ${fmtDate(b.checkOut)}${b.checkOut===d?'&nbsp;🔔':''}
       </td>
       <td style="text-align:center;">${n}</td>
-      <td style="text-align:center;">${gCount > 0 ? gCount+' ท่าน' : '-'}</td>
+      <td style="text-align:center;">${gCount>0?gCount+' ท่าน':'-'}</td>
+      <td style="text-align:right;">${displayBdRoom.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${pricePerNight.toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
@@ -1490,9 +1496,13 @@ function renderGuests(){
       <th>จำนวนผู้พัก</th><th>ราคาห้อง/คืน</th><th>ราคา BF</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${html}</tbody>
     <tfoot>
-      <tr><td colspan="10" style="text-align:right;font-weight:700;">ยอดรวมทั้งสิ้น</td>
-        <td style="text-align:right;color:var(--gold);font-size:15px;font-weight:700;">${grandRoom.toLocaleString()}</td>
-        <td colspan="2"></td></tr>
+      <tr style="font-weight:600;font-size:13px;">
+        <td colspan="8" style="text-align:right;color:var(--text2);">รวม</td>
+        <td style="text-align:right;color:var(--gold);">${sumBdRoom.toLocaleString()}</td>
+        <td style="text-align:right;color:var(--gold);">${sumBdBf>0?sumBdBf.toLocaleString():'-'}</td>
+        <td style="text-align:right;color:var(--gold);font-size:15px;">${sumRoomTotal.toLocaleString()}</td>
+        <td colspan="2"></td>
+      </tr>
     </tfoot></table>`;
 }
 
