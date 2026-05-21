@@ -673,6 +673,17 @@ function roomRateCostForIdx(b, roomIdx, n){
   }
   return (parseFloat(b.roomPrice)||0)*n;
 }
+function isCompRoom(b, roomIdx){
+  if(b.roomRates&&b.roomRates.length){
+    let cumRooms=0;
+    for(const r of b.roomRates){
+      cumRooms+=parseInt(r.count)||1;
+      if(roomIdx<cumRooms) return (parseFloat(r.price)||0)===0;
+    }
+  }
+  return (parseFloat(b.roomPrice)||0)===0;
+}
+function displayPrice(val){ return val===0?'Comp.':val.toLocaleString(); }
 function statusBadge(s){
   return {
     reserved:'<span class="badge badge-purple">รอเช็คอิน</span>',
@@ -924,11 +935,11 @@ function openResModal(id){
 
   // Initialise formRates from existing booking or default 1 row
   if(b&&b.roomRates&&b.roomRates.length){
-    formRates=b.roomRates.map(r=>({price:r.price,count:r.count}));
+    formRates=b.roomRates.map(r=>({price:r.price,count:r.count,rooms:r.rooms||''}));
   } else if(b){
-    formRates=[{price:b.roomPrice||0, count:numRooms(b)}];
+    formRates=[{price:b.roomPrice||0, count:numRooms(b), rooms:''}];
   } else {
-    formRates=[{price:0, count:1}];
+    formRates=[{price:0, count:1, rooms:''}];
   }
 
   const bfChecked=b&&b.includeBreakfast;
@@ -1048,16 +1059,21 @@ function renderRateRows(){
   if(!wrap) return;
   wrap.innerHTML='';
   formRates.forEach((r,i)=>{
+    const isComp=(parseFloat(r.price)||0)===0;
     const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap;';
+    row.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;';
     row.innerHTML=`
       <span style="font-size:12px;color:var(--text2);white-space:nowrap;">ราคา/คืน/ห้อง</span>
-      <input type="number" class="form-input" style="width:110px;" value="${r.price}" min="0"
-        oninput="formRates[${i}].price=parseFloat(this.value)||0;calcDisplay()">
-      <span style="font-size:12px;color:var(--text2);">บาท &nbsp;×</span>
-      <input type="number" class="form-input" style="width:62px;" value="${r.count}" min="1"
+      <input type="number" class="form-input" style="width:100px;" value="${r.price}" min="0"
+        oninput="formRates[${i}].price=parseFloat(this.value)||0;renderRateRows()">
+      ${isComp?`<span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`
+               :`<span style="font-size:12px;color:var(--text2);">บาท &nbsp;×</span>`}
+      <input type="number" class="form-input" style="width:58px;" value="${r.count}" min="1"
         oninput="formRates[${i}].count=parseInt(this.value)||1;syncRoomCount();calcDisplay()">
       <span style="font-size:12px;color:var(--text2);">ห้อง</span>
+      <input type="text" class="form-input" style="width:130px;font-size:12px;" value="${r.rooms||''}"
+        placeholder="ระบุห้อง เช่น 301,302" title="กำหนดหมายเลขห้องสำหรับแถวนี้"
+        oninput="formRates[${i}].rooms=this.value">
       ${formRates.length>1?`<button type="button" class="btn btn-xs btn-danger" onclick="removeRateRow(${i})">✕</button>`:''}`;
     wrap.appendChild(row);
   });
@@ -1065,7 +1081,7 @@ function renderRateRows(){
   calcDisplay();
 }
 function addRateRow(){
-  formRates.push({price:0,count:1});
+  formRates.push({price:0,count:1,rooms:''});
   renderRateRows();
 }
 function removeRateRow(i){
@@ -1119,19 +1135,21 @@ function calcBdBf(){
   const bfPr=parseFloat(document.getElementById('f-bdbfp')?.value)||0;
   const guests=parseInt(document.getElementById('f-guests')?.value)||0;
   const ci=gv('f-ci'), co=gv('f-co2'), n=nights(ci,co);
+  // นับเฉพาะห้องที่ราคา > 0
+  const paidRooms=formRates.reduce((s,r)=>(parseFloat(r.price)||0)>0?s+(parseInt(r.count)||1):s,0);
   const el=document.getElementById('bd-bf-result');
   if(!el) return;
-  if(bfPr>0 && guests>0 && n>0){
-    const t=bfPr*guests*n;
-    el.textContent=`= ${bfPr.toLocaleString()} × ${guests} ท่าน × ${n} คืน = ${t.toLocaleString()} บาท`;
+  if(bfPr>0 && guests>0 && n>0 && paidRooms>0){
+    const t=bfPr*guests*paidRooms*n;
+    el.textContent=`= ${bfPr.toLocaleString()} × ${guests} ท่าน × ${paidRooms} ห้อง (ไม่รวม Comp.) × ${n} คืน = ${t.toLocaleString()} บาท`;
+  } else if(bfPr>0 && guests>0 && n>0){
+    el.textContent='';
   } else {
     el.textContent='';
   }
 }
 function calcDisplay(){
   const ci=gv('f-ci'), co=gv('f-co2'), n=nights(ci,co);
-
-  // Room rows breakdown
   const pbRoomRows=document.getElementById('pb-room-rows');
   let rTotal=0;
   let roomRowsHtml='';
@@ -1139,10 +1157,10 @@ function calcDisplay(){
     const p=parseFloat(r.price)||0, c=parseInt(r.count)||1;
     const sub=p*c*n;
     rTotal+=sub;
-    roomRowsHtml+=`<div class="pb-row"><span>ราคาห้อง (${p.toLocaleString()} × ${c} ห้อง × ${n} คืน)</span><span>${sub.toLocaleString()} บาท</span></div>`;
+    const label=p===0?`Comp. × ${c} ห้อง`:`${p.toLocaleString()} × ${c} ห้อง × ${n} คืน`;
+    roomRowsHtml+=`<div class="pb-row"><span>ราคาห้อง (${label})</span><span>${p===0?'Comp.':sub.toLocaleString()+' บาท'}</span></div>`;
   });
   if(pbRoomRows) pbRoomRows.innerHTML=roomRowsHtml;
-
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('pb-total', rTotal.toLocaleString()+' บาท');
   calcBdBf();
@@ -1167,7 +1185,7 @@ function saveReservation(){
     status:S_RES,
     rooms:[...pickRooms].sort((a,x)=>a-x),
     roomCount:pickRooms.length||totalRm,
-    roomRates:formRates.map(r=>({price:parseFloat(r.price)||0,count:parseInt(r.count)||1})),
+    roomRates:formRates.map(r=>({price:parseFloat(r.price)||0,count:parseInt(r.count)||1,rooms:r.rooms||''})),
     roomPrice:formRates.length===1?parseFloat(formRates[0].price)||0:0,
     guestType:guestType,
     guestCount:parseInt(gv('f-guests'))||1,
@@ -1474,11 +1492,11 @@ function renderGuests(){
   rows.forEach(({rnStr,b,roomIdx})=>{
     const n=nights(b.checkIn,b.checkOut);
     const pricePerNight=roomRateCostForIdx(b,roomIdx,1);
+    const comp=isCompRoom(b,roomIdx);
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
     const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
-    // display ราคาห้อง/คืน: ถ้าไม่ได้ตั้ง bdRoomPrice ให้ fallback ใช้ pricePerNight
     const displayBdRoom=bdRoomPr>0?bdRoomPr:pricePerNight;
     sumBdRoom+=displayBdRoom;
     sumBdBf+=(b.includeBreakfast&&bdBfPr>0)?(bdBfPr*gCount):0;
@@ -1494,9 +1512,9 @@ function renderGuests(){
       </td>
       <td style="text-align:center;">${n}</td>
       <td style="text-align:center;">${gCount>0?gCount+' ท่าน':'-'}</td>
-      <td style="text-align:right;">${displayBdRoom.toLocaleString()}</td>
+      <td style="text-align:right;">${comp?'<span style="color:var(--gold);">Comp.</span>':displayBdRoom.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${pricePerNight.toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${comp?'<span style="color:var(--text2);">Comp.</span>':pricePerNight.toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
@@ -1940,18 +1958,19 @@ function printDailySummary(){
   rows.forEach(({rnStr,b,roomIdx})=>{
     const n=nights(b.checkIn,b.checkOut);
     const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const comp=isCompRoom(b,roomIdx);
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=b.includeBreakfast?(bdBfPr*gCount).toLocaleString():'-';
+    const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${gCount>0?gCount+' ท่าน':'-'}</td>
-      <td style="text-align:right;">${bdRoomPr.toLocaleString()}</td>
+      <td style="text-align:right;">${comp?'Comp.':bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
-      <td style="text-align:right;"><strong>${rCost.toLocaleString()}</strong></td>
+      <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
       <td>${payText(b.payment)}</td></tr>`;
   });
 
@@ -1980,30 +1999,68 @@ function printDailySummary(){
 function printArrival(){
   const d=document.getElementById('arr-date').value||today();
   const bks=ST.bookings.filter(b=>b.status!==S_CO&&b.checkIn===d);
-  bks.sort((a,b)=>(a.rooms[0]||9999)-(b.rooms[0]||9999));
-  let trs='',tot=0;
+
+  // expand per room like Guest In House
+  let rows=[];
   bks.forEach(b=>{
-    const n=nights(b.checkIn,b.checkOut);const t=calcTotal(b);tot+=t;
+    const roomList=b.rooms&&b.rooms.length?b.rooms:['?'];
+    roomList.forEach((rn,idx)=>rows.push({rn:parseInt(rn)||9999,rnStr:String(rn),b,roomIdx:idx}));
+  });
+  rows.sort((a,x)=>a.rn-x.rn);
+
+  let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0;
+  rows.forEach(({b,roomIdx})=>{
+    const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const gCount=parseInt(b.guestCount)||0;
+    const bdBfPr=b.bdBfPrice||0;
+    const bdRoomPr=b.bdRoomPrice||0;
+    if(b.includeBreakfast) totalBfP+=gCount;
+    sumBdRoom+=bdRoomPr>0?bdRoomPr:rCost;
+    if(b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
+    sumRoomTotal+=rCost;
+  });
+
+  let trs='';
+  rows.forEach(({rnStr,b,roomIdx})=>{
+    const n=nights(b.checkIn,b.checkOut);
+    const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const comp=isCompRoom(b,roomIdx);
+    const bdRoomPr=b.bdRoomPrice||0;
+    const bdBfPr=b.bdBfPrice||0;
+    const gCount=parseInt(b.guestCount)||0;
+    const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
+    const displayBdRoom=bdRoomPr>0?bdRoomPr:(comp?0:rCost);
     trs+=`<tr>
-      <td>${{reserved:'รอเช็คอิน',checkedin:'เช็คอินแล้ว',checkedout:'ยกเลิก'}[b.status]||b.status}</td>
-      <td><strong>${roomsDisplay(b)}</strong></td>
+      <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
-      <td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${b.includeBreakfast?(b.adults||0)+' ท่าน':'-'}</td>
-      <td style="text-align:right;">${t.toLocaleString()}</td>
+      <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
+      <td>${gCount>0?gCount+' ท่าน':'-'}</td>
+      <td style="text-align:right;">${comp?'Comp.':displayBdRoom.toLocaleString()}</td>
+      <td style="text-align:right;">${bfTotal}</td>
+      <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
       <td>${payText(b.payment)}</td></tr>`;
   });
+
   openPrint(`
     <h2 style="text-align:center;margin-bottom:4px;">Guest Arrival</h2>
-    <p style="text-align:center;color:#666;margin-bottom:16px;">วันที่ ${fmtDate(d)} | ${bks.length} รายการ</p>
+    <p style="text-align:center;color:#666;margin-bottom:6px;">วันที่ ${fmtDate(d)}</p>
+    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน | จัดทำโดย: ${ST.currentUser.name}</p>
     <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">
       <thead style="background:#f0f0f0;">
-        <tr><th>สถานะ</th><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th>
-          <th>วันออก</th><th>คืน</th><th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th></tr>
+        <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th>
+          <th>วันเข้าพัก</th><th>วันออก</th><th>คืน</th><th>จำนวนผู้พัก</th>
+          <th>ราคาห้อง/คืน</th><th>ราคา BF</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th></tr>
       </thead>
       <tbody>${trs}</tbody>
-      <tfoot><tr><td colspan="8" align="right"><strong>ยอดรวม</strong></td>
-        <td align="right"><strong>${tot.toLocaleString()}</strong></td><td></td></tr></tfoot>
+      <tfoot style="background:#f5f5f5;">
+        <tr>
+          <td colspan="8" align="right"><strong>รวม</strong></td>
+          <td align="right"><strong>${sumBdRoom.toLocaleString()}</strong></td>
+          <td align="right"><strong>${sumBdBf>0?sumBdBf.toLocaleString():'-'}</strong></td>
+          <td align="right"><strong>${sumRoomTotal.toLocaleString()}</strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
     </table>`, `Guest Arrival — ${fmtDate(d)}`);
 }
 
