@@ -522,6 +522,14 @@ function load(){
         if(!bk.roomCount) bk.roomCount=bk.rooms.length||1;
         if(!bk.adults) bk.adults=bk.breakfastCount||0;
         if(!bk.children) bk.children=0;
+        // migrate roomRates: ensure count is stored as integer not coerced
+        if(bk.roomRates&&bk.roomRates.length){
+          bk.roomRates=bk.roomRates.map(r=>({
+            ...r,
+            price:parseFloat(r.price)||0,
+            count:parseInt(r.count)||0
+          }));
+        }
       });
     }
   }catch(e){}
@@ -2139,8 +2147,9 @@ function printBookingAll(id){
   const gCount=parseInt(b.guestCount)||0;
   // นับเฉพาะห้องที่ราคา > 0 สำหรับ breakdown
   const paidRooms=(b.roomRates&&b.roomRates.length)
-    ? b.roomRates.reduce((s,r)=>(parseFloat(r.price)||0)>0?s+(parseInt(r.count)||1):s, 0)
+    ? b.roomRates.reduce((s,r)=>(parseFloat(r.price)||0)>0 ? s+Math.max(0,parseInt(r.count)||0) : s, 0)
     : ((parseFloat(b.roomPrice)||0)>0?nRooms:0);
+  const compRooms=nRooms-paidRooms;
   const totalBfPersons=gCount*paidRooms;
   const bdRoomTotal=bdRoomPr*paidRooms;
   const bdBfTotal=bdBfPr*totalBfPersons;
@@ -2194,13 +2203,12 @@ function printBookingAll(id){
       </div>
       ${bdRoomPr>0&&paidRooms>0?`
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-        <span style="color:#555;">ค่าห้องพัก ${bdRoomPr.toLocaleString()} บาท/คืน × ${paidRooms} ห้อง${paidRooms<nRooms?` (ไม่รวม Comp. ${nRooms-paidRooms} ห้อง)`:''}
-        </span>
+        <span style="color:#555;">ค่าห้องพัก ${bdRoomPr.toLocaleString()} บาท/คืน × ${paidRooms} ห้อง${compRooms>0?` (ไม่รวม Comp. ${compRooms} ห้อง)`:''}</span>
         <strong>= ${bdRoomTotal.toLocaleString()} บาท</strong>
       </div>`:''}
       ${bdBfPr>0&&b.includeBreakfast&&paidRooms>0?`
       <div style="display:flex;justify-content:space-between;font-size:13px;">
-        <span style="color:#555;">ค่าอาหารเช้า ${bdBfPr.toLocaleString()} บาท × ${totalBfPersons} ท่าน (${gCount} ท่าน × ${paidRooms} ห้อง${paidRooms<nRooms?`, ไม่รวม Comp. ${nRooms-paidRooms} ห้อง`:''})</span>
+        <span style="color:#555;">ค่าอาหารเช้า ${bdBfPr.toLocaleString()} บาท × ${totalBfPersons} ท่าน (${gCount} ท่าน × ${paidRooms} ห้อง${compRooms>0?`, ไม่รวม Comp. ${compRooms} ห้อง`:''})</span>
         <strong>= ${bdBfTotal.toLocaleString()} บาท</strong>
       </div>`:''}
     </div>`:''}
