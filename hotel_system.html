@@ -1473,10 +1473,10 @@ function renderGuests(){
       seen.add(b.id);
     }
   });
-  // รวม BF และ ราคาห้อง/คืน จากทุกแถวห้อง
+  // รวม BF และ ราคาห้อง/คืน จากทุกแถวห้อง (ไม่รวม Comp. ในยอดเงิน)
   rows.forEach(({b,roomIdx})=>{
     if(b.includeBreakfast) totalBfP+=(parseInt(b.guestCount)||0);
-    grandRoom+=roomRateCostForIdx(b,roomIdx,1);
+    if(!isCompRoom(b,roomIdx)) grandRoom+=roomRateCostForIdx(b,roomIdx,1);
   });
 
   document.getElementById('gh-chips').innerHTML=`
@@ -1751,7 +1751,7 @@ function printDepartureList(){
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(!comp&&b.includeBreakfast) totalBfP+=gCount;
+    if(b.includeBreakfast) totalBfP+=gCount;
     sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
     if(!comp&&b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
     sumRoomTotal+=comp?0:rCost;
@@ -1953,7 +1953,7 @@ function printDailySummary(){
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(!comp&&b.includeBreakfast) totalBfP+=gCount;
+    if(b.includeBreakfast) totalBfP+=gCount;
     sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
     if(!comp&&b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
     sumRoomPerNight+=comp?0:rCost;
@@ -2020,7 +2020,7 @@ function printArrival(){
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(!comp&&b.includeBreakfast) totalBfP+=gCount;
+    if(b.includeBreakfast) totalBfP+=gCount;
     sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
     if(!comp&&b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
     sumRoomTotal+=comp?0:rCost;
