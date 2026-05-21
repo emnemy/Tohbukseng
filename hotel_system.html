@@ -1771,7 +1771,7 @@ function printDepartureList(){
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
-      <td>${fmtDate(b.checkIn)}</td><td>${n}</td>
+      <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${gCount>0?gCount+' ท่าน':'-'}</td>
       <td style="text-align:right;">${comp?'Comp.':(bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString())}</td>
       <td style="text-align:right;">${bfTotal}</td>
@@ -1786,13 +1786,13 @@ function printDepartureList(){
     <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน | จัดทำโดย: ${ST.currentUser.name}</p>
     <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">
       <thead style="background:#f0f0f0;">
-        <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th><th>เข้าพัก</th>
+        <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th><th>วันเข้าพัก</th><th>วันออก</th>
           <th>คืน</th><th>จำนวนผู้พัก</th><th>ราคาห้อง/คืน</th><th>ราคา BF</th><th>ราคาห้อง(บาท)</th><th>ชำระ</th><th>สถานะ</th></tr>
       </thead>
       <tbody>${trs}</tbody>
       <tfoot style="background:#f5f5f5;">
         <tr>
-          <td colspan="7" align="right"><strong>รวม</strong></td>
+          <td colspan="8" align="right"><strong>รวม</strong></td>
           <td align="right"><strong>${sumBdRoom>0?sumBdRoom.toLocaleString():sumRoomTotal.toLocaleString()}</strong></td>
           <td align="right"><strong>${sumBdBf>0?sumBdBf.toLocaleString():'-'}</strong></td>
           <td align="right"><strong>${sumRoomTotal.toLocaleString()}</strong></td>
