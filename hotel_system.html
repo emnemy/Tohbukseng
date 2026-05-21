@@ -1496,11 +1496,13 @@ function renderGuests(){
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
+    // ถ้าห้อง Comp. → BF แสดง Comp. ไม่รวมในยอดรวม
+    const bfTotal=comp?'<span style="color:var(--gold);">Comp.</span>'
+                  :(b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-');
     const displayBdRoom=bdRoomPr>0?bdRoomPr:pricePerNight;
-    sumBdRoom+=displayBdRoom;
-    sumBdBf+=(b.includeBreakfast&&bdBfPr>0)?(bdBfPr*gCount):0;
-    sumRoomTotal+=pricePerNight;
+    sumBdRoom+=comp?0:displayBdRoom;
+    sumBdBf+=(!comp&&b.includeBreakfast&&bdBfPr>0)?(bdBfPr*gCount):0;
+    sumRoomTotal+=comp?0:pricePerNight;
     html+=`<tr>
       <td><strong style="font-size:15px;color:var(--gold);">${rnStr}</strong></td>
       <td>${b.guestName}<br><small class="text-muted">${b.nationality||''}</small></td>
@@ -1745,13 +1747,14 @@ function printDepartureList(){
   let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0;
   rows.forEach(({b,roomIdx})=>{
     const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const comp=isCompRoom(b,roomIdx);
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast) totalBfP+=gCount;
-    sumBdRoom+=bdRoomPr;
-    if(b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
-    sumRoomTotal+=rCost;
+    if(!comp&&b.includeBreakfast) totalBfP+=gCount;
+    sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
+    if(!comp&&b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
+    sumRoomTotal+=comp?0:rCost;
     seen.add(b.id);
   });
 
@@ -1759,19 +1762,20 @@ function printDepartureList(){
   rows.forEach(({rnStr,b,roomIdx})=>{
     const n=nights(b.checkIn,b.checkOut);
     const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const comp=isCompRoom(b,roomIdx);
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
+    const bfTotal=comp?'Comp.':(b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-');
     const statusTxt=b.status===S_CO?'✅ เช็คเอาท์แล้ว':'⏳ รอเช็คเอาท์';
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${n}</td>
       <td>${gCount>0?gCount+' ท่าน':'-'}</td>
-      <td style="text-align:right;">${bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString()}</td>
+      <td style="text-align:right;">${comp?'Comp.':(bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString())}</td>
       <td style="text-align:right;">${bfTotal}</td>
-      <td style="text-align:right;"><strong>${rCost.toLocaleString()}</strong></td>
+      <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
       <td>${payText(b.payment)}</td>
       <td>${statusTxt}</td></tr>`;
   });
@@ -1945,13 +1949,14 @@ function printDailySummary(){
   let totalBfP=0, sumBdRoom=0, sumBdBf=0, sumRoomPerNight=0;
   rows.forEach(({b,roomIdx})=>{
     const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const comp=isCompRoom(b,roomIdx);
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast) totalBfP+=gCount;
-    sumBdRoom+=bdRoomPr;
-    if(b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
-    sumRoomPerNight+=rCost;
+    if(!comp&&b.includeBreakfast) totalBfP+=gCount;
+    sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
+    if(!comp&&b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
+    sumRoomPerNight+=comp?0:rCost;
   });
 
   let trs='';
@@ -1962,7 +1967,7 @@ function printDailySummary(){
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
+    const bfTotal=comp?'Comp.':(b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-');
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
@@ -2011,13 +2016,14 @@ function printArrival(){
   let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0;
   rows.forEach(({b,roomIdx})=>{
     const rCost=roomRateCostForIdx(b,roomIdx,1);
+    const comp=isCompRoom(b,roomIdx);
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast) totalBfP+=gCount;
-    sumBdRoom+=bdRoomPr>0?bdRoomPr:rCost;
-    if(b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
-    sumRoomTotal+=rCost;
+    if(!comp&&b.includeBreakfast) totalBfP+=gCount;
+    sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
+    if(!comp&&b.includeBreakfast) sumBdBf+=(bdBfPr*gCount);
+    sumRoomTotal+=comp?0:rCost;
   });
 
   let trs='';
@@ -2028,7 +2034,7 @@ function printArrival(){
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-';
+    const bfTotal=comp?'Comp.':(b.includeBreakfast&&bdBfPr>0?(bdBfPr*gCount).toLocaleString():'-');
     const displayBdRoom=bdRoomPr>0?bdRoomPr:(comp?0:rCost);
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
