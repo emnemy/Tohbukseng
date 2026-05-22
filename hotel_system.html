@@ -1508,9 +1508,9 @@ function renderGuests(){
     }
   });
   // รวม BF และ ราคาห้อง/คืน จากทุกแถวห้อง (ไม่รวม Comp. ในยอดเงิน)
-  rows.forEach(({b,roomIdx})=>{
+  rows.forEach(({rnStr,b,roomIdx})=>{
     if(b.includeBreakfast) totalBfP+=(parseInt(b.guestCount)||0);
-    if(!isCompRoom(b,roomIdx)) grandRoom+=roomRateCostForIdx(b,roomIdx,1);
+    if(!isCompForRoom(b,rnStr)) grandRoom+=roomRateCostForRoom(b,rnStr,1);
   });
 
   document.getElementById('gh-chips').innerHTML=`
@@ -1779,7 +1779,7 @@ function printDepartureList(){
 
   const seen=new Set();
   let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0;
-  rows.forEach(({b,roomIdx})=>{
+  rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
     const gCount=parseInt(b.guestCount)||0;
@@ -1981,7 +1981,7 @@ function printDailySummary(){
   bks.forEach(b=>{seen.add(b.id);});
 
   let totalBfP=0, sumBdRoom=0, sumBdBf=0, sumRoomPerNight=0;
-  rows.forEach(({b,roomIdx})=>{
+  rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
     const gCount=parseInt(b.guestCount)||0;
@@ -2048,7 +2048,7 @@ function printArrival(){
   rows.sort((a,x)=>a.rn-x.rn);
 
   let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0;
-  rows.forEach(({b,roomIdx})=>{
+  rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
     const gCount=parseInt(b.guestCount)||0;
