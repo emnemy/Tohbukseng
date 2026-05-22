@@ -2319,6 +2319,7 @@ function printBookingByRoom(id){
 
 function openPrint(body, docTitle){
   const title = docTitle || 'Hotel Document';
+  const safeTitle = title.replace(/[^a-zA-Z0-9ก-๙\s\-_]/g,'').trim() || 'document';
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html>
 <html lang="th">
@@ -2326,11 +2327,11 @@ function openPrint(body, docTitle){
   <meta charset="UTF-8">
   <title>${title}</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Sarabun',sans-serif;background:#e8e8e8;color:#111;}
 
-    /* ── Top bar (screen only) ── */
     .pdf-bar{
       position:sticky;top:0;z-index:200;
       background:#1a1a2e;border-bottom:2px solid #c8a84a;
@@ -2340,42 +2341,48 @@ function openPrint(body, docTitle){
     .pdf-bar-left{display:flex;align-items:center;gap:10px;}
     .pdf-bar-icon{font-size:20px;}
     .pdf-bar-title{color:#c8a84a;font-size:14px;font-weight:700;}
-    .pdf-bar-hint{color:#aaa;font-size:12px;margin-top:2px;}
+    .pdf-bar-hint{color:#aaa;font-size:11px;margin-top:2px;}
+    .btn-group{display:flex;gap:8px;align-items:center;}
     .pdf-btn{
       background:#c8a84a;color:#0e0e1c;border:none;
-      padding:9px 22px;border-radius:7px;cursor:pointer;
+      padding:9px 20px;border-radius:7px;cursor:pointer;
       font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;
       display:flex;align-items:center;gap:6px;white-space:nowrap;
-      transition:background .15s;
+      transition:all .15s;
     }
     .pdf-btn:hover{background:#e8cc7a;}
-    .pdf-btn-icon{font-size:16px;}
+    .pdf-btn:disabled{opacity:.6;cursor:wait;}
+    .print-btn{
+      background:rgba(255,255,255,.1);color:#fff;
+      border:1px solid rgba(255,255,255,.25);
+      padding:9px 20px;border-radius:7px;cursor:pointer;
+      font-family:'Sarabun',sans-serif;font-size:14px;font-weight:600;
+      display:flex;align-items:center;gap:6px;white-space:nowrap;
+      transition:all .15s;
+    }
+    .print-btn:hover{background:rgba(255,255,255,.18);border-color:#fff;}
 
-    /* ── Page wrapper ── */
     .page-wrap{
-      background:#fff;
-      max-width:210mm;
-      margin:20px auto;
-      padding:16mm 18mm;
-      min-height:297mm;
-      box-shadow:0 4px 20px rgba(0,0,0,.18);
+      background:#fff;max-width:210mm;
+      margin:20px auto;padding:16mm 18mm;
+      min-height:297mm;box-shadow:0 4px 20px rgba(0,0,0,.18);
+      font-family:'Sarabun',sans-serif;
     }
 
-    /* ── Print mode ── */
     @media print{
       .pdf-bar{display:none!important;}
       body{background:#fff;}
-      .page-wrap{
-        max-width:100%;margin:0;padding:8mm 10mm;
-        box-shadow:none;min-height:auto;
-      }
+      .page-wrap{max-width:100%;margin:0;padding:8mm 10mm;box-shadow:none;min-height:auto;}
     }
     @page{size:A4 portrait;margin:10mm;}
-
-    /* ── Content helpers ── */
     table{width:100%;border-collapse:collapse;font-size:13px;}
     th,td{padding:6px 9px;vertical-align:middle;}
     h2,h3{font-family:'Sarabun',sans-serif;}
+    #toast{
+      display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+      background:#333;color:#fff;padding:10px 22px;border-radius:8px;
+      font-size:13px;z-index:9999;white-space:nowrap;
+    }
   </style>
 </head>
 <body>
@@ -2385,18 +2392,70 @@ function openPrint(body, docTitle){
       <div class="pdf-bar-icon">📄</div>
       <div>
         <div class="pdf-bar-title">${title}</div>
-        <div class="pdf-bar-hint">กด <strong style="color:#e8cc7a;">บันทึก PDF</strong> → เลือก "Save as PDF" หรือ "บันทึกเป็น PDF" แล้วกด Save</div>
+        <div class="pdf-bar-hint">💾 บันทึก PDF = ดาวน์โหลดไฟล์ PDF โดยตรง &nbsp;|&nbsp; 🖨 ปริ้น = เชื่อมต่อเครื่องพิมพ์</div>
       </div>
     </div>
-    <button class="pdf-btn" onclick="window.print()">
-      <span class="pdf-btn-icon">💾</span> บันทึก PDF
-    </button>
+    <div class="btn-group">
+      <button class="pdf-btn" id="save-pdf-btn" onclick="exportPDF()">
+        💾 บันทึก PDF
+      </button>
+      <button class="print-btn" onclick="window.print()">
+        🖨 ปริ้น
+      </button>
+    </div>
   </div>
 
-  <div class="page-wrap">
+  <div class="page-wrap" id="print-content">
     ${body}
   </div>
 
+  <div id="toast">⏳ กำลังสร้างไฟล์ PDF...</div>
+
+  <script>
+    const DOC_TITLE = ${JSON.stringify(safeTitle)};
+
+    function showToast(msg, duration){
+      const t=document.getElementById('toast');
+      t.textContent=msg; t.style.display='block';
+      if(duration) setTimeout(()=>t.style.display='none', duration);
+    }
+
+    function exportPDF(){
+      const btn=document.getElementById('save-pdf-btn');
+      if(typeof html2pdf==='undefined'){
+        showToast('⚠️ ไม่พบ html2pdf.js กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 3000);
+        // fallback to print dialog
+        setTimeout(()=>window.print(), 500);
+        return;
+      }
+      btn.disabled=true;
+      btn.textContent='⏳ กำลังสร้าง PDF...';
+      showToast('⏳ กำลังสร้างไฟล์ PDF...');
+
+      const el=document.getElementById('print-content');
+      const opt={
+        margin:[10,10,10,10],
+        filename: DOC_TITLE+'.pdf',
+        image:{type:'jpeg',quality:0.97},
+        html2canvas:{scale:2, useCORS:true, letterRendering:true},
+        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+        pagebreak:{mode:['avoid-all','css','legacy']}
+      };
+
+      html2pdf().set(opt).from(el).save()
+        .then(()=>{
+          showToast('✅ บันทึก PDF สำเร็จ!', 2500);
+          btn.disabled=false;
+          btn.innerHTML='💾 บันทึก PDF';
+        })
+        .catch(err=>{
+          console.error(err);
+          showToast('❌ เกิดข้อผิดพลาด กรุณาลองใหม่', 3000);
+          btn.disabled=false;
+          btn.innerHTML='💾 บันทึก PDF';
+        });
+    }
+  <\/script>
 </body>
 </html>`);
   w.document.close();
