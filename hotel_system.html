@@ -88,6 +88,12 @@ textarea.form-input{resize:vertical;}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 15px;text-align:center;}
 .stat-val{font-size:28px;font-weight:700;font-family:'Playfair Display',serif;color:var(--gold);}
 .stat-lbl{font-size:12px;color:var(--text2);margin-top:2px;}
+/* Monthly stats */
+.monthly-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
+.m-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.m-stat-val{font-size:20px;font-weight:700;color:var(--gold);font-family:'Playfair Display',serif;white-space:nowrap;}
+.m-stat-lbl{font-size:11px;color:var(--text2);margin-top:3px;}
+.m-stat-sub{font-size:10px;color:var(--text2);margin-top:2px;}
 
 /* ROOM CELLS */
 .floor-block{margin-bottom:16px;}
@@ -288,6 +294,16 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="page-title">Dashboard</div>
       <div class="page-sub" id="dash-date"></div>
       <div class="stats-grid" id="dash-stats"></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">📈 สรุปรายได้ประจำเดือน</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="dash-month" class="form-input" style="width:auto;" onchange="renderDashMonthly()"></select>
+            <select id="dash-year" class="form-input" style="width:auto;" onchange="renderDashMonthly()"></select>
+          </div>
+        </div>
+        <div id="dash-monthly-stats"></div>
+      </div>
       <div class="card"><div class="card-title">ผู้เข้าพักวันนี้</div><div class="tbl-wrap" id="dash-table"></div></div>
     </div>
 
@@ -730,11 +746,137 @@ function roomsDisplay(b){
 }
 
 /* ════════════════════════════════════════
+   MONTHLY STATS
+════════════════════════════════════════ */
+function calcMonthlyStats(year, month){
+  // month = 0-indexed
+  const pad=v=>String(v).padStart(2,'0');
+  const monthStart=`${year}-${pad(month+1)}-01`;
+  const lastDay=new Date(year,month+1,0).getDate();
+  const monthEndStr=`${year}-${pad(month+1)}-${pad(lastDay)}`;
+  const todayStr=today();
+  const isCurrent=(year===parseInt(todayStr.slice(0,4))&&month===parseInt(todayStr.slice(5,7))-1);
+  // cutoff = today for current month; day after last day for past months
+  const cutoff=isCurrent ? todayStr
+    : `${year}-${pad(month+1 > 12 ? 1 : month+2)}-01`.replace(/(\d{4})-13-/,`${year+1}-01-`);
+
+  // simpler cutoff calc for past months
+  const nextMonth=new Date(year,month+1,1);
+  const cutoffStr=isCurrent ? todayStr : nextMonth.toISOString().slice(0,10);
+
+  let roomRevenue=0, bfRevenue=0, roomNights=0, compNights=0;
+
+  ST.bookings.forEach(b=>{
+    if(b.status===S_RES) return; // skip pending reservations
+    // overlap of booking with [monthStart, cutoffStr)
+    const oStart=b.checkIn>monthStart?b.checkIn:monthStart;
+    const oEnd=b.checkOut<cutoffStr?b.checkOut:cutoffStr;
+    const realNights=nights(oStart,oEnd);
+    if(realNights<=0) return;
+
+    // per-night breakdown per room
+    let roomPerNight=0, bfPerNight=0, paidRms=0, compRms=0;
+    const roomList=b.rooms&&b.rooms.length?b.rooms:null;
+    if(roomList){
+      roomList.forEach(rn=>{
+        if(isCompForRoom(b,rn)) compRms++;
+        else{ roomPerNight+=roomRateCostForRoom(b,rn,1); paidRms++; }
+      });
+    } else {
+      (b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:b.roomCount||1}])
+        .forEach(r=>{
+          const p=parseFloat(r.price)||0, c=Math.max(0,parseInt(r.count)||0);
+          if(p===0) compRms+=c;
+          else{ roomPerNight+=p*c; paidRms+=c; }
+        });
+    }
+    // BF per night (non-comp rooms)
+    if(b.includeBreakfast&&paidRms>0){
+      const bdBfPr=b.bdBfPrice||0;
+      const gCount=parseInt(b.guestCount)||0;
+      bfPerNight=bdBfPr*gCount*paidRms;
+    }
+    roomRevenue+=roomPerNight*realNights;
+    bfRevenue+=bfPerNight*realNights;
+    roomNights+=paidRms*realNights;
+    compNights+=compRms*realNights;
+  });
+
+  const arr=roomNights>0?Math.round(roomRevenue/roomNights):0;
+  return{roomRevenue,bfRevenue,totalRevenue:roomRevenue+bfRevenue,roomNights,compNights,arr,isCurrent,cutoffStr};
+}
+
+function renderDashMonthly(){
+  const mSel=document.getElementById('dash-month');
+  const ySel=document.getElementById('dash-year');
+  if(!mSel||!ySel) return;
+  const month=parseInt(mSel.value);
+  const year=parseInt(ySel.value);
+  const s=calcMonthlyStats(year,month);
+  const MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const periodNote=s.isCurrent?`ถึงวันที่ ${fmtDate(s.cutoffStr)} (ข้อมูลที่เกิดขึ้นจริง)`:
+    `ทั้งเดือน ${MONTHS[month]} ${year+543}`;
+
+  document.getElementById('dash-monthly-stats').innerHTML=`
+    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">📅 ${periodNote}</div>
+    <div class="monthly-grid">
+      <div class="m-stat">
+        <div class="m-stat-val">${s.totalRevenue.toLocaleString()}</div>
+        <div class="m-stat-lbl">รายได้รวม (บาท)</div>
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-val" style="color:var(--blue);">${s.roomRevenue.toLocaleString()}</div>
+        <div class="m-stat-lbl">ค่าห้องพัก (บาท)</div>
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-val" style="color:var(--green);">${s.bfRevenue.toLocaleString()}</div>
+        <div class="m-stat-lbl">ค่าอาหารเช้า (บาท)</div>
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-val" style="color:var(--orange);">${s.roomNights.toLocaleString()}</div>
+        <div class="m-stat-lbl">Room Nights</div>
+        ${s.compNights>0?`<div class="m-stat-sub">Comp. ${s.compNights} คืน</div>`:''}
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-val" style="color:var(--purple);">${s.arr.toLocaleString()}</div>
+        <div class="m-stat-lbl">Average Room Rate</div>
+        <div class="m-stat-sub">บาท/ห้อง/คืน</div>
+      </div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════
    DASHBOARD
 ════════════════════════════════════════ */
 function renderDashboard(){
   const d=today();
+  const now=new Date(d);
   document.getElementById('dash-date').textContent='วันที่ '+fmtDate(d);
+
+  // Init month/year selectors
+  const mSel=document.getElementById('dash-month');
+  const ySel=document.getElementById('dash-year');
+  if(mSel&&!mSel.options.length){
+    const MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+      'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    MONTHS.forEach((m,i)=>{
+      const o=document.createElement('option');
+      o.value=i; o.textContent=m;
+      if(i===now.getMonth()) o.selected=true;
+      mSel.appendChild(o);
+    });
+  }
+  if(ySel&&!ySel.options.length){
+    const curY=now.getFullYear();
+    for(let y=curY-2;y<=curY;y++){
+      const o=document.createElement('option');
+      o.value=y; o.textContent=y+543;
+      if(y===curY) o.selected=true;
+      ySel.appendChild(o);
+    }
+  }
+  renderDashMonthly();
   let vac=0,res=0,occ=0,ci=0,coDone=0,coPending=0;
   ALL_ROOMS.forEach(r=>{
     const{s,b}=roomStatusAt(r,d);
