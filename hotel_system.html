@@ -2335,13 +2335,13 @@ function printGuestFolio(id){
   const html=`
   <style>
     body{font-family:'Sarabun',sans-serif;font-size:13px;color:#222;}
-    .folio-wrap{max-width:800px;margin:0 auto;padding:20px;}
-    .header-table{width:100%;border-collapse:collapse;margin-bottom:16px;}
-    .company-th{font-size:13px;line-height:1.7;}
-    .company-en{font-size:12px;color:#555;line-height:1.7;}
-    .folio-title{text-align:center;font-size:38px;font-weight:900;letter-spacing:6px;color:#222;margin:6px 0 2px;}
-    .folio-sub{text-align:center;font-size:14px;color:#b35a00;margin-bottom:10px;}
-    .folio-num-box{border:2px solid #e07020;border-radius:8px;padding:8px 16px;text-align:center;min-width:180px;}
+    .folio-wrap{max-width:800px;margin:0 auto;padding:8px;}
+    .header-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+    .company-th{font-size:12px;line-height:1.6;}
+    .company-en{font-size:11px;color:#555;line-height:1.6;}
+    .folio-title{font-size:34px;font-weight:900;letter-spacing:5px;color:#222;border:2px solid #333;padding:6px 24px;display:inline-block;}
+    .folio-sub{font-size:13px;color:#b35a00;margin-top:3px;}
+    .folio-num-box{border:2px solid #e07020;border-radius:8px;padding:7px 14px;text-align:center;}
     .folio-num-label{font-size:10px;font-weight:700;color:#e07020;letter-spacing:2px;}
     .folio-num{font-size:22px;font-weight:900;color:#e07020;}
     .info-bar{display:flex;gap:0;border:1.5px solid #e07020;border-radius:8px;overflow:hidden;margin:14px 0;}
@@ -2396,18 +2396,18 @@ function printGuestFolio(id){
 
     <hr class="divider">
 
-    <!-- Title -->
-    <div class="folio-title">GUEST &nbsp; FOLIO</div>
-    <div class="folio-sub">ใบแจ้งค่าใช้จ่ายผู้เข้าพัก</div>
-
+    <!-- Title + Folio Number side by side -->
     <table style="width:100%;margin-bottom:8px;">
       <tr>
-        <td></td>
-        <td style="width:200px;vertical-align:top;">
-          <div class="folio-num-box">
+        <td style="vertical-align:middle;padding:4px 0;">
+          <div class="folio-title">GUEST &nbsp; FOLIO</div>
+          <div class="folio-sub">ใบแจ้งค่าใช้จ่ายผู้เข้าพัก</div>
+        </td>
+        <td style="width:210px;vertical-align:middle;text-align:right;">
+          <div class="folio-num-box" style="display:inline-block;">
             <div class="folio-num-label">FOLIO NUMBER</div>
-            <div class="folio-num">${folioNum}</div>
-            <div style="font-size:10px;color:#888;margin-top:4px;">วันที่ออกเอกสาร : ${new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}</div>
+            <div class="folio-num" style="white-space:nowrap;">${folioNum}</div>
+            <div style="font-size:10px;color:#888;margin-top:3px;">วันที่ออกเอกสาร : ${new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}</div>
           </div>
         </td>
       </tr>
@@ -2806,7 +2806,7 @@ function openPrint(body, docTitle){
 
     .page-wrap{
       background:#fff;max-width:210mm;
-      margin:20px auto;padding:16mm 18mm;
+      margin:10px auto;padding:10mm 12mm;
       min-height:297mm;box-shadow:0 4px 20px rgba(0,0,0,.18);
       font-family:'Sarabun',sans-serif;
     }
@@ -2814,9 +2814,9 @@ function openPrint(body, docTitle){
     @media print{
       .pdf-bar{display:none!important;}
       body{background:#fff;}
-      .page-wrap{max-width:100%;margin:0;padding:8mm 10mm;box-shadow:none;min-height:auto;}
+      .page-wrap{max-width:100%;margin:0;padding:6mm 8mm;box-shadow:none;min-height:auto;}
     }
-    @page{size:A4 portrait;margin:10mm;}
+    @page{size:A4 portrait;margin:6mm;}
     table{width:100%;border-collapse:collapse;font-size:13px;}
     th,td{padding:6px 9px;vertical-align:middle;}
     h2,h3{font-family:'Sarabun',sans-serif;}
