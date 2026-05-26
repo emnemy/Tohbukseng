@@ -2279,18 +2279,25 @@ function printGuestFolio(id){
     const dt=new Date(b.checkIn+'T00:00:00');
     dt.setDate(dt.getDate()+i);
     const ds=dt.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
-    const rates=(b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:nRooms}])
-      .filter(r=>(parseFloat(r.price)||0)>0);
-    rates.forEach((r,ri)=>{
-      const p=parseFloat(r.price)||0, c=parseInt(r.count)||1, amt=p*c;
+    // รวมทุก rate row ทั้งราคาปกติและ Comp. (price=0)
+    const allRates=b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:nRooms}];
+    allRates.forEach((r,ri)=>{
+      const p=parseFloat(r.price)||0, c=parseInt(r.count)||1;
+      const isComp=p===0;
+      const amt=p*c;
       grandTotal+=amt;
-      const desc=rates.length>1?`Room Charge (${p.toLocaleString()} x ${c} rooms)`:`Room Charge / ค่าห้องพัก`;
+      const desc=allRates.length>1
+        ?(isComp?`Room Charge / Complimentary`:`Room Charge (${p.toLocaleString()} x ${c} rooms)`)
+        :`Room Charge / ค่าห้องพัก`;
+      const priceCell=isComp?`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;color:#c8a84a;font-weight:700;">Comp.</td>`
+        :`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${p.toLocaleString('en',{minimumFractionDigits:2})}</td>`;
+      const amtCell=isComp?`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;color:#c8a84a;font-weight:700;">Comp.</td>`
+        :`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${amt.toLocaleString('en',{minimumFractionDigits:2})}</td>`;
       chargeRows+=`<tr>
-        ${ri===0?`<td rowspan="${rates.length}" style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;vertical-align:middle;">${ds}</td>`:''}
+        ${ri===0?`<td rowspan="${allRates.length}" style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;vertical-align:middle;">${ds}</td>`:''}
         <td style="border:1px solid #e0c090;padding:6px 8px;font-size:12px;">${desc}</td>
         <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${c}</td>
-        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${p.toLocaleString('en',{minimumFractionDigits:2})}</td>
-        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${amt.toLocaleString('en',{minimumFractionDigits:2})}</td>
+        ${priceCell}${amtCell}
       </tr>`;
     });
   }
