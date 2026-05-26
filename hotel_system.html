@@ -321,7 +321,6 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="legend">
         <div class="leg-item"><div class="leg-dot" style="background:rgba(78,196,138,.5)"></div>ว่าง</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(136,85,212,.5)"></div>จองแล้ว</div>
-        <div class="leg-item"><div class="leg-dot" style="background:rgba(80,130,212,.5)"></div>เช็คอินวันนี้</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(223,88,88,.5)"></div>มีผู้พัก</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(212,120,50,.5)"></div>เช็คเอาท์วันนี้</div>
       </div>
@@ -608,6 +607,7 @@ function showPage(page){
    ROOM STATUS
 ════════════════════════════════════════ */
 function roomStatusAt(rn, date){
+  // หาการจองที่ยังไม่เช็คเอาท์จริง (status != checkedout)
   const b=ST.bookings.find(bk=>
     bk.status!==S_CO &&
     bk.rooms && bk.rooms.includes(rn) &&
@@ -615,9 +615,8 @@ function roomStatusAt(rn, date){
   );
   if(!b) return{s:'vacant'};
   if(b.status===S_RES) return{s:'res',b};
-  if(b.checkOut===date) return{s:'co',b};
-  if(b.checkIn===date) return{s:'ci',b};
-  return{s:'occ',b};
+  if(b.checkOut===date) return{s:'co',b};   // เช็คเอาท์วันนี้ (ยังไม่ได้กดเช็คเอาท์)
+  return{s:'occ',b};                         // เช็คอินแล้ว = มีผู้พักทันที (ไม่แยก ci)
 }
 function roomAvail(rn,from,to,excId){
   return !ST.bookings.some(bk=>
@@ -642,7 +641,7 @@ function cellHtml(rn, date, pickMode, selRooms, from, to, excId){
   } else {
     const{s,b}=roomStatusAt(rn,date);
     const tip=b?`title="${b.guestName} (${b.checkIn}→${b.checkOut})"`:'' ;
-    cls={vacant:'room-vacant',res:'room-reserved',ci:'room-ci',co:'room-co',occ:'room-occupied'}[s];
+    cls={vacant:'room-vacant',res:'room-reserved',co:'room-co',occ:'room-occupied'}[s]||'room-vacant';
     if(s!=='vacant') extra=`onclick="viewFromRoom(${rn},'${date}')" ${tip}`;
   }
   return `<div class="room-cell ${cls}" ${extra} data-room="${rn}">
@@ -884,9 +883,7 @@ function renderDashboard(){
     else if(s==='res')res++;
     else{
       occ++;
-      if(s==='ci')ci++;
       if(s==='co'){
-        // ตรวจสอบว่า booking นี้เช็คเอาท์จริงแล้วหรือยัง
         if(b&&b.status===S_CO) coDone++;
         else coPending++;
       }
@@ -897,7 +894,6 @@ function renderDashboard(){
     <div class="stat-card"><div class="stat-val" style="color:var(--green)">${vac}</div><div class="stat-lbl">ห้องว่าง</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--purple)">${res}</div><div class="stat-lbl">จองแล้ว</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--red)">${occ}</div><div class="stat-lbl">มีผู้พัก</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${ci}</div><div class="stat-lbl">เช็คอินวันนี้</div></div>
     <div class="stat-card">
       <div class="stat-val" style="color:var(--orange)">${coPending}</div>
       <div class="stat-lbl">เช็คเอาท์วันนี้</div>
