@@ -2275,26 +2275,51 @@ function printGuestFolio(id){
 
   // per-night charge rows
   let chargeRows='',grandTotal=0;
+  // สร้าง charge groups จากห้องจริง (เหมือน Guest In House)
+  function buildChargeGroups(b){
+    const groups=[];
+    if(b.rooms&&b.rooms.length){
+      // วนทุกห้องที่ assign แล้ว
+      const seen={};
+      b.rooms.forEach(rn=>{
+        const rate=getRateForRoom(b,rn);
+        const p=parseFloat(rate.price)||0;
+        const key=String(p);
+        if(!seen[key]) seen[key]={price:p,count:0};
+        seen[key].count++;
+      });
+      Object.values(seen).forEach(g=>groups.push(g));
+    } else {
+      // ยังไม่ได้ assign ห้อง ใช้ roomRates โดยตรง
+      const rates=b.roomRates&&b.roomRates.length
+        ?b.roomRates:[{price:b.roomPrice||0,count:nRooms}];
+      rates.forEach(r=>groups.push({price:parseFloat(r.price)||0,count:Math.max(1,parseInt(r.count)||0)}));
+    }
+    return groups;
+  }
+
+  const chargeGroups=buildChargeGroups(b);
+
   for(let i=0;i<n;i++){
     const dt=new Date(b.checkIn+'T00:00:00');
     dt.setDate(dt.getDate()+i);
     const ds=dt.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
-    // รวมทุก rate row ทั้งราคาปกติและ Comp. (price=0)
-    const allRates=b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:nRooms}];
-    allRates.forEach((r,ri)=>{
-      const p=parseFloat(r.price)||0, c=parseInt(r.count)||1;
+    chargeGroups.forEach((g,gi)=>{
+      const p=g.price, c=g.count;
       const isComp=p===0;
       const amt=p*c;
       grandTotal+=amt;
-      const desc=allRates.length>1
+      const desc=chargeGroups.length>1
         ?(isComp?`Room Charge / Complimentary`:`Room Charge (${p.toLocaleString()} x ${c} rooms)`)
         :`Room Charge / ค่าห้องพัก`;
-      const priceCell=isComp?`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;color:#c8a84a;font-weight:700;">Comp.</td>`
+      const priceCell=isComp
+        ?`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;color:#c8a84a;font-weight:700;">Comp.</td>`
         :`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${p.toLocaleString('en',{minimumFractionDigits:2})}</td>`;
-      const amtCell=isComp?`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;color:#c8a84a;font-weight:700;">Comp.</td>`
+      const amtCell=isComp
+        ?`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;color:#c8a84a;font-weight:700;">Comp.</td>`
         :`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${amt.toLocaleString('en',{minimumFractionDigits:2})}</td>`;
       chargeRows+=`<tr>
-        ${ri===0?`<td rowspan="${allRates.length}" style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;vertical-align:middle;">${ds}</td>`:''}
+        ${gi===0?`<td rowspan="${chargeGroups.length}" style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;vertical-align:middle;">${ds}</td>`:''}
         <td style="border:1px solid #e0c090;padding:6px 8px;font-size:12px;">${desc}</td>
         <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${c}</td>
         ${priceCell}${amtCell}
