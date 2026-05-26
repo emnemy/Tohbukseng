@@ -1234,6 +1234,12 @@ function openResModal(id){
 }
 
 /* ── Rate rows ── */
+function updateRateComp(i, input){
+  formRates[i].price=parseFloat(input.value)||0;
+  const badge=document.getElementById('comp-badge-'+i);
+  if(badge) badge.style.display=(formRates[i].price===0)?'inline-block':'none';
+  calcDisplay();
+}
 function renderRateRows(){
   const wrap=document.getElementById('rate-rows');
   if(!wrap) return;
@@ -1245,7 +1251,8 @@ function renderRateRows(){
     row.innerHTML=`
       <span style="font-size:12px;color:var(--text2);white-space:nowrap;">ราคา/คืน/ห้อง</span>
       <input type="number" class="form-input" style="width:100px;" value="${r.price}" min="0"
-        oninput="formRates[${i}].price=parseFloat(this.value)||0;renderRateRows()">
+        oninput="formRates[${i}].price=parseFloat(this.value)||0;updateRateComp(${i},this)">\n      ${isComp?`<span id="comp-badge-${i}" style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`
+               :`<span id="comp-badge-${i}" style="display:none;font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`}
       ${isComp?`<span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`
                :`<span style="font-size:12px;color:var(--text2);">บาท &nbsp;×</span>`}
       <input type="number" class="form-input" style="width:58px;" value="${r.count}" min="1"
@@ -1508,7 +1515,7 @@ function renderCheckin(){
       <td><strong>${b.guestName}</strong><br><small class="text-muted">${b.nationality||''}</small></td>
       <td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${b.includeBreakfast?(b.adults||0)+' ท่าน':'-'}</td>
+      <td>${b.includeBreakfast?(parseInt(b.guestCount)||0)+' ท่าน':'-'}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
