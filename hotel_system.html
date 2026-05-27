@@ -607,16 +607,15 @@ function showPage(page){
    ROOM STATUS
 ════════════════════════════════════════ */
 function roomStatusAt(rn, date){
-  // หาการจองที่ยังไม่เช็คเอาท์จริง (status != checkedout)
   const b=ST.bookings.find(bk=>
     bk.status!==S_CO &&
     bk.rooms && bk.rooms.includes(rn) &&
-    bk.checkIn<=date && bk.checkOut>date
+    bk.checkIn<=date && bk.checkOut>=date
   );
   if(!b) return{s:'vacant'};
   if(b.status===S_RES) return{s:'res',b};
-  if(b.checkOut===date) return{s:'co',b};   // เช็คเอาท์วันนี้ (ยังไม่ได้กดเช็คเอาท์)
-  return{s:'occ',b};                         // เช็คอินแล้ว = มีผู้พักทันที (ไม่แยก ci)
+  if(b.checkOut===date) return{s:'co',b};
+  return{s:'occ',b};
 }
 function roomAvail(rn,from,to,excId){
   return !ST.bookings.some(bk=>
@@ -876,29 +875,20 @@ function renderDashboard(){
     }
   }
   renderDashMonthly();
-  let vac=0,res=0,occ=0,ci=0,coDone=0,coPending=0;
+  let vac=0,res=0,occ=0,co=0;
   ALL_ROOMS.forEach(r=>{
-    const{s,b}=roomStatusAt(r,d);
+    const{s}=roomStatusAt(r,d);
     if(s==='vacant')vac++;
     else if(s==='res')res++;
-    else{
-      occ++;
-      if(s==='co'){
-        if(b&&b.status===S_CO) coDone++;
-        else coPending++;
-      }
-    }
+    else if(s==='co')co++;
+    else occ++;
   });
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card"><div class="stat-val">${ALL_ROOMS.length}</div><div class="stat-lbl">ห้องทั้งหมด</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--green)">${vac}</div><div class="stat-lbl">ห้องว่าง</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--purple)">${res}</div><div class="stat-lbl">จองแล้ว</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--red)">${occ}</div><div class="stat-lbl">มีผู้พัก</div></div>
-    <div class="stat-card">
-      <div class="stat-val" style="color:var(--orange)">${coPending}</div>
-      <div class="stat-lbl">เช็คเอาท์วันนี้</div>
-      ${coDone>0?`<div style="font-size:10px;color:var(--text2);margin-top:2px;">ดำเนินการแล้ว ${coDone}</div>`:''}
-    </div>`;
+    <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${co}</div><div class="stat-lbl">เช็คเอาท์วันนี้</div></div>`;
   const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>d);
   if(!bks.length){document.getElementById('dash-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้เข้าพักวันนี้</p>';return;}
   let rows='';
@@ -922,34 +912,34 @@ function renderRoomChart(){
   const el=document.getElementById('rc-date');
   if(!el.value) el.value=today();
   const d=el.value;
-  let vac=0,res=0,ci=0,co=0,occ=0;
+  let vac=0,res=0,co=0,occ=0;
   ALL_ROOMS.forEach(r=>{
     const{s}=roomStatusAt(r,d);
     if(s==='vacant')vac++; else if(s==='res')res++;
-    else if(s==='ci')ci++; else if(s==='co')co++; else occ++;
+    else if(s==='co')co++; else occ++;
   });
   document.getElementById('rc-stats').textContent=
-    `ว่าง ${vac} | จอง ${res} | เช็คอิน ${ci} | มีผู้พัก ${occ} | เช็คเอาท์ ${co}`;
+    `ว่าง ${vac} | จอง ${res} | มีผู้พัก ${occ} | เช็คเอาท์วันนี้ ${co}`;
   document.getElementById('rc-content').innerHTML=floorsHtml(d,false,null,null,null,null);
 }
 function viewFromRoom(rn,date){
-  const b=ST.bookings.find(bk=>bk.status!==S_CO&&bk.rooms&&bk.rooms.includes(rn)&&bk.checkIn<=date&&bk.checkOut>date);
+  const b=ST.bookings.find(bk=>bk.status!==S_CO&&bk.rooms&&bk.rooms.includes(rn)&&bk.checkIn<=date&&bk.checkOut>=date);
   if(b) viewBooking(b.id);
 }
 function printRoomChart(){
   const d=document.getElementById('rc-date').value||today();
-  const clrMap={vacant:'#e8f9f0',res:'#f0eaff',ci:'#e8f0ff',occ:'#ffe8e8',co:'#fff4e8'};
-  const lblMap={vacant:'ว่าง',res:'จองแล้ว',ci:'เช็คอินวันนี้',occ:'มีผู้พัก',co:'เช็คเอาท์'};
+  const clrMap={vacant:'#e8f9f0',res:'#f0eaff',occ:'#ffe8e8',co:'#fff4e8'};
+  const lblMap={vacant:'ว่าง',res:'จองแล้ว',occ:'มีผู้พัก',co:'เช็คเอาท์วันนี้'};
   let html='';
   for(const [f,rooms] of Object.entries(FLOORS)){
-    html+=`<h3 style="margin:14px 0 6px;color:#444;">🏢 ชั้น ${f}</h3><div style="display:flex;flex-wrap:wrap;gap:5px;">`;
+    html+=`<h3 style="margin:14px 0 6px;color:#444;">ชั้น ${f}</h3><div style="display:flex;flex-wrap:wrap;gap:5px;">`;
     rooms.forEach(rn=>{
       const{s,b}=roomStatusAt(rn,d);
-      html+=`<div style="width:80px;height:62px;background:${clrMap[s]};border:1px solid #ccc;border-radius:6px;
+      html+=`<div style="width:80px;height:62px;background:${clrMap[s]||'#e8f9f0'};border:1px solid #ccc;border-radius:6px;
         display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;text-align:center;padding:3px;">
         <strong>${rn}</strong>
         <div style="font-size:9px;">${roomType(rn)}</div>
-        <div style="font-size:8.5px;color:#555;">${lblMap[s]}</div>
+        <div style="font-size:8.5px;color:#555;">${lblMap[s]||'ว่าง'}</div>
         ${b?`<div style="font-size:7.5px;color:#333;white-space:nowrap;overflow:hidden;max-width:76px;text-overflow:ellipsis;">${b.guestName}</div>`:''}
       </div>`;
     });
@@ -958,7 +948,7 @@ function printRoomChart(){
   openPrint(`<h2 style="text-align:center;margin-bottom:4px;">Room Chart — ${fmtDate(d)}</h2>
     <p style="text-align:center;color:#666;margin-bottom:14px;">${ALL_ROOMS.length} ห้อง | พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}</p>
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;">
-      <span>🟢 ว่าง</span><span>🟣 จองแล้ว</span><span>🔵 เช็คอินวันนี้</span><span>🔴 มีผู้พัก</span><span>🟠 เช็คเอาท์</span>
+      <span>ว่าง</span><span>จองแล้ว</span><span>มีผู้พัก</span><span>เช็คเอาท์วันนี้</span>
     </div>${html}`, `Room Chart — ${fmtDate(d)}`);
 }
 
@@ -1821,7 +1811,7 @@ function raShowDayDetail(dateStr){
   });
   occList.sort((a,x)=>a.r-x.r);
 
-  const statusLabel={res:'จองแล้ว',ci:'เช็คอินวันนี้',occ:'มีผู้พัก',co:'เช็คเอาท์วันนี้'};
+  const statusLabel={res:'จองแล้ว',occ:'มีผู้พัก',co:'เช็คเอาท์วันนี้'};
   let occRows=occList.map(({r,s,b})=>`<tr>
     <td><strong style="color:var(--gold);">${r}</strong></td>
     <td>${roomType(r)}</td>
