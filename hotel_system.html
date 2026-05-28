@@ -109,6 +109,9 @@ textarea.form-input{resize:vertical;}
 .room-ci{background:rgba(80,130,212,.12);border-color:rgba(80,130,212,.32);color:var(--blue);}
 .room-co{background:rgba(212,120,50,.12);border-color:rgba(212,120,50,.32);color:var(--orange);}
 .room-reserved{background:rgba(136,85,212,.1);border-color:rgba(136,85,212,.28);color:var(--purple);}
+.room-overdue{background:rgba(220,60,60,.13);border-color:rgba(220,60,60,.4);color:#e05050;}
+.room-overdue .room-num{color:#e05050;}
+.overdue-badge{background:rgba(220,60,60,.15);color:#e05050;border:1px solid rgba(220,60,60,.3);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:5px;}
 .room-sel{border-color:var(--gold)!important;box-shadow:0 0 0 2px rgba(200,168,74,.3);
   background:rgba(200,168,74,.1)!important;color:var(--gold)!important;}
 .room-unavail{background:rgba(100,100,130,.06);border-color:rgba(100,100,130,.18);color:var(--text2);cursor:not-allowed;opacity:.5;}
@@ -321,6 +324,7 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="legend">
         <div class="leg-item"><div class="leg-dot" style="background:rgba(78,196,138,.5)"></div>ว่าง</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(136,85,212,.5)"></div>จองแล้ว</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(220,60,60,.5)"></div>จองค้าง ⚠️</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(223,88,88,.5)"></div>มีผู้พัก</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(212,120,50,.5)"></div>เช็คเอาท์วันนี้</div>
       </div>
@@ -640,7 +644,9 @@ function cellHtml(rn, date, pickMode, selRooms, from, to, excId){
   } else {
     const{s,b}=roomStatusAt(rn,date);
     const tip=b?`title="${b.guestName} (${b.checkIn}→${b.checkOut})"`:'' ;
-    cls={vacant:'room-vacant',res:'room-reserved',co:'room-co',occ:'room-occupied'}[s]||'room-vacant';
+    // จองค้างข้ามวัน = reserved แต่ checkIn ผ่านวันนี้ไปแล้ว
+    const isOverdue=s==='res'&&b&&b.checkIn<date;
+    cls=isOverdue?'room-overdue':({vacant:'room-vacant',res:'room-reserved',co:'room-co',occ:'room-occupied'}[s]||'room-vacant');
     if(s!=='vacant') extra=`onclick="viewFromRoom(${rn},'${date}')" ${tip}`;
   }
   return `<div class="room-cell ${cls}" ${extra} data-room="${rn}">
@@ -958,13 +964,67 @@ function printRoomChart(){
 function renderReservation(){
   const d=today();
   const rCnt=ST.bookings.filter(b=>b.status===S_RES&&b.checkIn===d).length;
+  const overdue=ST.bookings.filter(b=>b.status===S_RES&&b.checkIn<d);
   document.getElementById('res-chips').innerHTML=`
-    <div class="chip">รอเช็คอิน วันนี้ <span>${rCnt}</span> รายการ</div>`;
+    <div class="chip">รอเช็คอิน วันนี้ <span>${rCnt}</span> รายการ</div>
+    ${overdue.length?`<div class="chip" style="background:rgba(220,60,60,.15);border-color:rgba(220,60,60,.3);color:#e05050;cursor:pointer;" onclick="showOverdueModal()">
+      ⚠️ จองค้าง <span>${overdue.length}</span> รายการ
+    </div>`:''}`;
 
-  // Guest Arrival sub-section
   const ad=document.getElementById('arr-date');
   if(!ad.value) ad.value=today();
   renderArrival();
+}
+
+function showOverdueModal(){
+  const d=today();
+  const overdue=ST.bookings.filter(b=>b.status===S_RES&&b.checkIn<d);
+  if(!overdue.length){alert('ไม่มีการจองค้าง');return;}
+  let rows=overdue.map(b=>`<tr>
+    <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
+    <td>${b.guestName}</td>
+    <td>${fmtDate(b.checkIn)}</td>
+    <td>${fmtDate(b.checkOut)}</td>
+    <td style="color:#e05050;font-weight:700;">${Math.abs(nights(b.checkIn,d))} วัน</td>
+    <td><input type="checkbox" class="overdue-chk" value="${b.id}" checked></td>
+  </tr>`).join('');
+  showModal(`
+    <div class="modal-hd">
+      <div class="modal-title">⚠️ รายการจองค้าง</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text2);font-size:13px;margin-bottom:12px;">การจองเหล่านี้มีวันเช็คอินผ่านมาแล้ว แต่ยังไม่ได้ดำเนินการในระบบ กรุณาตรวจสอบก่อนยกเลิก</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>วันเช็คอิน</th><th>วันออก</th><th>ค้างมา</th><th><input type="checkbox" onchange="document.querySelectorAll('.overdue-chk').forEach(c=>c.checked=this.checked)"></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-danger" onclick="bulkCancelOverdue()">🗑 ยกเลิกที่เลือก</button>
+      <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
+    </div>`);
+}
+
+function bulkCancelOverdue(){
+  const checked=[...document.querySelectorAll('.overdue-chk:checked')].map(c=>c.value);
+  if(!checked.length){alert('ไม่ได้เลือกรายการ');return;}
+  if(!confirm(`ยืนยันยกเลิกการจอง ${checked.length} รายการ?`)) return;
+  const now=new Date().toISOString();
+  checked.forEach(id=>{
+    const b=ST.bookings.find(x=>x.id===id);
+    if(b){
+      b.status=S_CO;
+      b.cancelledBy=ST.currentUser.username;
+      b.cancelledName=ST.currentUser.name;
+      b.cancelledAt=now;
+      b.history=[...(b.history||[]),{by:ST.currentUser.username,name:ST.currentUser.name,at:now,action:'ยกเลิกการจอง (จองค้าง)'}];
+    }
+  });
+  save();
+  closeModal();
+  renderReservation();
+  alert(`ยกเลิกเรียบร้อย ${checked.length} รายการ`);
 }
 
 function searchBookings(){
