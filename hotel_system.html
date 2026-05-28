@@ -326,7 +326,6 @@ tfoot td{border-top:1px solid var(--border);}
         <div class="leg-item"><div class="leg-dot" style="background:rgba(136,85,212,.5)"></div>จองแล้ว</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(220,60,60,.5)"></div>จองค้าง ⚠️</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(223,88,88,.5)"></div>มีผู้พัก</div>
-        <div class="leg-item"><div class="leg-dot" style="background:rgba(212,120,50,.5)"></div>เช็คเอาท์วันนี้</div>
       </div>
       <div id="rc-content"></div>
     </div>
@@ -614,11 +613,10 @@ function roomStatusAt(rn, date){
   const b=ST.bookings.find(bk=>
     bk.status!==S_CO &&
     bk.rooms && bk.rooms.includes(rn) &&
-    bk.checkIn<=date && bk.checkOut>=date
+    bk.checkIn<=date && bk.checkOut>date
   );
   if(!b) return{s:'vacant'};
   if(b.status===S_RES) return{s:'res',b};
-  if(b.checkOut===date) return{s:'co',b};
   return{s:'occ',b};
 }
 function roomAvail(rn,from,to,excId){
@@ -647,7 +645,7 @@ function cellHtml(rn, date, pickMode, selRooms, from, to, excId){
     // จองค้างข้ามวัน = reserved แต่ checkIn ผ่านวันนี้ไปแล้ว
     const todayStr=today();
     const isOverdue=s==='res'&&b&&b.checkIn<todayStr&&date>=todayStr;
-    cls=isOverdue?'room-overdue':({vacant:'room-vacant',res:'room-reserved',co:'room-co',occ:'room-occupied'}[s]||'room-vacant');
+    cls=isOverdue?'room-overdue':({vacant:'room-vacant',res:'room-reserved',occ:'room-occupied'}[s]||'room-vacant');
     if(s!=='vacant') extra=`onclick="viewFromRoom(${rn},'${date}')" ${tip}`;
   }
   return `<div class="room-cell ${cls}" ${extra} data-room="${rn}">
@@ -882,20 +880,16 @@ function renderDashboard(){
     }
   }
   renderDashMonthly();
-  let vac=0,res=0,occ=0,co=0;
+  let vac=0,res=0,occ=0;
   ALL_ROOMS.forEach(r=>{
     const{s}=roomStatusAt(r,d);
-    if(s==='vacant')vac++;
-    else if(s==='res')res++;
-    else if(s==='co')co++;
-    else occ++;
+    if(s==='vacant')vac++; else if(s==='res')res++; else occ++;
   });
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card"><div class="stat-val">${ALL_ROOMS.length}</div><div class="stat-lbl">ห้องทั้งหมด</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--green)">${vac}</div><div class="stat-lbl">ห้องว่าง</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--purple)">${res}</div><div class="stat-lbl">จองแล้ว</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--red)">${occ}</div><div class="stat-lbl">มีผู้พัก</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--orange)">${co}</div><div class="stat-lbl">เช็คเอาท์วันนี้</div></div>`;
+    <div class="stat-card"><div class="stat-val" style="color:var(--red)">${occ}</div><div class="stat-lbl">มีผู้พัก</div></div>`;
   const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>d);
   if(!bks.length){document.getElementById('dash-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้เข้าพักวันนี้</p>';return;}
   let rows='';
@@ -919,14 +913,13 @@ function renderRoomChart(){
   const el=document.getElementById('rc-date');
   if(!el.value) el.value=today();
   const d=el.value;
-  let vac=0,res=0,co=0,occ=0;
+  let vac=0,res=0,occ=0;
   ALL_ROOMS.forEach(r=>{
     const{s}=roomStatusAt(r,d);
-    if(s==='vacant')vac++; else if(s==='res')res++;
-    else if(s==='co')co++; else occ++;
+    if(s==='vacant')vac++; else if(s==='res')res++; else occ++;
   });
   document.getElementById('rc-stats').textContent=
-    `ว่าง ${vac} | จอง ${res} | มีผู้พัก ${occ} | เช็คเอาท์วันนี้ ${co}`;
+    `ว่าง ${vac} | จอง ${res} | มีผู้พัก ${occ}`;
   document.getElementById('rc-content').innerHTML=floorsHtml(d,false,null,null,null,null);
 }
 function viewFromRoom(rn,date){
@@ -935,8 +928,8 @@ function viewFromRoom(rn,date){
 }
 function printRoomChart(){
   const d=document.getElementById('rc-date').value||today();
-  const clrMap={vacant:'#e8f9f0',res:'#f0eaff',occ:'#ffe8e8',co:'#fff4e8'};
-  const lblMap={vacant:'ว่าง',res:'จองแล้ว',occ:'มีผู้พัก',co:'เช็คเอาท์วันนี้'};
+  const clrMap={vacant:'#e8f9f0',res:'#f0eaff',occ:'#ffe8e8'};
+  const lblMap={vacant:'ว่าง',res:'จองแล้ว',occ:'มีผู้พัก'};
   let html='';
   for(const [f,rooms] of Object.entries(FLOORS)){
     html+=`<h3 style="margin:14px 0 6px;color:#444;">ชั้น ${f}</h3><div style="display:flex;flex-wrap:wrap;gap:5px;">`;
