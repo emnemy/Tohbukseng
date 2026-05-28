@@ -645,7 +645,8 @@ function cellHtml(rn, date, pickMode, selRooms, from, to, excId){
     const{s,b}=roomStatusAt(rn,date);
     const tip=b?`title="${b.guestName} (${b.checkIn}→${b.checkOut})"`:'' ;
     // จองค้างข้ามวัน = reserved แต่ checkIn ผ่านวันนี้ไปแล้ว
-    const isOverdue=s==='res'&&b&&b.checkIn<date;
+    const todayStr=today();
+    const isOverdue=s==='res'&&b&&b.checkIn<todayStr&&date>=todayStr;
     cls=isOverdue?'room-overdue':({vacant:'room-vacant',res:'room-reserved',co:'room-co',occ:'room-occupied'}[s]||'room-vacant');
     if(s!=='vacant') extra=`onclick="viewFromRoom(${rn},'${date}')" ${tip}`;
   }
@@ -1531,6 +1532,7 @@ function viewBooking(id){
     <div class="modal-ft">
       <button class="btn btn-secondary btn-sm" onclick="printGuestFolio('${b.id}')">🧾 Guest Folio</button>
       <button class="btn btn-secondary btn-sm" onclick="printRoomingList('${b.id}')">📋 Rooming List</button>
+      <button class="btn btn-secondary btn-sm" onclick="printRoomingListGuest('${b.id}')">📋 Rooming List (ลูกค้า)</button>
       <button class="btn btn-secondary btn-sm" onclick="printBookingAll('${b.id}')">🖨 พิมพ์ข้อมูล</button>
       ${b.rooms&&b.rooms.length>1?`<button class="btn btn-secondary btn-sm" onclick="printBookingByRoom('${b.id}')">🖨 แยกรายห้อง</button>`:''}
       ${b.status===S_CI?`<button class="btn btn-danger btn-sm" onclick="closeModal();doCheckout('${b.id}')">🚪 เช็คเอาท์</button>`:''}
@@ -2619,6 +2621,59 @@ function printRoomingList(id){
         <span>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')}</span>
       </div>
     </div>`, `Rooming List — ${b.guestName}`);
+}
+
+function printRoomingListGuest(id){
+  const b=ST.bookings.find(x=>x.id===id);
+  if(!b) return;
+  const n=nights(b.checkIn,b.checkOut);
+  const roomList=b.rooms&&b.rooms.length
+    ?[...b.rooms].sort((a,x)=>parseInt(a)-parseInt(x))
+    :Array.from({length:b.roomCount||1},()=>'-');
+
+  let rows='';
+  roomList.forEach((rn,idx)=>{
+    rows+=`<tr style="height:36px;">
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${idx+1}</td>
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;font-weight:700;font-size:15px;">${rn!=='-'?rn:'-'}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;">${rn!=='-'?roomTypeFull(parseInt(rn)):'-'}</td>
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkIn)}</td>
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkOut)}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;"></td>
+    </tr>`;
+  });
+
+  openPrint(`
+    <div style="font-family:'Sarabun',sans-serif;">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Rooming List</div>
+        <table style="font-size:12px;color:#555;border-collapse:collapse;width:auto;">
+          <tr><td style="padding:1px 10px 1px 0;">ชื่อผู้จอง:</td><td><strong>${b.guestName}</strong></td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">บริษัท:</td><td>${b.company||'-'}</td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">วันเข้าพัก:</td><td><strong>${fmtDate(b.checkIn)}</strong></td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">วันออก:</td><td><strong>${fmtDate(b.checkOut)}</strong></td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">จำนวนคืน:</td><td>${n} คืน</td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">จำนวนห้อง:</td><td>${roomList.length} ห้อง</td></tr>
+        </table>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f5f5f5;">
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:center;width:50px;">ลำดับ</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:center;width:90px;">หมายเลขห้อง</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:left;">ประเภทห้อง</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:center;width:90px;">วันที่เข้า</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:center;width:90px;">วันที่ออก</th>
+            <th style="border:1px solid #ccc;padding:7px 8px;text-align:left;">ชื่อผู้พัก</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="margin-top:20px;display:flex;justify-content:space-between;font-size:12px;color:#777;">
+        <span>รหัสการจอง: ${b.id}</span>
+        <span>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')}</span>
+      </div>
+    </div>`, `Rooming List (ลูกค้า) — ${b.guestName}`);
 }
 
 function printBookingAll(id){
