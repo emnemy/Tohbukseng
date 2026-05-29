@@ -2692,7 +2692,9 @@ function printBookingAll(id){
   const nRooms=numRooms(b);
   const bdRoomPr=b.bdRoomPrice||0;
   const bdBfPr=b.bdBfPrice||0;
+  const bdBfChildPr=b.bdBfChildPrice||0;
   const gCount=parseInt(b.guestCount)||0;
+  const cCount=parseInt(b.childCount)||0;
   // นับห้องที่ราคา > 0 โดยอิงจากหมายเลขห้องจริง (ถ้ามี) หรือ rate rows
   let paidRooms=0, compRooms=0;
   if(b.rooms&&b.rooms.length){
@@ -2709,8 +2711,11 @@ function printBookingAll(id){
     compRooms=nRooms-paidRooms;
   }
   const totalBfPersons=gCount*paidRooms;
+  const totalBfChildPersons=cCount*paidRooms;
   const bdRoomTotal=bdRoomPr*paidRooms;
   const bdBfTotal=bdBfPr*totalBfPersons;
+  const bdBfChildTotal=bdBfChildPr*totalBfChildPersons;
+  const guestStr=gCount>0?gCount+' ท่าน/ห้อง'+(cCount>0?' + เด็ก '+cCount+' ท่าน/ห้อง':''):'-';
 
   openPrint(`
     <h2 style="text-align:center;margin-bottom:4px;">ข้อมูลการจองห้องพัก</h2>
@@ -2738,7 +2743,7 @@ function printBookingAll(id){
         .map(r=>`${(r.price||0).toLocaleString()} บาท/คืน × ${r.count} ห้อง`).join('<br>')
       }</td></tr>
       <tr><td style="padding:6px;color:#666;">อาหารเช้า</td><td style="padding:6px;">${b.includeBreakfast?'✅ รวมอาหารเช้า':(b.noBreakfast?'❌ ไม่รวมอาหารเช้า':'-')}</td></tr>
-      <tr><td style="padding:6px;color:#666;">จำนวนผู้พัก</td><td style="padding:6px;">${gCount > 0 ? gCount+' ท่าน/ห้อง' : '-'}</td></tr>
+      <tr><td style="padding:6px;color:#666;">จำนวนผู้พัก</td><td style="padding:6px;">${guestStr}</td></tr>
       <tr><td style="padding:6px;color:#666;">เตียงเสริม</td><td style="padding:6px;">${b.extraBed?'มี':'-'}</td></tr>
       <tr><td style="padding:6px;color:#666;">การชำระเงิน</td><td style="padding:6px;">${payText(b.payment)}</td></tr>
     </table>
@@ -2753,8 +2758,7 @@ function printBookingAll(id){
       <div style="font-size:20px;font-weight:700;">รวม ${rT.toLocaleString()} บาท</div>
     </div>
 
-    <!-- กรอบเบรกดาวน์ราคา (ข้อมูลอ้างอิงเท่านั้น) -->
-    ${(bdRoomPr>0||bdBfPr>0)?`
+    ${(bdRoomPr>0||bdBfPr>0||bdBfChildPr>0)?`
     <div style="border:1px solid #ddd;border-radius:8px;padding:12px 16px;background:#f9f9f9;margin-top:4px;">
       <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
         📊 เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น)
@@ -2765,9 +2769,14 @@ function printBookingAll(id){
         <strong>= ${bdRoomTotal.toLocaleString()} บาท</strong>
       </div>`:''}
       ${bdBfPr>0&&b.includeBreakfast&&paidRooms>0?`
-      <div style="display:flex;justify-content:space-between;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
         <span style="color:#555;">ค่าอาหารเช้า ${bdBfPr.toLocaleString()} บาท × ${totalBfPersons} ท่าน (${gCount} ท่าน × ${paidRooms} ห้อง${compRooms>0?`, ไม่รวม Comp. ${compRooms} ห้อง`:''})</span>
         <strong>= ${bdBfTotal.toLocaleString()} บาท</strong>
+      </div>`:''}
+      ${bdBfChildPr>0&&cCount>0&&b.includeBreakfast&&paidRooms>0?`
+      <div style="display:flex;justify-content:space-between;font-size:13px;">
+        <span style="color:#555;">ค่าอาหารเช้า (เด็ก) ${bdBfChildPr.toLocaleString()} บาท × ${totalBfChildPersons} ท่าน (${cCount} ท่าน × ${paidRooms} ห้อง)</span>
+        <strong>= ${bdBfChildTotal.toLocaleString()} บาท</strong>
       </div>`:''}
     </div>`:''}
 
