@@ -745,6 +745,52 @@ function calcBfTotal(b){
   const cCount=parseInt(b.childCount)||0;
   return (bdBfPr*gCount)+(bdBfChildPr*cCount);
 }
+// แสดง BF cell: ผู้ใหญ่ + เด็ก แยกบรรทัด
+function bfCellHtml(b, comp, isComp){
+  if(isComp) return '<span style="color:var(--gold);">Comp.</span>';
+  if(!b.includeBreakfast) return '-';
+  const bdBfPr=b.bdBfPrice||0;
+  const bdBfChildPr=b.bdBfChildPrice||0;
+  const gCount=parseInt(b.guestCount)||0;
+  const cCount=parseInt(b.childCount)||0;
+  const adultTotal=bdBfPr*gCount;
+  const childTotal=bdBfChildPr*cCount;
+  if(adultTotal<=0&&childTotal<=0) return '-';
+  let html=adultTotal>0?adultTotal.toLocaleString():'';
+  if(childTotal>0) html+=(html?'<br>':'')+'<small style="color:var(--text2);">เด็ก '+childTotal.toLocaleString()+'</small>';
+  return html||'-';
+}
+// แสดง BF cell (text สำหรับพิมพ์)
+function bfCellText(b, isComp){
+  if(isComp) return 'Comp.';
+  if(!b.includeBreakfast) return '-';
+  const bdBfPr=b.bdBfPrice||0;
+  const bdBfChildPr=b.bdBfChildPrice||0;
+  const gCount=parseInt(b.guestCount)||0;
+  const cCount=parseInt(b.childCount)||0;
+  const adultTotal=bdBfPr*gCount;
+  const childTotal=bdBfChildPr*cCount;
+  if(adultTotal<=0&&childTotal<=0) return '-';
+  let txt=adultTotal>0?adultTotal.toLocaleString():'';
+  if(childTotal>0) txt+=(txt?' / เด็ก ':' เด็ก ')+childTotal.toLocaleString();
+  return txt||'-';
+}
+// แสดง guest count cell
+function guestCellHtml(b){
+  const gCount=parseInt(b.guestCount)||0;
+  const cCount=parseInt(b.childCount)||0;
+  if(!gCount&&!cCount) return '-';
+  let html=gCount>0?gCount+' ท่าน':'';
+  if(cCount>0) html+=(html?'<br>':'')+'<small style="color:var(--text2);">เด็ก '+cCount+' ท่าน</small>';
+  return html||'-';
+}
+function guestCellText(b){
+  const gCount=parseInt(b.guestCount)||0;
+  const cCount=parseInt(b.childCount)||0;
+  let txt=gCount>0?gCount+' ท่าน':'';
+  if(cCount>0) txt+=(txt?' / เด็ก ':' เด็ก ')+cCount+' ท่าน';
+  return txt||'-';
+}
 function statusBadge(s){
   return {
     reserved:'<span class="badge badge-purple">รอเช็คอิน</span>',
@@ -1108,7 +1154,7 @@ function renderArrival(){
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
       <td><strong>${b.guestName}</strong></td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${nights(b.checkIn,b.checkOut)}</td>
-      <td>${b.includeBreakfast?(b.guestCount||0)+' ท่าน':'-'}</td>
+      <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
       <td style="text-align:right;">${t.toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
@@ -1572,7 +1618,7 @@ function renderCheckin(){
       <td><strong>${b.guestName}</strong><br><small class="text-muted">${b.nationality||''}</small></td>
       <td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${b.includeBreakfast?(parseInt(b.guestCount)||0)+' ท่าน':'-'}</td>
+      <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
@@ -1742,9 +1788,7 @@ function renderGuests(){
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    // ถ้าห้อง Comp. → BF แสดง Comp. ไม่รวมในยอดรวม
-    const bfTotal=comp?'<span style="color:var(--gold);">Comp.</span>'
-                  :(b.includeBreakfast&&calcBfTotal(b)>0?calcBfTotal(b).toLocaleString():'-');
+    const bfTotal=bfCellHtml(b, comp, comp);
     const displayBdRoom=bdRoomPr>0?bdRoomPr:pricePerNight;
     sumBdRoom+=comp?0:displayBdRoom;
     sumBdBf+=(!comp&&b.includeBreakfast)?calcBfTotal(b):0;
@@ -1759,7 +1803,7 @@ function renderGuests(){
         ${fmtDate(b.checkOut)}${b.checkOut===d?'&nbsp;🔔':''}
       </td>
       <td style="text-align:center;">${n}</td>
-      <td style="text-align:center;">${gCount>0?gCount+' ท่าน':'-'}</td>
+      <td style="text-align:center;">${guestCellHtml(b)}</td>
       <td style="text-align:right;">${comp?'<span style="color:var(--gold);">Comp.</span>':displayBdRoom.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${comp?'<span style="color:var(--text2);">Comp.</span>':pricePerNight.toLocaleString()}</td>
@@ -2012,13 +2056,13 @@ function printDepartureList(){
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=comp?'Comp.':(b.includeBreakfast&&calcBfTotal(b)>0?calcBfTotal(b).toLocaleString():'-');
+    const bfTotal=bfCellText(b,comp);
     const statusTxt=b.status===S_CO?'✅ เช็คเอาท์แล้ว':'⏳ รอเช็คเอาท์';
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${gCount>0?gCount+' ท่าน':'-'}</td>
+      <td>${guestCellText(b)}</td>
       <td style="text-align:right;">${comp?'Comp.':(bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString())}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
@@ -2213,12 +2257,12 @@ function printDailySummary(){
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=comp?'Comp.':(b.includeBreakfast&&calcBfTotal(b)>0?calcBfTotal(b).toLocaleString():'-');
+    const bfTotal=bfCellText(b,comp);
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${gCount>0?gCount+' ท่าน':'-'}</td>
+      <td>${guestCellText(b)}</td>
       <td style="text-align:right;">${comp?'Comp.':bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
@@ -2280,13 +2324,13 @@ function printArrival(){
     const bdRoomPr=b.bdRoomPrice||0;
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=comp?'Comp.':(b.includeBreakfast&&calcBfTotal(b)>0?calcBfTotal(b).toLocaleString():'-');
+    const bfTotal=bfCellText(b,comp);
     const displayBdRoom=bdRoomPr>0?bdRoomPr:(comp?0:rCost);
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${gCount>0?gCount+' ท่าน':'-'}</td>
+      <td>${guestCellText(b)}</td>
       <td style="text-align:right;">${comp?'Comp.':displayBdRoom.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
