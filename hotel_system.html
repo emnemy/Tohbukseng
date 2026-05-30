@@ -1759,21 +1759,19 @@ function renderGuests(){
 
   // Totals - นับ BF ต่อ "ห้อง" ไม่ใช่ต่อ "การจอง"
   const seen=new Set();
-  let grandRoom=0,totalBfP=0;
-  bks.forEach(b=>{
-    if(!seen.has(b.id)){
-      seen.add(b.id);
-    }
-  });
-  // รวม BF และ ราคาห้อง/คืน จากทุกแถวห้อง (ไม่รวม Comp. ในยอดเงิน)
+  let grandRoom=0,totalBfP=0,totalBfChild=0;
+  bks.forEach(b=>{if(!seen.has(b.id))seen.add(b.id);});
   rows.forEach(({rnStr,b,roomIdx})=>{
-    if(b.includeBreakfast) totalBfP+=(parseInt(b.guestCount)||0);
+    if(b.includeBreakfast){
+      totalBfP+=(parseInt(b.guestCount)||0);
+      totalBfChild+=(parseInt(b.childCount)||0);
+    }
     if(!isCompForRoom(b,rnStr)) grandRoom+=roomRateCostForRoom(b,rnStr,1);
   });
 
   document.getElementById('gh-chips').innerHTML=`
     <div class="chip">รวม <span>${rows.length}</span> ห้อง</div>
-    <div class="chip">อาหารเช้า <span>${totalBfP}</span> ท่าน</div>
+    <div class="chip">อาหารเช้า <span>${totalBfP}</span> ท่าน${totalBfChild>0?` + เด็ก <span>${totalBfChild}</span> ท่าน`:''}</div>
     <div class="chip">ยอดรวม <span>${grandRoom.toLocaleString()}</span> บาท</div>`;
 
   if(!rows.length){
@@ -2034,14 +2032,14 @@ function printDepartureList(){
   rows.sort((a,x)=>a.rn-x.rn);
 
   const seen=new Set();
-  let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0;
+  let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0,totalBfChild=0;
   rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast) totalBfP+=gCount;
+    if(b.includeBreakfast){ totalBfP+=gCount; totalBfChild+=(parseInt(b.childCount)||0); }
     sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
     if(!comp&&b.includeBreakfast) sumBdBf+=calcBfTotal(b);
     sumRoomTotal+=comp?0:rCost;
@@ -2073,7 +2071,7 @@ function printDepartureList(){
   openPrint(`
     <h2 style="text-align:center;margin-bottom:4px;">Guest Departure List</h2>
     <p style="text-align:center;color:#666;margin-bottom:6px;">วันที่ ${fmtDate(d)}</p>
-    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน | จัดทำโดย: ${ST.currentUser.name}</p>
+    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน${totalBfChild>0?' + เด็ก '+totalBfChild+' ท่าน':''} | จัดทำโดย: ${ST.currentUser.name}</p>
     <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">
       <thead style="background:#f0f0f0;">
         <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th><th>วันเข้าพัก</th><th>วันออก</th>
@@ -2236,14 +2234,14 @@ function printDailySummary(){
   const seen=new Set();
   bks.forEach(b=>{seen.add(b.id);});
 
-  let totalBfP=0, sumBdRoom=0, sumBdBf=0, sumRoomPerNight=0;
+  let totalBfP=0, totalBfChild=0, sumBdRoom=0, sumBdBf=0, sumRoomPerNight=0;
   rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
     const gCount=parseInt(b.guestCount)||0;
-    const bdBfPr=b.bdBfPrice||0;
+    const cCount=parseInt(b.childCount)||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast) totalBfP+=gCount;
+    if(b.includeBreakfast){ totalBfP+=gCount; totalBfChild+=cCount; }
     sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
     if(!comp&&b.includeBreakfast) sumBdBf+=calcBfTotal(b);
     sumRoomPerNight+=comp?0:rCost;
@@ -2272,7 +2270,7 @@ function printDailySummary(){
   openPrint(`
     <h2 style="text-align:center;margin-bottom:4px;">สรุปรายงานผู้เข้าพักประจำวัน</h2>
     <p style="text-align:center;color:#666;margin-bottom:6px;">วันที่ ${fmtDate(d)}</p>
-    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน | จัดทำโดย: ${ST.currentUser.name}</p>
+    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน${totalBfChild>0?' + เด็ก '+totalBfChild+' ท่าน':''} | จัดทำโดย: ${ST.currentUser.name}</p>
     <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">
       <thead style="background:#f0f0f0;">
         <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th><th>เข้าพัก</th><th>ออก</th>
@@ -2303,14 +2301,14 @@ function printArrival(){
   });
   rows.sort((a,x)=>a.rn-x.rn);
 
-  let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0;
+  let sumBdRoom=0,sumBdBf=0,sumRoomTotal=0,totalBfP=0,totalBfChild=0;
   rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
     const gCount=parseInt(b.guestCount)||0;
     const bdBfPr=b.bdBfPrice||0;
     const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast) totalBfP+=gCount;
+    if(b.includeBreakfast){ totalBfP+=gCount; totalBfChild+=(parseInt(b.childCount)||0); }
     sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
     if(!comp&&b.includeBreakfast) sumBdBf+=calcBfTotal(b);
     sumRoomTotal+=comp?0:rCost;
@@ -2340,7 +2338,7 @@ function printArrival(){
   openPrint(`
     <h2 style="text-align:center;margin-bottom:4px;">Guest Arrival</h2>
     <p style="text-align:center;color:#666;margin-bottom:6px;">วันที่ ${fmtDate(d)}</p>
-    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน | จัดทำโดย: ${ST.currentUser.name}</p>
+    <p style="text-align:center;color:#666;margin-bottom:16px;">${rows.length} ห้อง | อาหารเช้า ${totalBfP} ท่าน${totalBfChild>0?' + เด็ก '+totalBfChild+' ท่าน':''} | จัดทำโดย: ${ST.currentUser.name}</p>
     <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">
       <thead style="background:#f0f0f0;">
         <tr><th>ห้อง</th><th>ชื่อ</th><th>สัญชาติ</th><th>บริษัท</th>
@@ -2689,10 +2687,10 @@ function printRoomingListGuest(id){
     rows+=`<tr style="height:36px;">
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${idx+1}</td>
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;font-weight:700;font-size:15px;">${rn!=='-'?rn:'-'}</td>
-      <td style="border:1px solid #ccc;padding:5px 8px;">${rn!=='-'?roomTypeFull(parseInt(rn)):'-'}</td>
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${rn!=='-'?roomTypeFull(parseInt(rn)):'-'}</td>
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkIn)}</td>
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkOut)}</td>
-      <td style="border:1px solid #ccc;padding:5px 8px;"></td>
+      <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;"></td>
     </tr>`;
   });
 
