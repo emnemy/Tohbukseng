@@ -513,7 +513,7 @@ function roomTypeFull(n){
 /* ════════════════════════════════════════
    STATE KEYS
 ════════════════════════════════════════ */
-const S_RES='reserved', S_CI='checkedin', S_CO='checkedout';
+const S_RES='reserved', S_CI='checkedin', S_CO='checkedout', S_CANCEL='cancelled';
 
 /* ════════════════════════════════════════
    STORE
@@ -536,6 +536,8 @@ function load(){
       ST.bookings=JSON.parse(b);
       ST.bookings.forEach(bk=>{
         if(!bk.status) bk.status=bk.done?S_CO:S_CI;
+        // migrate: ถ้าเป็น checkedout แต่มี cancelledBy → เปลี่ยนเป็น cancelled
+        if(bk.status===S_CO&&bk.cancelledBy) bk.status=S_CANCEL;
         if(!bk.rooms) bk.rooms=[];
         if(!bk.roomCount) bk.roomCount=bk.rooms.length||1;
         if(!bk.adults) bk.adults=bk.breakfastCount||0;
@@ -611,7 +613,7 @@ function showPage(page){
 ════════════════════════════════════════ */
 function roomStatusAt(rn, date){
   const b=ST.bookings.find(bk=>
-    bk.status!==S_CO &&
+    bk.status!==S_CO&&bk.status!==S_CANCEL&&
     bk.rooms && bk.rooms.includes(rn) &&
     bk.checkIn<=date && bk.checkOut>date
   );
@@ -621,7 +623,7 @@ function roomStatusAt(rn, date){
 }
 function roomAvail(rn,from,to,excId){
   return !ST.bookings.some(bk=>
-    bk.id!==excId && bk.status!==S_CO &&
+    bk.id!==excId && bk.status!==S_CO&&bk.status!==S_CANCEL&&
     bk.rooms && bk.rooms.includes(rn) &&
     bk.checkIn<to && bk.checkOut>from
   );
@@ -795,7 +797,8 @@ function statusBadge(s){
   return {
     reserved:'<span class="badge badge-purple">รอเช็คอิน</span>',
     checkedin:'<span class="badge badge-blue">เช็คอินแล้ว</span>',
-    checkedout:'<span class="badge badge-gray">เช็คเอาท์แล้ว</span>'
+    checkedout:'<span class="badge badge-gray">เช็คเอาท์แล้ว</span>',
+    cancelled:'<span class="badge badge-red">ยกเลิกแล้ว</span>'
   }[s]||'-';
 }
 function roomsDisplay(b){
@@ -824,7 +827,7 @@ function calcMonthlyStats(year, month){
   let roomRevenue=0, bfRevenue=0, roomNights=0, compNights=0;
 
   ST.bookings.forEach(b=>{
-    if(b.status===S_RES) return; // skip pending reservations
+    if(b.status===S_RES||b.status===S_CANCEL) return; // skip pending and cancelled
     // overlap of booking with [monthStart, cutoffStr)
     const oStart=b.checkIn>monthStart?b.checkIn:monthStart;
     const oEnd=b.checkOut<cutoffStr?b.checkOut:cutoffStr;
@@ -977,7 +980,7 @@ function renderRoomChart(){
   document.getElementById('rc-content').innerHTML=floorsHtml(d,false,null,null,null,null);
 }
 function viewFromRoom(rn,date){
-  const b=ST.bookings.find(bk=>bk.status!==S_CO&&bk.rooms&&bk.rooms.includes(rn)&&bk.checkIn<=date&&bk.checkOut>=date);
+  const b=ST.bookings.find(bk=>bk.status!==S_CO&&bk.status!==S_CANCEL&&bk.rooms&&bk.rooms.includes(rn)&&bk.checkIn<=date&&bk.checkOut>=date);
   if(b) viewBooking(b.id);
 }
 function printRoomChart(){
@@ -1062,7 +1065,7 @@ function bulkCancelOverdue(){
   checked.forEach(id=>{
     const b=ST.bookings.find(x=>x.id===id);
     if(b){
-      b.status=S_CO;
+      b.status=S_CANCEL;
       b.cancelledBy=ST.currentUser.username;
       b.cancelledName=ST.currentUser.name;
       b.cancelledAt=now;
@@ -1141,7 +1144,7 @@ function clearSearch(){
 
 function renderArrival(){
   const d=document.getElementById('arr-date').value||today();
-  const bks=ST.bookings.filter(b=>b.status!==S_CO&&b.checkIn===d);
+  const bks=ST.bookings.filter(b=>b.status!==S_CO&&b.status!==S_CANCEL&&b.checkIn===d);
   bks.sort((a,b)=>(a.rooms[0]||9999)-(b.rooms[0]||9999));
   if(!bks.length){
     document.getElementById('arr-table').innerHTML=
@@ -1177,7 +1180,7 @@ function cancelRes(id){
   if(!confirm('ยกเลิกการจองนี้?')) return;
   const b=ST.bookings.find(x=>x.id===id);
   if(b){
-    b.status=S_CO;
+    b.status=S_CANCEL;
     b.cancelledBy=ST.currentUser.username;
     b.cancelledName=ST.currentUser.name;
     b.cancelledAt=new Date().toISOString();
@@ -2023,7 +2026,7 @@ function clearCheckoutHistory(){
 function printDepartureList(){
   const d=today();
   // ดึงทุก booking ที่มีกำหนด checkOut วันนี้ (ทั้งยังไม่และเช็คเอาท์แล้ว)
-  const bks=ST.bookings.filter(b=>(b.status===S_CI||b.status===S_CO)&&b.checkOut===d);
+  const bks=ST.bookings.filter(b=>(b.status===S_CI||b.status===S_CO)&&!b.cancelledBy&&b.checkOut===d);
   let rows=[];
   bks.forEach(b=>{
     const roomList=b.rooms&&b.rooms.length?b.rooms:['?'];
@@ -2291,7 +2294,7 @@ function printDailySummary(){
 
 function printArrival(){
   const d=document.getElementById('arr-date').value||today();
-  const bks=ST.bookings.filter(b=>b.status!==S_CO&&b.checkIn===d);
+  const bks=ST.bookings.filter(b=>b.status!==S_CO&&b.status!==S_CANCEL&&b.checkIn===d);
 
   // expand per room like Guest In House
   let rows=[];
