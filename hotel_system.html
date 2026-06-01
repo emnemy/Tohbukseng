@@ -947,7 +947,7 @@ function renderDashboard(){
     <div class="stat-card"><div class="stat-val" style="color:var(--green)">${vac}</div><div class="stat-lbl">ห้องว่าง</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--purple)">${res}</div><div class="stat-lbl">จองแล้ว</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--red)">${occ}</div><div class="stat-lbl">มีผู้พัก</div></div>`;
-  const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>d);
+  const bks=ST.bookings.filter(b=>b.status===S_CI&&b.checkIn<=d&&b.checkOut>=d);
   if(!bks.length){document.getElementById('dash-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้เข้าพักวันนี้</p>';return;}
   let rows='';
   bks.forEach(b=>{
@@ -1977,7 +1977,7 @@ function searchCheckoutHistory(){
       '<p style="color:var(--text2);padding:14px;text-align:center;">กรอกวันที่หรือชื่อเพื่อค้นหาประวัติ</p>';
     return;
   }
-  let bks=ST.bookings.filter(b=>b.status===S_CO);
+  let bks=ST.bookings.filter(b=>b.status===S_CO&&!b.cancelledBy);
   if(srchDate) bks=bks.filter(b=>b.checkOut===srchDate||b.checkIn===srchDate);
   if(srchQ) bks=bks.filter(b=>
     (b.guestName||'').toLowerCase().includes(srchQ)||
@@ -2026,7 +2026,7 @@ function clearCheckoutHistory(){
 function printDepartureList(){
   const d=today();
   // ดึงทุก booking ที่มีกำหนด checkOut วันนี้ (ทั้งยังไม่และเช็คเอาท์แล้ว)
-  const bks=ST.bookings.filter(b=>(b.status===S_CI||b.status===S_CO)&&!b.cancelledBy&&b.checkOut===d);
+  const bks=ST.bookings.filter(b=>(b.status===S_CI||b.status===S_CO)&&b.status!==S_CANCEL&&!b.cancelledBy&&b.checkOut===d);
   let rows=[];
   bks.forEach(b=>{
     const roomList=b.rooms&&b.rooms.length?b.rooms:['?'];
