@@ -867,10 +867,10 @@ function calcMonthlyStats(year, month){
           else{ roomPerNight+=p*c; paidRms+=c; }
         });
     }
-    // BF per night — calcBfTotal คืนค่าต่อห้อง (bdBfPrice×guestCount)
-    // ใช้ค่านั้นโดยตรง ไม่คูณ paidRms อีก
+    // BF per night — calcBfTotal(b) คืนค่าต่อ 1 ห้อง (bdBfPrice × guestCount)
+    // ต้องคูณ paidRms เพื่อให้ได้ค่า BF รวมทุกห้องที่ไม่ใช่ Comp.
     if(b.includeBreakfast&&paidRms>0){
-      bfPerNight=calcBfTotal(b);
+      bfPerNight=calcBfTotal(b)*paidRms;
     }
     roomRevenue+=roomPerNight*realNights;    // ค่าห้องล้วนๆ ไม่รวม BF
     bfRevenue+=bfPerNight*realNights;
