@@ -221,7 +221,7 @@ tfoot td{border-top:1px solid var(--border);}
     <div class="form-group"><label class="form-label">รหัสผ่าน</label>
       <input class="form-input" id="lg-pass" type="password" placeholder="Password"></div>
     <button class="btn btn-primary btn-full" style="margin-top:6px;" onclick="doLogin()">เข้าสู่ระบบ</button>
-    <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:14px;">ค่าเริ่มต้น: admin / admin123</p>
+
   </div>
 </div>
 
@@ -519,7 +519,7 @@ const S_RES='reserved', S_CI='checkedin', S_CO='checkedout', S_CANCEL='cancelled
    STORE
 ════════════════════════════════════════ */
 let ST={
-  users:[{id:'admin',username:'admin',password:'admin123',name:'Administrator',role:'admin'}],
+  users:[{id:'admin',username:'tbsadmin',password:'tbsadmin',name:'Administrator',role:'admin'}],
   bookings:[], currentUser:null
 };
 let pickRooms=[], editingId=null, assignId=null;
@@ -531,12 +531,12 @@ let pickRooms=[], editingId=null, assignId=null;
    staff   = ดูข้อมูล, เช็คอิน/เช็คเอาท์เท่านั้น ไม่แก้ไข/ยกเลิกการจอง
 ════════════════════════════════════════ */
 function getRole(){ return ST.currentUser?.role||'staff'; }
-function canManageUsers(){ return getRole()==='admin'; }
-function canEditBooking(){ return getRole()==='admin'||getRole()==='manager'; }
-function canCancelBooking(){ return getRole()==='admin'||getRole()==='manager'; }
-function canCheckin(){ return true; }   // ทุก role ทำได้
-function canCheckout(){ return true; }  // ทุก role ทำได้
-function canCreateBooking(){ return getRole()==='admin'||getRole()==='manager'; }
+function canManageUsers(){ return getRole()==='admin'||getRole()==='manager'; }
+function canEditBooking(){ return true; }    // ทุก role ทำได้
+function canCancelBooking(){ return true; }  // ทุก role ทำได้
+function canCheckin(){ return true; }
+function canCheckout(){ return true; }
+function canCreateBooking(){ return true; }  // ทุก role ทำได้
 function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเนินการ: ${action}\nกรุณาติดต่อ Admin หรือ Manager`); }
 
 function save(){
