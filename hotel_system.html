@@ -857,22 +857,24 @@ function calcMonthlyStats(year, month){
     if(roomList){
       roomList.forEach(rn=>{
         if(isCompForRoom(b,rn)) compRms++;
-        else{ roomPerNight+=roomRateCostForRoom(b,rn,1); paidRms++; }
+        else{ paidRms++; }
       });
     } else {
       (b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:b.roomCount||1}])
         .forEach(r=>{
           const p=parseFloat(r.price)||0, c=Math.max(0,parseInt(r.count)||0);
           if(p===0) compRms+=c;
-          else{ roomPerNight+=p*c; paidRms+=c; }
+          else{ paidRms+=c; }
         });
     }
-    // BF per night — calcBfTotal(b) คืนค่าต่อ 1 ห้อง (bdBfPrice × guestCount)
-    // ต้องคูณ paidRms เพื่อให้ได้ค่า BF รวมทุกห้องที่ไม่ใช่ Comp.
+    // ใช้ bdRoomPrice (เบรกดาวน์ราคาห้อง) × paidRms แทน roomRates
+    const bdRoomPr=parseFloat(b.bdRoomPrice)||0;
+    roomPerNight=bdRoomPr*paidRms;
+    // BF per night — bdBfPrice × guestCount × paidRms (ห้องที่ไม่ใช่ Comp.)
     if(b.includeBreakfast&&paidRms>0){
       bfPerNight=calcBfTotal(b)*paidRms;
     }
-    roomRevenue+=roomPerNight*realNights;    // ค่าห้องล้วนๆ ไม่รวม BF
+    roomRevenue+=roomPerNight*realNights;
     bfRevenue+=bfPerNight*realNights;
     roomNights+=paidRms*realNights;
     compNights+=compRms*realNights;
