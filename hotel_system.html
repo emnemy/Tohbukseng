@@ -867,13 +867,12 @@ function calcMonthlyStats(year, month){
           else{ roomPerNight+=p*c; paidRms+=c; }
         });
     }
-    // BF per night (non-comp rooms)
+    // BF per night — calcBfTotal คืนค่าต่อห้อง (bdBfPrice×guestCount)
+    // ใช้ค่านั้นโดยตรง ไม่คูณ paidRms อีก
     if(b.includeBreakfast&&paidRms>0){
-      const bdBfPr=b.bdBfPrice||0;
-      const gCount=parseInt(b.guestCount)||0;
-      bfPerNight=calcBfTotal(b)*paidRms;
+      bfPerNight=calcBfTotal(b);
     }
-    roomRevenue+=roomPerNight*realNights;
+    roomRevenue+=roomPerNight*realNights;    // ค่าห้องล้วนๆ ไม่รวม BF
     bfRevenue+=bfPerNight*realNights;
     roomNights+=paidRms*realNights;
     compNights+=compRms*realNights;
