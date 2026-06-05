@@ -1623,7 +1623,6 @@ function viewBooking(id){
       <button class="btn btn-secondary btn-sm" onclick="printRoomingList('${b.id}')">📋 Rooming List</button>
       <button class="btn btn-secondary btn-sm" onclick="printRoomingListGuest('${b.id}')">📋 Rooming List (ลูกค้า)</button>
       <button class="btn btn-secondary btn-sm" onclick="printBookingAll('${b.id}')">🖨 พิมพ์ข้อมูล</button>
-      ${b.rooms&&b.rooms.length>1?`<button class="btn btn-secondary btn-sm" onclick="printBookingByRoom('${b.id}')">🖨 แยกรายห้อง</button>`:''}
       ${b.status===S_CI?`<button class="btn btn-danger btn-sm" onclick="closeModal();doCheckout('${b.id}')">🚪 เช็คเอาท์</button>`:''}
       <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
     </div>`);
@@ -3005,13 +3004,10 @@ function openPrint(body, docTitle){
       <div class="pdf-bar-icon">📄</div>
       <div>
         <div class="pdf-bar-title">${title}</div>
-        <div class="pdf-bar-hint">💾 บันทึก PDF = ดาวน์โหลดไฟล์ PDF โดยตรง &nbsp;|&nbsp; 🖨 ปริ้น = เชื่อมต่อเครื่องพิมพ์</div>
+        <div class="pdf-bar-hint">🖨 กดปุ่ม ปริ้น เพื่อเชื่อมต่อเครื่องพิมพ์</div>
       </div>
     </div>
     <div class="btn-group">
-      <button class="pdf-btn" id="save-pdf-btn" onclick="exportPDF()">
-        💾 บันทึก PDF
-      </button>
       <button class="print-btn" onclick="window.print()">
         🖨 ปริ้น
       </button>
