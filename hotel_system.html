@@ -566,7 +566,7 @@ function _hideLoading(){const el=document.getElementById('_gas_loading');if(el)e
 async function _gasCall(action,body){
   const url=`${GAS_URL}?action=${action}&key=${GAS_KEY}`;
   const opts=body
-    ?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}
+    ?{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}
     :{method:'GET'};
   const res=await fetch(url,{...opts,redirect:'follow'});
   const text=await res.text();
