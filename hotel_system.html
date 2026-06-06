@@ -647,7 +647,7 @@ async function doLogin(){
     return;
   }
   _hideLoading();
-  const found=ST.users.find(x=>x.username===u&&x.password===p);
+  const found=ST.users.find(x=>sval(x.username).trim()===u&&sval(x.password)===p);
   if(!found){document.getElementById('login-error').style.display='block';return;}
   ST.currentUser=found;
   document.getElementById('login-page').style.display='none';
@@ -3187,6 +3187,7 @@ function openPrint(body, docTitle){
    UTILITIES
 ════════════════════════════════════════ */
 function gv(id){const e=document.getElementById(id);return e?e.value:'';}
+function sval(v){return v===null||v===undefined?'':String(v);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
 /* ── Folio Sequence: unique, stable per booking ── */
