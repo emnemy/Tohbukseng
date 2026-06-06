@@ -791,6 +791,14 @@ function calcBfAmt(b){
   return bfPrice*perRoom*nr*n;
 }
 function calcTotal(b){return calcRoomAmt(b)+calcBfAmt(b);}
+function calcSimpleTotal(b){
+  // ราคารวมทั้งสิ้นจาก roomRates เท่านั้น (ไม่เกี่ยวกับ breakdown)
+  const n=nights(b.checkIn,b.checkOut);
+  if(b.roomRates&&b.roomRates.length){
+    return b.roomRates.reduce((s,r)=>s+(parseFloat(r.price)||0)*(parseInt(r.count)||1)*n,0);
+  }
+  return (parseFloat(b.roomPrice)||0)*n*(numRooms(b)||1);
+}
 function totalRoomCount(b){
   if(b.roomRates&&b.roomRates.length) return b.roomRates.reduce((s,r)=>s+(parseInt(r.count)||1),0);
   return numRooms(b);
@@ -1063,7 +1071,7 @@ function renderDashboard(){
     rows+=`<tr><td><strong>${roomsDisplay(b)}</strong></td><td>${b.guestName}</td>
       <td>${b.company||'-'}</td><td>${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</td>
       <td>${nights(b.checkIn,b.checkOut)}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td><button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button></td></tr>`;
   });
@@ -1228,7 +1236,7 @@ function searchBookings(){
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${roomsDisplay(b)}</td>
       <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
@@ -1265,7 +1273,7 @@ function renderArrival(){
       `<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้จองสำหรับ ${fmtDate(d)}</p>`;return;}
   let rows='',tot=0;
   bks.forEach(b=>{
-    const t=calcTotal(b);tot+=t;
+    const t=calcSimpleTotal(b);tot+=t;
     rows+=`<tr>
       <td>${statusBadge(b.status)}</td>
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
@@ -1755,7 +1763,7 @@ function renderCheckin(){
       <td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
@@ -2140,7 +2148,7 @@ function searchCheckoutHistory(){
       <td>${fmtDate(b.checkIn)}</td>
       <td>${fmtDate(b.checkOut)}</td>
       <td style="text-align:center;">${n}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
