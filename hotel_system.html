@@ -758,6 +758,15 @@ function floorsHtml(date,pick,sel,from,to,excId){
    CALC HELPERS
 ════════════════════════════════════════ */
 function numRooms(b){return b.rooms&&b.rooms.length?b.rooms.length:(b.roomCount||1);}
+function paidRoomCount(b){
+  const nRooms=numRooms(b);
+  if(b.rooms&&b.rooms.length) return b.rooms.filter(rn=>!isCompForRoom(b,rn)).length;
+  if(b.roomRates&&b.roomRates.length){
+    return b.roomRates.reduce((s,r)=>(parseFloat(r.price)||0)>0?s+(parseInt(r.count)||1):s,0);
+  }
+  if(b.roomPrice===0||b.roomPrice==='0') return 0;
+  return nRooms;
+}
 function calcRoomAmt(b){
   const n=nights(b.checkIn,b.checkOut);
   if(b.roomRates&&b.roomRates.length){
@@ -768,6 +777,14 @@ function calcRoomAmt(b){
 function calcBfAmt(b){
   if(!b.includeBreakfast) return 0;
   const n=nights(b.checkIn,b.checkOut);
+  const paidRooms=paidRoomCount(b);
+  const bdBfPr=parseFloat(b.bdBfPrice)||0;
+  const bdBfChildPr=parseFloat(b.bdBfChildPrice)||0;
+  const gCount=parseInt(b.guestCount)||0;
+  const cCount=parseInt(b.childCount)||0;
+  const bdTotal=(bdBfPr*gCount+bdBfChildPr*cCount)*paidRooms*n;
+  if(bdTotal>0) return bdTotal;
+
   const nr=numRooms(b);
   const perRoom=parseInt(b.breakfastPerRoom)||0;
   const bfPrice=parseFloat(b.breakfastPrice)||0;
@@ -1210,7 +1227,7 @@ function searchBookings(){
       <td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${roomsDisplay(b)}</td>
-      <td>${b.includeBreakfast?((parseInt(b.breakfastPerRoom)||0)*numRooms(b))+' ท่าน':'-'}</td>
+      <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
@@ -3024,7 +3041,7 @@ function printBookingByRoom(id){
           <tr><td style="padding:4px;color:#666;">วันออก</td><td style="padding:4px;font-weight:600;">${fmtDate(b.checkOut)}</td></tr>
           <tr><td style="padding:4px;color:#666;">จำนวนคืน</td><td style="padding:4px;">${n} คืน</td></tr>
           <tr><td style="padding:4px;color:#666;">อาหารเช้า</td><td style="padding:4px;">${b.includeBreakfast
-            ?`${(b.breakfastPrice||0).toLocaleString()} บาท × ${b.breakfastPerRoom||0} ท่าน/ห้อง`
+            ?guestCellText(b)
             :(b.noBreakfast?'ไม่รวมอาหารเช้า':'-')}</td></tr>
           <tr><td style="padding:4px;color:#666;">การชำระเงิน</td><td style="padding:4px;">${payText(b.payment)}</td></tr>
         </table>
