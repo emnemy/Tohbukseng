@@ -580,6 +580,8 @@ async function _gasCall(action,body){
 function _migrateBk(bk){
   if(!bk.status) bk.status=bk.done?S_CO:S_CI;
   if(bk.status===S_CO&&bk.cancelledBy) bk.status=S_CANCEL;
+  bk.checkIn=dateOnly(bk.checkIn);
+  bk.checkOut=dateOnly(bk.checkOut);
   if(!bk.rooms) bk.rooms=[];
   else if(typeof bk.rooms==='string'){try{bk.rooms=JSON.parse(bk.rooms);}catch(e){bk.rooms=[];}}
   bk.rooms=bk.rooms.map(Number).filter(Boolean);
@@ -621,12 +623,26 @@ async function load(){
 /* ════════════════════════════════════════
    DATE HELPERS
 ════════════════════════════════════════ */
-function today(){return new Date().toISOString().slice(0,10);}
+function ymdLocal(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function today(){return ymdLocal(new Date());}
+function dateOnly(v){
+  if(!v) return '';
+  if(v instanceof Date&&!isNaN(v)) return ymdLocal(v);
+  const s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d=new Date(s);
+  if(!isNaN(d)) return ymdLocal(d);
+  const m=s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m?m[1]:s;
+}
 function fmtDate(d){
   if(!d) return '-';
-  return new Date(d+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+  return new Date(dateOnly(d)+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
 }
 function nights(a,b){
+  a=dateOnly(a); b=dateOnly(b);
   if(!a||!b) return 0;
   return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
 }
