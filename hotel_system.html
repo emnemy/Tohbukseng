@@ -545,6 +545,7 @@ function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเ
 ════════════════════════════════════════ */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwd82E5Yr5DjGoOg2anvRq3hEG114YJeWwk14NgutV4IOW8UjIR44MHD-nMonHD8HKQUQ/exec';   // ← วาง URL จาก Deploy Apps Script
 const GAS_KEY = 'tbsadmin';   // ← ต้องตรงกับ SECRET_KEY ใน Code.gs
+// ⚠️  หมายเหตุ: แก้ Code.gs → ลบโค้ดส่วน "ลบ backup เก่าเกิน 30 วัน" ออก (บรรทัดประมาณ 347-354)
 
 /* ── Loading overlay ── */
 function _showLoading(msg){
@@ -567,7 +568,7 @@ async function _gasCall(action,body){
   const opts=body
     ?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}
     :{method:'GET'};
-  const res=await fetch(url,opts);
+  const res=await fetch(url,{...opts,redirect:'follow'});
   const text=await res.text();
   let data;
   try{data=JSON.parse(text);}catch(e){throw new Error('Parse error: '+text.slice(0,200));}
@@ -1594,14 +1595,14 @@ async function saveReservation(){
     obj.history=[{by:ST.currentUser.username,name:ST.currentUser.name,at:new Date().toISOString(),action:'สร้างการจอง'}];
     ST.bookings.push(obj);
   }
+  // เก็บ object ที่จะบันทึก (ก่อน closeModal เปลี่ยน state)
+  const _bkToSave=editingId
+    ?ST.bookings.find(b=>b.id===editingId)
+    :ST.bookings[ST.bookings.length-1];
+  if(!_bkToSave){_hideLoading?.();alert('❌ ไม่พบข้อมูลการจอง');return;}
   _showLoading('กำลังบันทึก...');
   try{
-    if(editingId){
-      const idx2=ST.bookings.findIndex(b=>b.id===editingId);
-      if(idx2>=0) await _gasCall('saveBooking',ST.bookings[idx2]);
-    } else {
-      await _gasCall('saveBooking',ST.bookings[ST.bookings.length-1]);
-    }
+    await _gasCall('saveBooking',_bkToSave);
   }catch(e){_hideLoading();alert('❌ บันทึกไม่สำเร็จ: '+e.message);return;}
   _hideLoading();
   closeModal();
@@ -2271,6 +2272,7 @@ async function doGroupCO(){
   if(!sel.length){alert('กรุณาเลือกรายการ');return;}
   if(!confirm(`ยืนยันเช็คเอาท์ ${sel.length} รายการ?`)) return;
   _showLoading('กำลัง Bulk Checkout...');
+  let _doneCount=0;
   try{
     for(const id of sel){
       const b=ST.bookings.find(x=>x.id===id);
@@ -2280,9 +2282,16 @@ async function doGroupCO(){
         b.checkedOutAt=new Date().toISOString();
         b.history=[...(b.history||[]),{by:ST.currentUser.username,name:ST.currentUser.name,at:b.checkedOutAt,action:'เช็คเอาท์'}];
         await _gasCall('updateStatus',b);
+        _doneCount++;
       }
     }
-  }catch(e){_hideLoading();alert('❌ '+e.message);return;}
+  }catch(e){
+    _hideLoading();
+    alert(`❌ เกิดข้อผิดพลาดหลัง ${_doneCount}/${sel.length} รายการ
+${e.message}
+กรุณา Refresh แล้วตรวจสอบข้อมูล`);
+    return;
+  }
   _hideLoading();
   closeModal();renderCheckout();
   alert(`✅ เช็คเอาท์ ${sel.length} รายการเรียบร้อย`);
