@@ -638,7 +638,14 @@ async function doLogin(){
   const u=gv('lg-user').trim(), p=gv('lg-pass');
   document.getElementById('login-error').style.display='none';
   _showLoading('กำลังเข้าสู่ระบบ...');
-  try{const users=await _gasCall('getUsers');if(Array.isArray(users)&&users.length) ST.users=users;}catch(e){}
+  try{
+    const users=await _gasCall('getUsers');
+    if(Array.isArray(users)&&users.length) ST.users=users;
+  }catch(e){
+    _hideLoading();
+    alert('❌ เชื่อมต่อ Google Sheets ไม่ได้\nกรุณาตรวจสอบ internet แล้วลองใหม่');
+    return;
+  }
   _hideLoading();
   const found=ST.users.find(x=>x.username===u&&x.password===p);
   if(!found){document.getElementById('login-error').style.display='block';return;}
