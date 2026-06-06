@@ -539,46 +539,110 @@ function canCheckout(){ return true; }
 function canCreateBooking(){ return true; }  // ทุก role ทำได้
 function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเนินการ: ${action}\nกรุณาติดต่อ Admin หรือ Manager`); }
 
-function save(){
-  try{localStorage.setItem('hms_u',JSON.stringify(ST.users));
-      localStorage.setItem('hms_b',JSON.stringify(ST.bookings));}catch(e){}
+/* ════════════════════════════════════════
+   GOOGLE SHEETS CONFIG
+   แก้ค่าทั้งสองนี้ให้ตรงกับของคุณ
+════════════════════════════════════════ */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwd82E5Yr5DjGoOg2anvRq3hEG114YJeWwk14NgutV4IOW8UjIR44MHD-nMonHD8HKQUQ/exec';   // ← วาง URL จาก Deploy Apps Script
+const GAS_KEY = 'tbsadmin';   // ← ต้องตรงกับ SECRET_KEY ใน Code.gs
+// ⚠️  หมายเหตุ: แก้ Code.gs → ลบโค้ดส่วน "ลบ backup เก่าเกิน 30 วัน" ออก (บรรทัดประมาณ 347-354)
+
+/* ── Loading overlay ── */
+function _showLoading(msg){
+  let el=document.getElementById('_gas_loading');
+  if(!el){
+    el=document.createElement('div');
+    el.id='_gas_loading';
+    el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:\'Sarabun\',sans-serif;';
+    el.innerHTML='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:28px 40px;text-align:center;"><div style="font-size:26px;margin-bottom:10px;">⏳</div><div id="_gas_msg" style="color:var(--text);font-size:15px;"></div></div>';
+    document.body.appendChild(el);
+  }
+  document.getElementById('_gas_msg').textContent=msg||'กำลังโหลด...';
+  el.style.display='flex';
 }
-function load(){
+function _hideLoading(){const el=document.getElementById('_gas_loading');if(el)el.style.display='none';}
+
+/* ── API helper ── */
+async function _gasCall(action,body){
+  const url=`${GAS_URL}?action=${action}&key=${GAS_KEY}`;
+  const opts=body
+    ?{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}
+    :{method:'GET'};
+  const res=await fetch(url,{...opts,redirect:'follow'});
+  const text=await res.text();
+  let data;
+  try{data=JSON.parse(text);}catch(e){throw new Error('Parse error: '+text.slice(0,200));}
+  if(data&&data.error) throw new Error(data.error);
+  return data;
+}
+
+/* ── migrate helper (ใช้ร่วมกัน) ── */
+function _migrateBk(bk){
+  if(!bk.status) bk.status=bk.done?S_CO:S_CI;
+  if(bk.status===S_CO&&bk.cancelledBy) bk.status=S_CANCEL;
+  bk.checkIn=dateOnly(bk.checkIn);
+  bk.checkOut=dateOnly(bk.checkOut);
+  if(!bk.rooms) bk.rooms=[];
+  else if(typeof bk.rooms==='string'){try{bk.rooms=JSON.parse(bk.rooms);}catch(e){bk.rooms=[];}}
+  bk.rooms=bk.rooms.map(Number).filter(Boolean);
+  if(!bk.roomCount) bk.roomCount=bk.rooms.length||1;
+  if(!bk.adults) bk.adults=bk.breakfastCount||0;
+  if(!bk.children) bk.children=0;
+  if(typeof bk.roomRates==='string'){try{bk.roomRates=JSON.parse(bk.roomRates);}catch(e){bk.roomRates=[];}}
+  if(typeof bk.history==='string'){try{bk.history=JSON.parse(bk.history);}catch(e){bk.history=[];}}
+  if(bk.roomRates&&bk.roomRates.length){
+    bk.roomRates=bk.roomRates.map(r=>({...r,price:parseFloat(r.price)||0,count:parseInt(r.count)||0}));
+  }
+  return bk;
+}
+
+/* ── save(): no-op — บันทึกตรงใน action แต่ละตัวแทน ── */
+function save(){}
+
+/* ── load(): โหลดจาก Google Sheets ── */
+async function load(){
+  _showLoading('กำลังโหลดข้อมูลจาก Google Sheets...');
   try{
-    const u=localStorage.getItem('hms_u'),b=localStorage.getItem('hms_b');
-    if(u) ST.users=JSON.parse(u);
-    if(b){
-      ST.bookings=JSON.parse(b);
-      ST.bookings.forEach(bk=>{
-        if(!bk.status) bk.status=bk.done?S_CO:S_CI;
-        // migrate: ถ้าเป็น checkedout แต่มี cancelledBy → เปลี่ยนเป็น cancelled
-        if(bk.status===S_CO&&bk.cancelledBy) bk.status=S_CANCEL;
-        if(!bk.rooms) bk.rooms=[];
-        if(!bk.roomCount) bk.roomCount=bk.rooms.length||1;
-        if(!bk.adults) bk.adults=bk.breakfastCount||0;
-        if(!bk.children) bk.children=0;
-        // migrate roomRates: ensure count is stored as integer not coerced
-        if(bk.roomRates&&bk.roomRates.length){
-          bk.roomRates=bk.roomRates.map(r=>({
-            ...r,
-            price:parseFloat(r.price)||0,
-            count:parseInt(r.count)||0
-          }));
-        }
-      });
-    }
-  }catch(e){}
+    const [bookings,users,folio]=await Promise.all([
+      _gasCall('getBookings'),
+      _gasCall('getUsers'),
+      _gasCall('getFolio'),
+    ]);
+    ST.bookings=Array.isArray(bookings)?bookings.map(_migrateBk):[];
+    ST.users=Array.isArray(users)&&users.length?users
+      :[{id:'admin',username:'tbsadmin',password:'tbsadmin',name:'Administrator',role:'admin'}];
+    _folioMap=folio||{};
+  }catch(err){
+    console.error('load() failed:',err);
+    alert('❌ โหลดข้อมูลไม่สำเร็จ\n'+err.message);
+  }finally{
+    _hideLoading();
+  }
 }
 
 /* ════════════════════════════════════════
    DATE HELPERS
 ════════════════════════════════════════ */
-function today(){return new Date().toISOString().slice(0,10);}
+function ymdLocal(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function today(){return ymdLocal(new Date());}
+function dateOnly(v){
+  if(!v) return '';
+  if(v instanceof Date&&!isNaN(v)) return ymdLocal(v);
+  const s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d=new Date(s);
+  if(!isNaN(d)) return ymdLocal(d);
+  const m=s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m?m[1]:s;
+}
 function fmtDate(d){
   if(!d) return '-';
-  return new Date(d+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+  return new Date(dateOnly(d)+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
 }
 function nights(a,b){
+  a=dateOnly(a); b=dateOnly(b);
   if(!a||!b) return 0;
   return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
 }
@@ -586,19 +650,29 @@ function nights(a,b){
 /* ════════════════════════════════════════
    AUTH
 ════════════════════════════════════════ */
-function doLogin(){
+async function doLogin(){
   const u=gv('lg-user').trim(), p=gv('lg-pass');
-  const found=ST.users.find(x=>x.username===u&&x.password===p);
-  if(!found){document.getElementById('login-error').style.display='block';return;}
   document.getElementById('login-error').style.display='none';
+  _showLoading('กำลังเข้าสู่ระบบ...');
+  try{
+    const users=await _gasCall('getUsers');
+    if(Array.isArray(users)&&users.length) ST.users=users;
+  }catch(e){
+    _hideLoading();
+    alert('❌ เชื่อมต่อ Google Sheets ไม่ได้\nกรุณาตรวจสอบ internet แล้วลองใหม่');
+    return;
+  }
+  _hideLoading();
+  const found=ST.users.find(x=>sval(x.username).trim()===u&&sval(x.password)===p);
+  if(!found){document.getElementById('login-error').style.display='block';return;}
   ST.currentUser=found;
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sf-name').textContent=found.name;
   const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
   document.getElementById('sf-role').textContent=roleLabel;
-  // admin nav เฉพาะ admin เท่านั้น
   document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+  await load();
   showPage('dashboard');
 }
 function doLogout(){
@@ -684,6 +758,15 @@ function floorsHtml(date,pick,sel,from,to,excId){
    CALC HELPERS
 ════════════════════════════════════════ */
 function numRooms(b){return b.rooms&&b.rooms.length?b.rooms.length:(b.roomCount||1);}
+function paidRoomCount(b){
+  const nRooms=numRooms(b);
+  if(b.rooms&&b.rooms.length) return b.rooms.filter(rn=>!isCompForRoom(b,rn)).length;
+  if(b.roomRates&&b.roomRates.length){
+    return b.roomRates.reduce((s,r)=>(parseFloat(r.price)||0)>0?s+(parseInt(r.count)||1):s,0);
+  }
+  if(b.roomPrice===0||b.roomPrice==='0') return 0;
+  return nRooms;
+}
 function calcRoomAmt(b){
   const n=nights(b.checkIn,b.checkOut);
   if(b.roomRates&&b.roomRates.length){
@@ -694,6 +777,14 @@ function calcRoomAmt(b){
 function calcBfAmt(b){
   if(!b.includeBreakfast) return 0;
   const n=nights(b.checkIn,b.checkOut);
+  const paidRooms=paidRoomCount(b);
+  const bdBfPr=parseFloat(b.bdBfPrice)||0;
+  const bdBfChildPr=parseFloat(b.bdBfChildPrice)||0;
+  const gCount=parseInt(b.guestCount)||0;
+  const cCount=parseInt(b.childCount)||0;
+  const bdTotal=(bdBfPr*gCount+bdBfChildPr*cCount)*paidRooms*n;
+  if(bdTotal>0) return bdTotal;
+
   const nr=numRooms(b);
   const perRoom=parseInt(b.breakfastPerRoom)||0;
   const bfPrice=parseFloat(b.breakfastPrice)||0;
@@ -839,7 +930,7 @@ function calcMonthlyStats(year, month){
 
   // simpler cutoff calc for past months
   const nextMonth=new Date(year,month+1,1);
-  const cutoffStr=isCurrent ? todayStr : nextMonth.toISOString().slice(0,10);
+  const cutoffStr=isCurrent ? todayStr : ymdLocal(nextMonth);
 
   let roomRevenue=0, bfRevenue=0, roomNights=0, compNights=0;
 
@@ -1136,7 +1227,7 @@ function searchBookings(){
       <td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${roomsDisplay(b)}</td>
-      <td>${b.includeBreakfast?((parseInt(b.breakfastPerRoom)||0)*numRooms(b))+' ท่าน':'-'}</td>
+      <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
@@ -1199,18 +1290,20 @@ function renderArrival(){
       <td colspan="2"></td></tr></tfoot></table>`;
 }
 
-function cancelRes(id){
+async function cancelRes(id){
   if(!canCancelBooking()){permDeny('ยกเลิกการจอง');return;}
   if(!confirm('ยกเลิกการจองนี้?')) return;
   const b=ST.bookings.find(x=>x.id===id);
-  if(b){
-    b.status=S_CANCEL;
-    b.cancelledBy=ST.currentUser.username;
-    b.cancelledName=ST.currentUser.name;
-    b.cancelledAt=new Date().toISOString();
-    b.history=[...(b.history||[]),{by:ST.currentUser.username,name:ST.currentUser.name,at:b.cancelledAt,action:'ยกเลิกการจอง'}];
-  }
-  save();renderReservation();
+  if(!b) return;
+  b.status=S_CANCEL;
+  b.cancelledBy=ST.currentUser.username;
+  b.cancelledName=ST.currentUser.name;
+  b.cancelledAt=new Date().toISOString();
+  b.history=[...(b.history||[]),{by:ST.currentUser.username,name:ST.currentUser.name,at:b.cancelledAt,action:'ยกเลิกการจอง'}];
+  _showLoading('กำลังบันทึก...');
+  try{await _gasCall('updateStatus',b);}catch(e){_hideLoading();alert('❌ '+e.message);return;}
+  _hideLoading();
+  renderReservation();
 }
 
 /* ════════════════════════════════════════
@@ -1230,7 +1323,7 @@ function openResModal(id){
   const b=id?ST.bookings.find(x=>x.id===id):null;
   const d=today();
   const tom=new Date();tom.setDate(tom.getDate()+1);
-  const tStr=tom.toISOString().slice(0,10);
+  const tStr=ymdLocal(tom);
   if(b&&b.rooms) pickRooms=[...b.rooms];
   const ciVal=b?b.checkIn:d;
   const coVal=b?b.checkOut:tStr;
@@ -1484,7 +1577,7 @@ function calcDisplay(){
   calcBdBf();
 }
 
-function saveReservation(){
+async function saveReservation(){
   if(editingId&&!canEditBooking()){permDeny('แก้ไขการจอง');return;}
   if(!editingId&&!canCreateBooking()){permDeny('สร้างการจอง');return;}
   const name=gv('f-name').trim();
@@ -1542,7 +1635,17 @@ function saveReservation(){
     obj.history=[{by:ST.currentUser.username,name:ST.currentUser.name,at:new Date().toISOString(),action:'สร้างการจอง'}];
     ST.bookings.push(obj);
   }
-  save(); closeModal();
+  // เก็บ object ที่จะบันทึก (ก่อน closeModal เปลี่ยน state)
+  const _bkToSave=editingId
+    ?ST.bookings.find(b=>b.id===editingId)
+    :ST.bookings[ST.bookings.length-1];
+  if(!_bkToSave){_hideLoading?.();alert('❌ ไม่พบข้อมูลการจอง');return;}
+  _showLoading('กำลังบันทึก...');
+  try{
+    await _gasCall('saveBooking',_bkToSave);
+  }catch(e){_hideLoading();alert('❌ บันทึกไม่สำเร็จ: '+e.message);return;}
+  _hideLoading();
+  closeModal();
   const active=document.querySelector('.page.active')?.id?.replace('page-','');
   if(active) PAGE_RENDERS[active]?.();
 }
@@ -1665,7 +1768,7 @@ function renderCheckin(){
     <tbody>${rows}</tbody></table>`;
 }
 
-function doCheckinAction(id){
+async function doCheckinAction(id){
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
   if(b.rooms&&b.rooms.length>0){
@@ -1675,7 +1778,10 @@ function doCheckinAction(id){
     b.checkedInName=ST.currentUser.name;
     b.checkedInAt=new Date().toISOString();
     b.history=[...(b.history||[]),{by:ST.currentUser.username,name:ST.currentUser.name,at:b.checkedInAt,action:'เช็คอิน'}];
-    save(); closeModal(); renderCheckin();
+    _showLoading('กำลังบันทึกเช็คอิน...');
+    try{await _gasCall('updateStatus',b);}catch(e){_hideLoading();alert('❌ '+e.message);return;}
+    _hideLoading();
+    closeModal(); renderCheckin();
     alert('✅ เช็คอิน ห้อง '+b.rooms.join(', ')+' เรียบร้อย');
   } else {
     closeModal();
@@ -1753,7 +1859,7 @@ function floorsHtmlAssign(date,selRooms,from,to,excId){
   }
   return h;
 }
-function confirmAssign(){
+async function confirmAssign(){
   const b=ST.bookings.find(x=>x.id===assignId);
   if(!b) return;
   const maxRooms=b.roomCount||1;
@@ -1768,7 +1874,10 @@ function confirmAssign(){
   b.checkedInName=ST.currentUser.name;
   b.checkedInAt=new Date().toISOString();
   b.history=[...(b.history||[]),{by:ST.currentUser.username,name:ST.currentUser.name,at:b.checkedInAt,action:'เช็คอิน (กำหนดห้อง '+b.rooms.join(', ')+')'}];
-  save(); closeModal(); renderCheckin();
+  _showLoading('กำลังบันทึกเช็คอิน...');
+  try{await _gasCall('updateStatus',b);}catch(e){_hideLoading();alert('❌ '+e.message);return;}
+  _hideLoading();
+  closeModal(); renderCheckin();
   alert('✅ เช็คอิน ห้อง '+b.rooms.join(', ')+' เรียบร้อย');
 }
 
@@ -2154,7 +2263,7 @@ function renderCheckout(){
       <th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
-function doCheckout(id){
+async function doCheckout(id){
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
   if(!confirm(`ยืนยันเช็คเอาท์ ${b.guestName} ?`)) return;
@@ -2163,7 +2272,10 @@ function doCheckout(id){
   b.checkedOutName=ST.currentUser.name;
   b.checkedOutAt=new Date().toISOString();
   b.history=[...(b.history||[]),{by:ST.currentUser.username,name:ST.currentUser.name,at:b.checkedOutAt,action:'เช็คเอาท์'}];
-  save(); closeModal(); renderCheckout();
+  _showLoading('กำลังบันทึกเช็คเอาท์...');
+  try{await _gasCall('updateStatus',b);}catch(e){_hideLoading();alert('❌ '+e.message);return;}
+  _hideLoading();
+  closeModal(); renderCheckout();
   alert('✅ เช็คเอาท์เรียบร้อย');
 }
 function openGroupCOModal(){
@@ -2195,15 +2307,33 @@ function openGroupCOModal(){
     </div>`);
 }
 function selAll(cb){document.querySelectorAll('.grp-co').forEach(c=>c.checked=cb.checked);}
-function doGroupCO(){
+async function doGroupCO(){
   const sel=[...document.querySelectorAll('.grp-co:checked')].map(c=>c.value);
   if(!sel.length){alert('กรุณาเลือกรายการ');return;}
   if(!confirm(`ยืนยันเช็คเอาท์ ${sel.length} รายการ?`)) return;
-  sel.forEach(id=>{
-    const b=ST.bookings.find(x=>x.id===id);
-    if(b){b.status=S_CO;b.checkedOutBy=ST.currentUser.username;b.checkedOutAt=new Date().toISOString();}
-  });
-  save();closeModal();renderCheckout();
+  _showLoading('กำลัง Bulk Checkout...');
+  let _doneCount=0;
+  try{
+    for(const id of sel){
+      const b=ST.bookings.find(x=>x.id===id);
+      if(b){
+        b.status=S_CO;b.checkedOutBy=ST.currentUser.username;
+        b.checkedOutName=ST.currentUser.name;
+        b.checkedOutAt=new Date().toISOString();
+        b.history=[...(b.history||[]),{by:ST.currentUser.username,name:ST.currentUser.name,at:b.checkedOutAt,action:'เช็คเอาท์'}];
+        await _gasCall('updateStatus',b);
+        _doneCount++;
+      }
+    }
+  }catch(e){
+    _hideLoading();
+    alert(`❌ เกิดข้อผิดพลาดหลัง ${_doneCount}/${sel.length} รายการ
+${e.message}
+กรุณา Refresh แล้วตรวจสอบข้อมูล`);
+    return;
+  }
+  _hideLoading();
+  closeModal();renderCheckout();
   alert(`✅ เช็คเอาท์ ${sel.length} รายการเรียบร้อย`);
 }
 
@@ -2238,19 +2368,26 @@ function openAddUserModal(){
       <button class="btn btn-primary" onclick="saveUser()">บันทึก</button>
     </div>`);
 }
-function saveUser(){
+async function saveUser(){
   if(!canManageUsers()){permDeny('จัดการผู้ใช้งาน');return;}
   const usr=gv('nu-usr').trim(),name=gv('nu-name').trim(),pass=gv('nu-pass'),role=gv('nu-role');
   if(!usr||!name||!pass){alert('กรุณากรอกข้อมูลให้ครบ');return;}
   if(ST.users.find(u=>u.username===usr)){alert('ชื่อผู้ใช้นี้มีอยู่แล้ว');return;}
-  ST.users.push({id:'U'+Date.now(),username:usr,name,password:pass,role});
-  save();closeModal();renderUsers();
+  const newUser={id:'U'+Date.now(),username:usr,name,password:pass,role};
+  ST.users.push(newUser);
+  _showLoading('กำลังบันทึก...');
+  try{await _gasCall('saveUser',newUser);}catch(e){_hideLoading();alert('❌ '+e.message);return;}
+  _hideLoading();
+  closeModal();renderUsers();
 }
-function delUser(id){
+async function delUser(id){
   if(!canManageUsers()){permDeny('จัดการผู้ใช้งาน');return;}
   if(!confirm('ยืนยันการลบผู้ใช้?')) return;
   ST.users=ST.users.filter(u=>u.id!==id);
-  save();renderUsers();
+  _showLoading('กำลังลบ...');
+  try{await _gasCall('deleteUser',{id});}catch(e){_hideLoading();alert('❌ '+e.message);return;}
+  _hideLoading();
+  renderUsers();
 }
 
 /* ════════════════════════════════════════
@@ -2904,7 +3041,7 @@ function printBookingByRoom(id){
           <tr><td style="padding:4px;color:#666;">วันออก</td><td style="padding:4px;font-weight:600;">${fmtDate(b.checkOut)}</td></tr>
           <tr><td style="padding:4px;color:#666;">จำนวนคืน</td><td style="padding:4px;">${n} คืน</td></tr>
           <tr><td style="padding:4px;color:#666;">อาหารเช้า</td><td style="padding:4px;">${b.includeBreakfast
-            ?`${(b.breakfastPrice||0).toLocaleString()} บาท × ${b.breakfastPerRoom||0} ท่าน/ห้อง`
+            ?guestCellText(b)
             :(b.noBreakfast?'ไม่รวมอาหารเช้า':'-')}</td></tr>
           <tr><td style="padding:4px;color:#666;">การชำระเงิน</td><td style="padding:4px;">${payText(b.payment)}</td></tr>
         </table>
@@ -3083,24 +3220,17 @@ function openPrint(body, docTitle){
    UTILITIES
 ════════════════════════════════════════ */
 function gv(id){const e=document.getElementById(id);return e?e.value:'';}
+function sval(v){return v===null||v===undefined?'':String(v);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
 /* ── Folio Sequence: unique, stable per booking ── */
-let _folioMap=null;
-function _loadFolioMap(){
-  if(_folioMap) return;
-  try{const raw=localStorage.getItem('hms_folio');_folioMap=raw?JSON.parse(raw):{};}
-  catch(e){_folioMap={};}
-}
-function _saveFolioMap(){
-  try{localStorage.setItem('hms_folio',JSON.stringify(_folioMap));}catch(e){}
-}
+let _folioMap={};
 function folioSeq(bookingId){
-  _loadFolioMap();
   if(!_folioMap[bookingId]){
     const nextSeq=Object.keys(_folioMap).length+1;
     _folioMap[bookingId]=String(nextSeq).padStart(5,'0');
-    _saveFolioMap();
+    // sync กลับ Sheets (async, ไม่รอ)
+    _gasCall('saveFolio',{folioMap:_folioMap}).catch(e=>console.warn('folio sync:',e));
   }
   return _folioMap[bookingId];
 }
@@ -3183,6 +3313,5 @@ function resetCustomColor(){
 })();
 
 </script>
-<script src="sheets_patch.js"></script>
 </body>
 </html>
