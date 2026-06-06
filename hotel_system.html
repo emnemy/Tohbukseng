@@ -913,7 +913,7 @@ function calcMonthlyStats(year, month){
 
   // simpler cutoff calc for past months
   const nextMonth=new Date(year,month+1,1);
-  const cutoffStr=isCurrent ? todayStr : ymdLocal(nextMonth);
+  const cutoffStr=isCurrent ? todayStr : nextMonth.toISOString().slice(0,10);
 
   let roomRevenue=0, bfRevenue=0, roomNights=0, compNights=0;
 
@@ -1306,7 +1306,7 @@ function openResModal(id){
   const b=id?ST.bookings.find(x=>x.id===id):null;
   const d=today();
   const tom=new Date();tom.setDate(tom.getDate()+1);
-  const tStr=ymdLocal(tom);
+  const tStr=tom.toISOString().slice(0,10);
   if(b&&b.rooms) pickRooms=[...b.rooms];
   const ciVal=b?b.checkIn:d;
   const coVal=b?b.checkOut:tStr;
