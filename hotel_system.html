@@ -738,6 +738,7 @@ async function doLogin(){
   const found=ST.users.find(x=>sval(x.username).trim()===u&&sval(x.password)===p);
   if(!found){document.getElementById('login-error').style.display='block';return;}
   ST.currentUser=found;
+  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role}));}catch(e){}
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sf-name').textContent=found.name;
@@ -749,6 +750,7 @@ async function doLogin(){
 }
 function doLogout(){
   ST.currentUser=null;
+  try{sessionStorage.removeItem('hms_session');}catch(e){}
   document.getElementById('app').style.display='none';
   document.getElementById('login-page').style.display='flex';
   document.getElementById('lg-user').value='';
@@ -3418,7 +3420,26 @@ function resetCustomColor(){
     }
   }catch(e){}
 })();
-
+/* ── Auto-restore session เมื่อ refresh ── */
+(async function restoreSession(){
+  try{
+    const raw=sessionStorage.getItem('hms_session');
+    if(!raw) return;
+    const found=JSON.parse(raw);
+    if(!found||!found.username) return;
+    ST.currentUser=found;
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('sf-name').textContent=found.name;
+    const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
+    document.getElementById('sf-role').textContent=roleLabel;
+    document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+    await load();
+    showPage('dashboard');
+  }catch(e){
+    try{sessionStorage.removeItem('hms_session');}catch(_){}
+  }
+})();
 
 /* ════════════════════════════════════════
    EXTRA CHARGES
@@ -3556,7 +3577,7 @@ async function saveEcCharges() {
   try {
     await _gasCall('saveBooking', b);
     _hideLoading();
-    showToast('✅ บันทึก Extra Charges เรียบร้อย');
+    alert('✅ บันทึก Extra Charges เรียบร้อย');
     closeEcModal();
   } catch(e) {
     _hideLoading();
