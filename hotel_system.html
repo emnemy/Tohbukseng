@@ -666,6 +666,7 @@ async function doLogin(){
   const found=ST.users.find(x=>sval(x.username).trim()===u&&sval(x.password)===p);
   if(!found){document.getElementById('login-error').style.display='block';return;}
   ST.currentUser=found;
+  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role}));}catch(e){}
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sf-name').textContent=found.name;
@@ -677,6 +678,7 @@ async function doLogin(){
 }
 function doLogout(){
   ST.currentUser=null;
+  try{sessionStorage.removeItem('hms_session');}catch(e){}
   document.getElementById('app').style.display='none';
   document.getElementById('login-page').style.display='flex';
   document.getElementById('lg-user').value='';
@@ -792,7 +794,6 @@ function calcBfAmt(b){
 }
 function calcTotal(b){return calcRoomAmt(b)+calcBfAmt(b);}
 function calcSimpleTotal(b){
-  // ราคารวมทั้งสิ้นจาก roomRates เท่านั้น (ไม่เกี่ยวกับ breakdown)
   const n=nights(b.checkIn,b.checkOut);
   if(b.roomRates&&b.roomRates.length){
     return b.roomRates.reduce((s,r)=>s+(parseFloat(r.price)||0)*(parseInt(r.count)||1)*n,0);
@@ -2259,7 +2260,7 @@ function renderCheckout(){
       <td>${fmtDate(b.checkIn)}</td>
       <td style="color:var(--orange);font-weight:700;">${fmtDate(b.checkOut)}</td>
       <td>${nights(b.checkIn,b.checkOut)}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
@@ -3318,6 +3319,28 @@ function resetCustomColor(){
       if(t!==null) setTheme(t);
     }
   }catch(e){}
+})();
+
+/* ── Auto-restore session เมื่อ refresh ── */
+(async function restoreSession(){
+  try{
+    const raw=sessionStorage.getItem('hms_session');
+    if(!raw) return; // ยังไม่ได้ login → แสดงหน้า login ตามปกติ
+    const found=JSON.parse(raw);
+    if(!found||!found.username) return;
+    ST.currentUser=found;
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('sf-name').textContent=found.name;
+    const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
+    document.getElementById('sf-role').textContent=roleLabel;
+    document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+    await load();
+    showPage('dashboard');
+  }catch(e){
+    // session เสีย → ลบแล้วแสดงหน้า login
+    try{sessionStorage.removeItem('hms_session');}catch(_){}
+  }
 })();
 
 </script>
