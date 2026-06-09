@@ -3624,8 +3624,9 @@ async function saveEcCharges() {
   b.extraCharges = charges;
   _showLoading('กำลังบันทึก Extra Charges...');
   try {
-    // ส่ง updateStatus แทน saveBooking เพื่อ patch เฉพาะ extraCharges
-    await _gasCall('updateStatus', { id: b.id, extraCharges: charges });
+    // ส่งเฉพาะ id + extraCharges เท่านั้น
+    // ไม่ส่ง checkIn/checkOut เพื่อป้องกันการเขียนทับด้วย ISO datetime
+    await _gasCall('updateStatus', { id: b.id, extraCharges: JSON.stringify(charges) });
     _hideLoading();
     alert('✅ บันทึก Extra Charges เรียบร้อย');
     closeEcModal();
