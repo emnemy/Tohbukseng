@@ -165,6 +165,13 @@ tfoot td{border-top:1px solid var(--border);}
 /* PRICE BOX */
 .price-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 15px;margin:8px 0;}
 .pb-row{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:5px;}
+
+/* EXTRA CHARGES */
+.charge-row{display:grid;grid-template-columns:140px 1fr 70px 90px 36px;gap:6px;align-items:center;margin-bottom:6px;}
+.charge-cat{font-size:13px;}
+.charge-total-row{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.charge-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(200,168,74,.15);color:var(--gold);}
+.extra-total{font-size:16px;font-weight:700;color:var(--gold);}
 .pb-total{display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:var(--gold);
   border-top:1px solid var(--border);padding-top:8px;margin-top:5px;}
 
@@ -467,6 +474,69 @@ tfoot td{border-top:1px solid var(--border);}
   </main>
 </div>
 
+<!-- EXTRA CHARGES MODAL -->
+<div id="ec-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:24px;width:min(680px,96vw);max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div>
+        <div style="font-size:17px;font-weight:700;color:var(--gold);">💳 Extra Charges</div>
+        <div id="ec-guest-name" style="font-size:13px;color:var(--text2);margin-top:2px;"></div>
+      </div>
+      <button onclick="closeEcModal()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;">✕</button>
+    </div>
+
+    <!-- รายการที่บันทึกแล้ว -->
+    <div id="ec-list" style="margin-bottom:16px;"></div>
+
+    <!-- ฟอร์มเพิ่มรายการใหม่ -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">+ เพิ่มรายการ</div>
+      <div style="display:grid;grid-template-columns:150px 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label class="form-label">หมวดหมู่</label>
+          <select class="form-input" id="ec-cat" onchange="ecCatChange()">
+            <option value="food">🍽️ อาหาร-เครื่องดื่ม</option>
+            <option value="laundry">👕 ซักรีด</option>
+            <option value="transport">🚗 ยานพาหนะ</option>
+            <option value="phone">📞 โทรศัพท์</option>
+            <option value="minibar">🍺 มินิบาร์</option>
+            <option value="other">📦 อื่นๆ</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">รายละเอียด</label>
+          <input type="text" class="form-input" id="ec-desc" placeholder="ระบุรายละเอียด เช่น ข้าวผัด, น้ำส้ม...">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:flex-end;">
+        <div>
+          <label class="form-label">วันที่</label>
+          <input type="date" class="form-input" id="ec-date">
+        </div>
+        <div>
+          <label class="form-label">จำนวน</label>
+          <input type="number" class="form-input" id="ec-qty" value="1" min="1" step="1">
+        </div>
+        <div>
+          <label class="form-label">ราคา (บาท)</label>
+          <input type="number" class="form-input" id="ec-price" placeholder="0" min="0" step="1">
+        </div>
+        <div>
+          <button class="btn btn-primary btn-sm" onclick="addEcItem()" style="white-space:nowrap;">+ เพิ่ม</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
+      <div style="font-size:14px;color:var(--text2);">รวม Extra Charges: <span id="ec-grand-total" style="color:var(--gold);font-weight:700;font-size:16px;">0</span> บาท</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="closeEcModal()">ปิด</button>
+        <button class="btn btn-primary btn-sm" onclick="saveEcCharges()">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div id="modal-overlay" class="modal-overlay" style="display:none;" onclick="overlayClick(event)">
   <div class="modal-box" id="modal-box"></div>
@@ -543,6 +613,7 @@ function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเ
    GOOGLE SHEETS CONFIG
    แก้ค่าทั้งสองนี้ให้ตรงกับของคุณ
 ════════════════════════════════════════ */
+// ⚠️ Code.gs: เพิ่ม 'extraCharges' ต่อท้าย BK_COLS array และ Deploy ใหม่
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwd82E5Yr5DjGoOg2anvRq3hEG114YJeWwk14NgutV4IOW8UjIR44MHD-nMonHD8HKQUQ/exec';   // ← วาง URL จาก Deploy Apps Script
 const GAS_KEY = 'tbsadmin';   // ← ต้องตรงกับ SECRET_KEY ใน Code.gs
 // ⚠️  หมายเหตุ: แก้ Code.gs → ลบโค้ดส่วน "ลบ backup เก่าเกิน 30 วัน" ออก (บรรทัดประมาณ 347-354)
@@ -612,6 +683,7 @@ async function load(){
     ST.users=Array.isArray(users)&&users.length?users
       :[{id:'admin',username:'tbsadmin',password:'tbsadmin',name:'Administrator',role:'admin'}];
     _folioMap=folio||{};
+    syncEcFromBookings();
   }catch(err){
     console.error('load() failed:',err);
     alert('❌ โหลดข้อมูลไม่สำเร็จ\n'+err.message);
@@ -666,6 +738,7 @@ async function doLogin(){
   const found=ST.users.find(x=>sval(x.username).trim()===u&&sval(x.password)===p);
   if(!found){document.getElementById('login-error').style.display='block';return;}
   ST.currentUser=found;
+  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role}));}catch(e){}
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sf-name').textContent=found.name;
@@ -677,6 +750,7 @@ async function doLogin(){
 }
 function doLogout(){
   ST.currentUser=null;
+  try{sessionStorage.removeItem('hms_session');}catch(e){}
   document.getElementById('app').style.display='none';
   document.getElementById('login-page').style.display='flex';
   document.getElementById('lg-user').value='';
@@ -791,6 +865,13 @@ function calcBfAmt(b){
   return bfPrice*perRoom*nr*n;
 }
 function calcTotal(b){return calcRoomAmt(b)+calcBfAmt(b);}
+function calcSimpleTotal(b){
+  const n=nights(b.checkIn,b.checkOut);
+  if(b.roomRates&&b.roomRates.length){
+    return b.roomRates.reduce((s,r)=>s+(parseFloat(r.price)||0)*(parseInt(r.count)||1)*n,0);
+  }
+  return (parseFloat(b.roomPrice)||0)*n*(numRooms(b)||1);
+}
 function totalRoomCount(b){
   if(b.roomRates&&b.roomRates.length) return b.roomRates.reduce((s,r)=>s+(parseInt(r.count)||1),0);
   return numRooms(b);
@@ -1063,7 +1144,7 @@ function renderDashboard(){
     rows+=`<tr><td><strong>${roomsDisplay(b)}</strong></td><td>${b.guestName}</td>
       <td>${b.company||'-'}</td><td>${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</td>
       <td>${nights(b.checkIn,b.checkOut)}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td><button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button></td></tr>`;
   });
@@ -1228,7 +1309,7 @@ function searchBookings(){
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${roomsDisplay(b)}</td>
       <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
@@ -1265,7 +1346,7 @@ function renderArrival(){
       `<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้จองสำหรับ ${fmtDate(d)}</p>`;return;}
   let rows='',tot=0;
   bks.forEach(b=>{
-    const t=calcTotal(b);tot+=t;
+    const t=calcSimpleTotal(b);tot+=t;
     rows+=`<tr>
       <td>${statusBadge(b.status)}</td>
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
@@ -1713,11 +1794,8 @@ function viewBooking(id){
           if(!ec.length) return '';
           const catLabel={food:'🍽️ อาหาร-เครื่องดื่ม',laundry:'👕 ซักรีด',transport:'🚗 ยานพาหนะ',phone:'📞 โทรศัพท์',minibar:'🍺 มินิบาร์',other:'📦 อื่นๆ'};
           let ecTotal=0;
-          const rows=ec.map(c=>{
-            const amt=(parseFloat(c.price)||0)*(parseInt(c.qty)||1);
-            ecTotal+=amt;
-            return `<div class="pb-row"><span>${catLabel[c.cat]||c.cat}${c.desc?' – '+c.desc:''} (${c.date||''} × ${c.qty})</span><span>${amt.toLocaleString()} บาท</span></div>`;
-          }).join('');
+          const rows=ec.map(c=>{const amt=(parseFloat(c.price)||0)*(parseInt(c.qty)||1);ecTotal+=amt;
+            return `<div class="pb-row"><span>${catLabel[c.cat]||c.cat}${c.desc?' – '+c.desc:''} (${c.date||''} × ${c.qty})</span><span>${amt.toLocaleString()} บาท</span></div>`;}).join('');
           return `<div style="border-top:1px dashed var(--border);padding-top:6px;margin-top:4px;">
             <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Extra Charges</div>
             ${rows}
@@ -1772,7 +1850,7 @@ function renderCheckin(){
       <td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
@@ -1968,6 +2046,7 @@ function renderGuests(){
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-warning" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
+        <button class="btn btn-xs" style="margin-left:3px;background:rgba(200,168,74,.2);color:var(--gold);border:1px solid var(--gold);" onclick="openEcModal('${b.id}')">💳 Charges</button>
       </td></tr>`;
   });
   document.getElementById('gh-table').innerHTML=`<table>
@@ -2157,7 +2236,7 @@ function searchCheckoutHistory(){
       <td>${fmtDate(b.checkIn)}</td>
       <td>${fmtDate(b.checkOut)}</td>
       <td style="text-align:center;">${n}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
@@ -2268,7 +2347,7 @@ function renderCheckout(){
       <td>${fmtDate(b.checkIn)}</td>
       <td style="color:var(--orange);font-weight:700;">${fmtDate(b.checkOut)}</td>
       <td>${nights(b.checkIn,b.checkOut)}</td>
-      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcTotal(b).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
@@ -2619,6 +2698,33 @@ function printGuestFolio(id){
       </tr>`;
     });
   }
+  // เพิ่ม Extra Charges เข้าใน Folio
+  const extraCharges = ST.charges[id] || [];
+  let extraRows = '';
+  if (extraCharges.length) {
+    // จัดกลุ่มตามวันที่
+    const byDate = {};
+    extraCharges.forEach(c => {
+      const d = c.date || '-';
+      if (!byDate[d]) byDate[d] = [];
+      byDate[d].push(c);
+    });
+    Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b)).forEach(([dt, items]) => {
+      const dtLabel = dt !== '-' ? new Date(dt+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}) : '-';
+      items.forEach((c, ci) => {
+        const amt = (parseFloat(c.price)||0)*(parseInt(c.qty)||1);
+        grandTotal += amt;
+        const catMap = {food:'🍽️ อาหาร-เครื่องดื่ม',laundry:'👕 ซักรีด',transport:'🚗 ยานพาหนะ',phone:'📞 โทรศัพท์',minibar:'🍺 มินิบาร์',other:'📦 อื่นๆ'};
+        extraRows += `<tr>
+          ${ci===0?`<td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;vertical-align:middle;" rowspan="${items.length}">${dtLabel}</td>`:''}
+          <td style="border:1px solid #e0c090;padding:6px 8px;font-size:12px;">${catMap[c.cat]||c.cat}${c.desc?' – '+c.desc:''}</td>
+          <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${c.qty}</td>
+          <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${(parseFloat(c.price)||0).toLocaleString('en',{minimumFractionDigits:2})}</td>
+          <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${amt.toLocaleString('en',{minimumFractionDigits:2})}</td>
+        </tr>`;
+      });
+    });
+  }
   const subtotal=Math.round((grandTotal/1.07)*100)/100;
   const vat=Math.round((grandTotal-subtotal)*100)/100;
 
@@ -2738,7 +2844,7 @@ function printGuestFolio(id){
       <td width="105" style="background:#e07020;color:#fff;padding:7px 8px;font-weight:700;font-size:11px;text-align:right;">AMOUNT (THB)</td>
     </tr>
   </thead>
-  <tbody>${chargeRows}</tbody>
+  <tbody>${chargeRows}${extraRows}</tbody>
   <tfoot>
     <tr>
       <td colspan="4" style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">SUBTOTAL (มูลค่าก่อน VAT)</td>
@@ -3017,17 +3123,12 @@ function printBookingAll(id){
       if(!ec.length) return '';
       const catLabel={food:'อาหาร-เครื่องดื่ม',laundry:'ซักรีด',transport:'ยานพาหนะ',phone:'โทรศัพท์',minibar:'มินิบาร์',other:'อื่นๆ'};
       let ecTotal=0;
-      const rows=ec.map(c=>{
-        const amt=(parseFloat(c.price)||0)*(parseInt(c.qty)||1);
-        ecTotal+=amt;
-        return `<tr>
-          <td style="padding:5px 6px;color:#555;">${c.date||'-'}</td>
+      const rows=ec.map(c=>{const amt=(parseFloat(c.price)||0)*(parseInt(c.qty)||1);ecTotal+=amt;
+        return `<tr><td style="padding:5px 6px;color:#555;">${c.date||'-'}</td>
           <td style="padding:5px 6px;">${catLabel[c.cat]||c.cat}${c.desc?' – '+c.desc:''}</td>
           <td style="padding:5px 6px;text-align:center;">${c.qty}</td>
           <td style="padding:5px 6px;text-align:right;">${(parseFloat(c.price)||0).toLocaleString()}</td>
-          <td style="padding:5px 6px;text-align:right;font-weight:600;">${amt.toLocaleString()}</td>
-        </tr>`;
-      }).join('');
+          <td style="padding:5px 6px;text-align:right;font-weight:600;">${amt.toLocaleString()}</td></tr>`;}).join('');
       const grandTotal=rT+ecTotal;
       return `<hr style="margin:14px 0;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">💳 Extra Charges</div>
@@ -3046,7 +3147,7 @@ function printBookingAll(id){
         </tr></tfoot>
       </table>
       <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-        <div style="font-size:18px;font-weight:700;border-top:2px solid #333;padding-top:8px;">
+        <div style="font-size:16px;font-weight:700;border-top:2px solid #333;padding-top:8px;">
           รวมทั้งสิ้น: ${grandTotal.toLocaleString()} บาท
         </div>
       </div>`;
@@ -3367,6 +3468,188 @@ function resetCustomColor(){
     }
   }catch(e){}
 })();
+
+
+/* ── Auto-restore session เมื่อ refresh ── */
+(async function restoreSession(){
+  try{
+    const raw=sessionStorage.getItem('hms_session');
+    if(!raw) return;
+    const found=JSON.parse(raw);
+    if(!found||!found.username) return;
+    ST.currentUser=found;
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('sf-name').textContent=found.name;
+    const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
+    document.getElementById('sf-role').textContent=roleLabel;
+    document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+    await load();
+    showPage('dashboard');
+  }catch(e){
+    try{sessionStorage.removeItem('hms_session');}catch(_){}
+  }
+})();
+
+/* ════════════════════════════════════════
+   EXTRA CHARGES
+════════════════════════════════════════ */
+// เก็บใน ST.charges = { [bookingId]: [{id,date,cat,desc,qty,price,by,at},...] }
+if (!ST.charges) ST.charges = {};
+
+const EC_CAT_LABEL = {
+  food:'🍽️ อาหาร-เครื่องดื่ม',
+  laundry:'👕 ซักรีด',
+  transport:'🚗 ยานพาหนะ',
+  phone:'📞 โทรศัพท์',
+  minibar:'🍺 มินิบาร์',
+  other:'📦 อื่นๆ',
+};
+
+let _ecBookingId = null;
+
+function openEcModal(bookingId) {
+  _ecBookingId = bookingId;
+  const b = ST.bookings.find(x => x.id === bookingId);
+  if (!b) return;
+  // ตั้งค่าเริ่มต้น
+  document.getElementById('ec-guest-name').textContent = b.guestName + ' | ' + (b.rooms||[]).join(', ');
+  document.getElementById('ec-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('ec-qty').value = 1;
+  document.getElementById('ec-price').value = '';
+  document.getElementById('ec-desc').value = '';
+  document.getElementById('ec-cat').value = 'food';
+  renderEcList();
+  const ov = document.getElementById('ec-overlay');
+  ov.style.display = 'flex';
+}
+
+function closeEcModal() {
+  document.getElementById('ec-overlay').style.display = 'none';
+  _ecBookingId = null;
+}
+
+function ecCatChange() {
+  // auto-fill desc ถ้ายังว่าง
+  const cat = document.getElementById('ec-cat').value;
+  const desc = document.getElementById('ec-desc');
+  if (!desc.value) {
+    const hints = {food:'',laundry:'',transport:'',phone:'',minibar:'',other:''};
+    desc.placeholder = {
+      food:'เช่น ข้าวผัด, น้ำส้ม, กาแฟ',
+      laundry:'เช่น เสื้อเชิ้ต 2 ตัว',
+      transport:'เช่น แท็กซี่ไปสนามบิน',
+      phone:'เช่น โทรทางไกล',
+      minibar:'เช่น น้ำแร่, เบียร์',
+      other:'ระบุรายละเอียด',
+    }[cat] || '';
+  }
+}
+
+function renderEcList() {
+  const charges = ST.charges[_ecBookingId] || [];
+  const el = document.getElementById('ec-list');
+  if (!charges.length) {
+    el.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:8px;">ยังไม่มีรายการ</p>';
+    document.getElementById('ec-grand-total').textContent = '0';
+    return;
+  }
+  let total = 0;
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+  html += '<thead><tr style="color:var(--text2);border-bottom:1px solid var(--border);">';
+  html += '<th style="padding:6px 4px;text-align:left;">วันที่</th>';
+  html += '<th style="padding:6px 4px;text-align:left;">หมวด</th>';
+  html += '<th style="padding:6px 4px;text-align:left;">รายละเอียด</th>';
+  html += '<th style="padding:6px 4px;text-align:right;">จำนวน</th>';
+  html += '<th style="padding:6px 4px;text-align:right;">ราคา</th>';
+  html += '<th style="padding:6px 4px;text-align:right;">รวม</th>';
+  html += '<th style="padding:6px 4px;"></th></tr></thead><tbody>';
+  charges.forEach((c, idx) => {
+    const amt = (parseFloat(c.price)||0) * (parseInt(c.qty)||1);
+    total += amt;
+    html += `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:5px 4px;">${c.date||'-'}</td>
+      <td style="padding:5px 4px;">${EC_CAT_LABEL[c.cat]||c.cat}</td>
+      <td style="padding:5px 4px;">${c.desc||'-'}</td>
+      <td style="padding:5px 4px;text-align:right;">${c.qty}</td>
+      <td style="padding:5px 4px;text-align:right;">${(parseFloat(c.price)||0).toLocaleString()}</td>
+      <td style="padding:5px 4px;text-align:right;color:var(--gold);font-weight:600;">${amt.toLocaleString()}</td>
+      <td style="padding:5px 4px;text-align:center;">
+        <button onclick="deleteEcItem(${idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;">✕</button>
+      </td></tr>`;
+  });
+  html += `</tbody><tfoot><tr>
+    <td colspan="5" style="padding:8px 4px;text-align:right;font-weight:600;color:var(--text2);">รวม Extra Charges</td>
+    <td style="padding:8px 4px;text-align:right;font-weight:700;color:var(--gold);font-size:15px;">${total.toLocaleString()}</td>
+    <td></td></tr></tfoot></table>`;
+  el.innerHTML = html;
+  document.getElementById('ec-grand-total').textContent = total.toLocaleString();
+}
+
+function addEcItem() {
+  const cat   = document.getElementById('ec-cat').value;
+  const desc  = document.getElementById('ec-desc').value.trim();
+  const date  = document.getElementById('ec-date').value;
+  const qty   = parseInt(document.getElementById('ec-qty').value) || 1;
+  const price = parseFloat(document.getElementById('ec-price').value) || 0;
+  if (!desc)  { alert('กรุณาระบุรายละเอียด'); return; }
+  if (!price) { alert('กรุณาระบุราคา'); return; }
+  if (!date)  { alert('กรุณาเลือกวันที่'); return; }
+
+  if (!ST.charges[_ecBookingId]) ST.charges[_ecBookingId] = [];
+  ST.charges[_ecBookingId].push({
+    id: 'EC' + Date.now(),
+    date, cat, desc, qty, price,
+    by: ST.currentUser.username,
+    at: new Date().toISOString(),
+  });
+
+  // reset form
+  document.getElementById('ec-desc').value = '';
+  document.getElementById('ec-qty').value = 1;
+  document.getElementById('ec-price').value = '';
+  renderEcList();
+}
+
+function deleteEcItem(idx) {
+  if (!confirm('ลบรายการนี้?')) return;
+  ST.charges[_ecBookingId].splice(idx, 1);
+  renderEcList();
+}
+
+async function saveEcCharges() {
+  const charges = ST.charges[_ecBookingId] || [];
+  const b = ST.bookings.find(x => x.id === _ecBookingId);
+  if (!b) return;
+  b.extraCharges = charges;
+  _showLoading('กำลังบันทึก Extra Charges...');
+  try {
+    // ส่ง updateStatus แทน saveBooking เพื่อ patch เฉพาะ extraCharges
+    await _gasCall('updateStatus', { id: b.id, extraCharges: charges });
+    _hideLoading();
+    alert('✅ บันทึก Extra Charges เรียบร้อย');
+    closeEcModal();
+  } catch(e) {
+    _hideLoading();
+    alert('❌ บันทึกไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// โหลด extraCharges จาก bookings ที่โหลดมา
+function syncEcFromBookings() {
+  ST.charges = {};
+  ST.bookings.forEach(b => {
+    if (b.extraCharges && b.extraCharges.length) {
+      ST.charges[b.id] = b.extraCharges;
+    }
+  });
+}
+
+// คำนวณยอดรวม Extra Charges ของ booking
+function calcExtraTotal(bookingId) {
+  const charges = ST.charges[bookingId] || [];
+  return charges.reduce((s, c) => s + (parseFloat(c.price)||0) * (parseInt(c.qty)||1), 0);
+}
 
 </script>
 </body>
