@@ -2705,7 +2705,17 @@ function printGuestFolio(id){
     const byDate={};
     ecList.forEach(c=>{const d=c.date||'-';if(!byDate[d])byDate[d]=[];byDate[d].push(c);});
     Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b)).forEach(([dt,items])=>{
-      const dtLabel=dt!=='-'?new Date(dt+'T12:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}):'-';
+      // แปลงวันที่ให้ robust รองรับทุก format
+      function _safeDate(s){
+        if(!s||s==='-') return null;
+        // YYYY-MM-DD
+        const m1=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if(m1) return new Date(parseInt(m1[1]),parseInt(m1[2])-1,parseInt(m1[3]));
+        const d=new Date(s);
+        return isNaN(d.getTime())?null:d;
+      }
+      const _d=_safeDate(dt);
+      const dtLabel=_d?_d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}):dt;
       items.forEach((c,ci)=>{
         const amt=(parseFloat(c.price)||0)*(parseInt(c.qty)||1);
         grandTotal+=amt;
