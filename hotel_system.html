@@ -171,6 +171,25 @@ tfoot td{border-top:1px solid var(--border);}
 .ec-table th{padding:7px 8px;background:var(--bg2);color:var(--text2);font-weight:600;text-align:left;border-bottom:1px solid var(--border);}
 .ec-table td{padding:6px 8px;border-bottom:1px solid var(--border);}
 .ec-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:rgba(200,168,74,.15);color:var(--gold);}
+
+/* ── ROOM CHART TIMELINE ── */
+.tl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.tl-table{border-collapse:collapse;font-size:12px;min-width:100%;}
+.tl-table th{background:var(--bg2);color:var(--text2);padding:6px 4px;text-align:center;
+  border:1px solid var(--border);white-space:nowrap;font-weight:600;position:sticky;top:0;z-index:2;}
+.tl-table td{border:1px solid var(--border);padding:0;height:36px;}
+.tl-room-cell{background:var(--bg2);padding:4px 8px;font-weight:600;
+  color:var(--gold);white-space:nowrap;position:sticky;left:0;z-index:1;min-width:70px;}
+.tl-vacant{background:rgba(78,196,138,.18);cursor:default;}
+.tl-res{background:rgba(136,85,212,.55);cursor:pointer;}
+.tl-overdue{background:rgba(220,60,60,.45);cursor:pointer;}
+.tl-occ{background:rgba(223,88,88,.75);cursor:pointer;}
+.tl-cell-inner{padding:2px 4px;font-size:10px;font-weight:600;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;height:100%;
+  display:flex;align-items:center;}
+.tl-vacant .tl-cell-inner{color:rgba(78,196,138,.7);}
+.tl-floor-hd-row td{background:var(--bg3);color:var(--gold);font-weight:700;
+  padding:5px 8px;font-size:12px;text-align:left;border:1px solid var(--border);}
 .pb-total{display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:var(--gold);
   border-top:1px solid var(--border);padding-top:8px;margin-top:5px;}
 
@@ -324,14 +343,36 @@ tfoot td{border-top:1px solid var(--border);}
           <div><label class="form-label">วันที่</label>
             <input type="date" class="form-input" id="rc-date" style="width:180px;" oninput="renderRoomChart()"></div>
           <div id="rc-stats" style="font-size:13px;color:var(--text2);padding-bottom:2px;"></div>
+          <!-- Toggle view -->
+          <div style="display:flex;gap:6px;padding-bottom:2px;">
+            <button id="btn-view-grid" class="btn btn-primary btn-sm" onclick="rcSetView('grid')">📊 ผังห้อง</button>
+            <button id="btn-view-timeline" class="btn btn-secondary btn-sm" onclick="rcSetView('timeline')">📅 Timeline</button>
+          </div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="printRoomChart()">🖨 พิมพ์ Room Chart</button>
       </div>
-      <div class="legend">
+      <!-- legend grid -->
+      <div class="legend" id="rc-legend-grid">
         <div class="leg-item"><div class="leg-dot" style="background:rgba(78,196,138,.5)"></div>ว่าง</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(136,85,212,.5)"></div>จองแล้ว</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(220,60,60,.5)"></div>จองค้าง ⚠️</div>
         <div class="leg-item"><div class="leg-dot" style="background:rgba(223,88,88,.5)"></div>มีผู้พัก</div>
+      </div>
+      <!-- legend timeline -->
+      <div class="legend" id="rc-legend-timeline" style="display:none;">
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(78,196,138,.35);border:1px solid rgba(78,196,138,.7);"></div>ว่าง</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(136,85,212,.6);"></div>จองแล้ว</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(220,60,60,.5);"></div>จองค้าง ⚠️</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(223,88,88,.8);"></div>มีผู้พัก</div>
+      </div>
+      <!-- timeline controls -->
+      <div id="rc-timeline-ctrl" style="display:none;margin-bottom:10px;display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="rcTimelineShift(-7)">◀ ย้อนหลัง</button>
+        <button class="btn btn-secondary btn-sm" onclick="rcTimelineToday()">วันนี้</button>
+        <button class="btn btn-secondary btn-sm" onclick="rcTimelineShift(7)">ถัดไป ▶</button>
+        <span style="font-size:13px;color:var(--text2);margin-left:4px;">แสดง:</span>
+        <button id="btn-tl-7" class="btn btn-primary btn-sm" onclick="rcSetDays(7)">7 วัน</button>
+        <button id="btn-tl-14" class="btn btn-secondary btn-sm" onclick="rcSetDays(14)">14 วัน</button>
       </div>
       <div id="rc-content"></div>
     </div>
@@ -1168,6 +1209,141 @@ function renderRoomChart(){
     `ว่าง ${vac} | จอง ${res} | มีผู้พัก ${occ}`;
   document.getElementById('rc-content').innerHTML=floorsHtml(d,false,null,null,null,null);
 }
+
+/* ════════════════════════════════════════
+   ROOM CHART — TIMELINE VIEW
+════════════════════════════════════════ */
+let _rcView    = 'grid';   // 'grid' | 'timeline'
+let _rcTlStart = null;     // วันเริ่ม timeline (YYYY-MM-DD)
+let _rcTlDays  = 7;        // จำนวนวันที่แสดง
+
+function rcSetView(view){
+  _rcView = view;
+  const btnGrid = document.getElementById('btn-view-grid');
+  const btnTl   = document.getElementById('btn-view-timeline');
+  const lgGrid  = document.getElementById('rc-legend-grid');
+  const lgTl    = document.getElementById('rc-legend-timeline');
+  const ctrl    = document.getElementById('rc-timeline-ctrl');
+
+  if(view === 'timeline'){
+    btnGrid.className = 'btn btn-secondary btn-sm';
+    btnTl.className   = 'btn btn-primary btn-sm';
+    lgGrid.style.display = 'none';
+    lgTl.style.display   = '';
+    ctrl.style.display   = 'flex';
+    if(!_rcTlStart) _rcTlStart = today();
+    renderTimelineView();
+  } else {
+    btnGrid.className = 'btn btn-primary btn-sm';
+    btnTl.className   = 'btn btn-secondary btn-sm';
+    lgGrid.style.display = '';
+    lgTl.style.display   = 'none';
+    ctrl.style.display   = 'none';
+    renderRoomChart();
+  }
+}
+
+function rcSetDays(n){
+  _rcTlDays = n;
+  document.getElementById('btn-tl-7').className  = n===7  ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+  document.getElementById('btn-tl-14').className = n===14 ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+  renderTimelineView();
+}
+
+function rcTimelineShift(days){
+  const d = new Date(_rcTlStart + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  _rcTlStart = ymdLocal(d);
+  renderTimelineView();
+}
+
+function rcTimelineToday(){
+  _rcTlStart = today();
+  renderTimelineView();
+}
+
+/** สร้าง array ของวันที่ตั้งแต่ startStr จำนวน n วัน */
+function dateRange(startStr, n){
+  const dates = [];
+  for(let i = 0; i < n; i++){
+    const d = new Date(startStr + 'T12:00:00');
+    d.setDate(d.getDate() + i);
+    dates.push(ymdLocal(d));
+  }
+  return dates;
+}
+
+/** header วันที่ สั้น เช่น "จ 9/6" */
+function shortDayHeader(dateStr){
+  const d   = new Date(dateStr + 'T12:00:00');
+  const day = ['อา','จ','อ','พ','พฤ','ศ','ส'][d.getDay()];
+  return `${day}<br>${d.getDate()}/${d.getMonth()+1}`;
+}
+
+function renderTimelineView(){
+  if(!_rcTlStart) _rcTlStart = today();
+  const dates  = dateRange(_rcTlStart, _rcTlDays);
+  const todayS = today();
+
+  // header
+  let thead = '<thead><tr>';
+  thead += '<th style="min-width:70px;position:sticky;left:0;z-index:3;background:var(--bg2);">ห้อง</th>';
+  dates.forEach(dt => {
+    const isToday = dt === todayS;
+    thead += `<th style="min-width:72px;${isToday?'color:var(--gold);border-bottom:2px solid var(--gold);':''}">${shortDayHeader(dt)}</th>`;
+  });
+  thead += '</tr></thead>';
+
+  // body — แยกตาม floor
+  let tbody = '<tbody>';
+  for(const [floor, rooms] of Object.entries(FLOORS)){
+    // floor header row
+    tbody += `<tr class="tl-floor-hd-row"><td colspan="${_rcTlDays + 1}">🏢 ชั้น ${floor}</td></tr>`;
+
+    rooms.forEach(rn => {
+      tbody += '<tr>';
+      tbody += `<td class="tl-room-cell">${rn}<div style="font-size:9px;font-weight:400;color:var(--text2);">${roomType(rn)}</div></td>`;
+
+      dates.forEach(dt => {
+        const {s, b} = roomStatusAt(rn, dt);
+        const isOverdue = s === 'res' && b && b.checkIn < todayS;
+        let cls = 'tl-vacant';
+        if(isOverdue)      cls = 'tl-overdue';
+        else if(s === 'res') cls = 'tl-res';
+        else if(s === 'occ') cls = 'tl-occ';
+
+        let label = '';
+        if(b){
+          // แสดงชื่อเฉพาะวันแรกที่เจอ (checkIn) เพื่อไม่ให้รกทุกช่อง
+          if(dt === b.checkIn || dt === _rcTlStart){
+            label = b.guestName;
+          }
+        }
+
+        const onclick = b ? `onclick="viewBooking('${b.id}')"` : '';
+        tbody += `<td class="${cls}" ${onclick} title="${b?b.guestName+' ('+b.checkIn+'→'+b.checkOut+')':'ว่าง'}">
+          <div class="tl-cell-inner">${label}</div>
+        </td>`;
+      });
+
+      tbody += '</tr>';
+    });
+  }
+  tbody += '</tbody>';
+
+  document.getElementById('rc-content').innerHTML =
+    `<div class="tl-wrap"><table class="tl-table">${thead}${tbody}</table></div>`;
+
+  // อัปเดต stats
+  let vac=0, res=0, occ=0;
+  ALL_ROOMS.forEach(r=>{
+    const {s} = roomStatusAt(r, _rcTlStart);
+    if(s==='vacant') vac++; else if(s==='res') res++; else occ++;
+  });
+  document.getElementById('rc-stats').textContent =
+    `ว่าง ${vac} | จอง ${res} | มีผู้พัก ${occ}  (ณ ${_rcTlStart})`;
+}
+
 function viewFromRoom(rn,date){
   const b=ST.bookings.find(bk=>bk.status!==S_CO&&bk.status!==S_CANCEL&&bk.rooms&&bk.rooms.includes(rn)&&bk.checkIn<=date&&bk.checkOut>=date);
   if(b) viewBooking(b.id);
