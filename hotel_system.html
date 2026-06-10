@@ -1490,6 +1490,7 @@ function searchBookings(){
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-secondary" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
         ${canCancelBooking()&&b.status===S_RES?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${b.groupId}')">🔗 Group</button>`:''}
         ${b.status===S_CI?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="doCheckout('${b.id}')">เช็คเอาท์</button>`:''}
       </td></tr>`;
   });
@@ -1534,6 +1535,7 @@ function renderArrival(){
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-secondary" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
         ${canCancelBooking()&&b.status===S_RES?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${b.groupId}')">🔗 Group</button>`:''}
       </td>
     </tr>`;
   });
@@ -1624,6 +1626,13 @@ function openResModal(id){
         <label class="form-check"><input type="radio" name="f-gtype" value="personal" ${!b||!b.guestType||b.guestType==='personal'?'checked':''}> 👤 ส่วนตัว</label>
         <label class="form-check"><input type="radio" name="f-gtype" value="group" ${b&&b.guestType==='group'?'checked':''}> 👥 กรุ๊ป</label>
         <label class="form-check"><input type="radio" name="f-gtype" value="company" ${b&&b.guestType==='company'?'checked':''}> 🏢 บริษัท</label>
+      </div>
+
+      <!-- Group ID -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px 14px;background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);">
+        <span style="font-size:13px;color:var(--text2);white-space:nowrap;">🔗 รหัสกรุ๊ป (Group ID)</span>
+        <input class="form-input" id="f-groupid" value="${b?esc(b.groupId||''):''}" placeholder="เช่น GRP-001 (ไม่บังคับ)" style="flex:1;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="genGroupId()" style="white-space:nowrap;">สร้าง ID</button>
       </div>
 
       <div class="section-title" style="margin-top:4px;">วันที่เข้าพัก</div>
@@ -1865,6 +1874,7 @@ async function saveReservation(){
     guestName:name, nationality:gv('f-nat'),
     company:gv('f-co'), phone:gv('f-tel'),
     taxId:gv('f-taxid'), address:gv('f-addr'),
+    groupId:gv('f-groupid').trim(),
     checkIn:ci, checkOut:co,
     includeBreakfast:bf,
     noBreakfast:noBf,
@@ -2222,6 +2232,7 @@ function renderGuests(){
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-warning" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
         <button class="btn btn-xs" style="margin-left:3px;background:rgba(200,168,74,.2);color:var(--gold);border:1px solid rgba(200,168,74,.5);" onclick="openEcModal('${b.id}')">💳 Charges</button>
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${b.groupId}')">🔗 Group Folio</button>`:''}
       </td></tr>`;
   });
   document.getElementById('gh-table').innerHTML=`<table>
@@ -3649,6 +3660,213 @@ function resetCustomColor(){
   }catch(e){}
 })();
 
+
+/* ════════════════════════════════════════
+   GROUP FOLIO
+════════════════════════════════════════ */
+
+function genGroupId(){
+  const d = new Date();
+  const id = 'GRP-' + d.getFullYear().toString().slice(-2)
+    + String(d.getMonth()+1).padStart(2,'0')
+    + String(d.getDate()).padStart(2,'0')
+    + '-' + Math.random().toString(36).slice(2,5).toUpperCase();
+  const el = document.getElementById('f-groupid');
+  if(el) el.value = id;
+}
+
+function printGroupFolio(groupId){
+  if(!groupId) return;
+  const bookings = ST.bookings.filter(b =>
+    b.groupId === groupId &&
+    b.status !== S_CANCEL
+  ).sort((a,b) => a.checkIn.localeCompare(b.checkIn));
+
+  if(!bookings.length){
+    alert('ไม่พบการจองในกรุ๊ป: ' + groupId);
+    return;
+  }
+
+  // รวม Extra Charges ของทุก Booking ในกรุ๊ป
+  const CL = {food:'อาหาร-เครื่องดื่ม',laundry:'ซักรีด',transport:'ยานพาหนะ',phone:'โทรศัพท์',minibar:'มินิบาร์',other:'อื่นๆ'};
+
+  let grandTotal = 0;
+  let chargeRows = '';
+
+  // ── ค่าห้องแต่ละ Booking ──
+  bookings.forEach(b => {
+    const n = nights(b.checkIn, b.checkOut);
+    const ciLabel = new Date(b.checkIn+'T12:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
+    const coLabel = new Date(b.checkOut+'T12:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
+    const roomsLabel = (b.rooms&&b.rooms.length) ? 'ห้อง '+b.rooms.join(', ') : b.roomCount+' ห้อง';
+
+    if(b.roomRates && b.roomRates.length){
+      b.roomRates.forEach(r => {
+        const price = parseFloat(r.price)||0;
+        const count = parseInt(r.count)||1;
+        if(price === 0) return; // Comp.
+        const sub = price * count * n;
+        grandTotal += sub;
+        const rLabel = r.rooms ? 'ห้อง '+r.rooms : roomsLabel;
+        chargeRows += `<tr>
+          <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${ciLabel}</td>
+          <td style="border:1px solid #e0c090;padding:6px 8px;font-size:12px;">Room Charge / ค่าห้องพัก — ${rLabel}</td>
+          <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${count} ห้อง × ${n} คืน</td>
+          <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${price.toLocaleString('en',{minimumFractionDigits:2})}</td>
+          <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${sub.toLocaleString('en',{minimumFractionDigits:2})}</td>
+        </tr>`;
+      });
+    } else {
+      const price = parseFloat(b.roomPrice)||0;
+      const count = b.roomCount||1;
+      const sub = price * count * n;
+      grandTotal += sub;
+      chargeRows += `<tr>
+        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${ciLabel}</td>
+        <td style="border:1px solid #e0c090;padding:6px 8px;font-size:12px;">Room Charge / ค่าห้องพัก — ${roomsLabel}</td>
+        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${count} ห้อง × ${n} คืน</td>
+        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${price.toLocaleString('en',{minimumFractionDigits:2})}</td>
+        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${sub.toLocaleString('en',{minimumFractionDigits:2})}</td>
+      </tr>`;
+    }
+
+    // Extra Charges ของ Booking นี้
+    const ec = ST.charges && ST.charges[b.id] ? ST.charges[b.id] : [];
+    ec.forEach(c => {
+      const amt = (parseFloat(c.price)||0)*(parseInt(c.qty)||1);
+      grandTotal += amt;
+      chargeRows += `<tr>
+        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${c.date||'-'}</td>
+        <td style="border:1px solid #e0c090;padding:6px 8px;font-size:12px;">${CL[c.cat]||c.cat}${c.desc?' – '+c.desc:''}</td>
+        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:center;font-size:12px;">${c.qty}</td>
+        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${(parseFloat(c.price)||0).toLocaleString('en',{minimumFractionDigits:2})}</td>
+        <td style="border:1px solid #e0c090;padding:6px 8px;text-align:right;font-size:12px;">${amt.toLocaleString('en',{minimumFractionDigits:2})}</td>
+      </tr>`;
+    });
+  });
+
+  const subtotal = Math.round((grandTotal/1.07)*100)/100;
+  const vat      = Math.round((grandTotal-subtotal)*100)/100;
+
+  // ข้อมูล Header จาก Booking แรก
+  const first = bookings[0];
+  const ciAll = bookings.map(b=>b.checkIn).sort()[0];
+  const coAll = bookings.map(b=>b.checkOut).sort().reverse()[0];
+  const ciLabel = new Date(ciAll+'T12:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
+  const coLabel = new Date(coAll+'T12:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
+  const allRooms = [...new Set(bookings.flatMap(b=>b.rooms||[]))].sort((a,x)=>a-x);
+  const totalNights = Math.max(...bookings.map(b=>nights(b.checkIn,b.checkOut)));
+  const docDate = new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
+
+  const numberWords = n => {
+    const ones=['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+    const teens=['สิบ','สิบเอ็ด','สิบสอง','สิบสาม','สิบสี่','สิบห้า','สิบหก','สิบเจ็ด','สิบแปด','สิบเก้า'];
+    if(n===0) return 'ศูนย์';
+    if(n<10) return ones[n];
+    if(n<20) return teens[n-10];
+    return '';
+  };
+  const thaiTotal = grandTotal % 1 === 0
+    ? (grandTotal.toLocaleString())+ ' บาทถ้วน'
+    : grandTotal.toLocaleString() + ' บาท';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Group Folio — ${groupId}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Sarabun',sans-serif;font-size:13px;color:#1a1a1a;background:#fff;padding:20px;}
+    @media print{body{padding:0;} .no-print{display:none!important;}}
+    .header-bar{background:#1a1a2e;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;border-radius:8px;margin-bottom:16px;}
+    .hotel-name{color:#c8a84a;font-size:18px;font-weight:900;letter-spacing:2px;}
+    .hotel-sub{color:#aaa;font-size:10px;letter-spacing:1px;}
+    .folio-title{color:#e07020;font-size:26px;font-weight:900;letter-spacing:4px;}
+    .folio-sub{color:#b35a00;font-size:11px;}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+    .info-box{border:1px solid #e0c090;border-radius:6px;padding:10px 14px;}
+    .info-box td{padding:3px 0;font-size:12px;} .info-box td:first-child{color:#888;width:140px;}
+    table.charges{width:100%;border-collapse:collapse;margin-bottom:12px;}
+    table.charges th{background:#c8a84a;color:#fff;padding:7px 8px;font-size:12px;border:1px solid #c8a84a;}
+    .total-box{background:#fff8ec;border:1px solid #e0c090;border-radius:6px;padding:10px 14px;margin-bottom:12px;}
+    .total-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
+    .total-grand{font-size:17px;font-weight:700;color:#c8a84a;border-top:2px solid #c8a84a;margin-top:6px;padding-top:6px;}
+    .badge-group{display:inline-block;background:#1a3a5c;color:#7ab8f5;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:1px;}
+    .btn-print{background:#c8a84a;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-right:8px;}
+  </style></head><body>
+  <div class="no-print" style="margin-bottom:12px;">
+    <button class="btn-print" onclick="window.print()">🖨 พิมพ์</button>
+    <button onclick="window.close()" style="background:#555;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;">✕ ปิด</button>
+  </div>
+
+  <div class="header-bar">
+    <div>
+      <div class="hotel-name">TOH BUK SENG HOTEL</div>
+      <div class="hotel-sub">Ayutthaya Hotel</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="folio-title">GROUP FOLIO</div>
+      <div class="folio-sub">ใบแจ้งค่าใช้จ่ายกรุ๊ป</div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <table><tbody>
+        <tr><td>Group ID</td><td><span class="badge-group">${groupId}</span></td></tr>
+        <tr><td>ชื่อ / กรุ๊ป</td><td><strong>${first.guestName}</strong>${first.company?' — '+first.company:''}</td></tr>
+        <tr><td>จำนวนการจอง</td><td>${bookings.length} รายการ</td></tr>
+        <tr><td>ห้องทั้งหมด</td><td>${allRooms.length ? allRooms.join(', ') : bookings.reduce((s,b)=>s+(b.roomCount||1),0)+' ห้อง'}</td></tr>
+      </tbody></table>
+    </div>
+    <div class="info-box">
+      <table><tbody>
+        <tr><td>วันที่เช็คอิน</td><td>${ciLabel}</td></tr>
+        <tr><td>วันที่เช็คเอาท์</td><td>${coLabel}</td></tr>
+        <tr><td>วันที่พิมพ์</td><td>${docDate}</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <table class="charges">
+    <thead><tr>
+      <th style="width:90px;">วันที่</th>
+      <th style="text-align:left;">รายการ</th>
+      <th style="width:120px;">จำนวน</th>
+      <th style="width:100px;">ราคา/หน่วย</th>
+      <th style="width:110px;">รวม (THB)</th>
+    </tr></thead>
+    <tbody>${chargeRows}</tbody>
+  </table>
+
+  <div class="total-box">
+    <div class="total-row"><span>SUBTOTAL (มูลค่าก่อน VAT)</span><span>${subtotal.toLocaleString('en',{minimumFractionDigits:2})}</span></div>
+    <div class="total-row"><span>VAT 7%</span><span>${vat.toLocaleString('en',{minimumFractionDigits:2})}</span></div>
+    <div class="total-row total-grand">
+      <span>TOTAL (รวมทั้งสิ้น / VAT INCLUDED)</span>
+      <span>${grandTotal.toLocaleString('en',{minimumFractionDigits:2})}</span>
+    </div>
+  </div>
+  <div style="font-size:12px;color:#666;margin-bottom:16px;">
+    ยอดรวมทั้งสิ้น (ตัวอักษร): <strong>${thaiTotal}</strong>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;">
+    <div style="border:1px solid #ccc;border-radius:6px;padding:12px;">
+      <div style="font-size:11px;font-weight:700;margin-bottom:8px;">CASHIER / ผู้รับเงิน</div>
+      <div style="height:36px;border-bottom:1px solid #ccc;"></div>
+      <div style="font-size:11px;color:#888;margin-top:4px;">ลายมือชื่อผู้รับเงิน</div>
+      <div style="font-size:11px;color:#888;margin-top:8px;">DATE / วันที่ __________</div>
+    </div>
+    <div style="border:1px solid #ccc;border-radius:6px;padding:12px;">
+      <div style="font-size:11px;font-weight:700;margin-bottom:8px;">GUEST SIGNATURE / ลายมือชื่อแขก</div>
+      <div style="height:36px;border-bottom:1px solid #ccc;"></div>
+      <div style="font-size:11px;color:#888;margin-top:4px;">ลายมือชื่อแขก</div>
+    </div>
+  </div>
+  </body></html>`;
+
+  openPrint(html, 'Group Folio — ' + groupId);
+}
 
 /* ── Auto-restore session เมื่อ refresh ── */
 (async function restoreSession(){
