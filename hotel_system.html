@@ -695,10 +695,6 @@ function _migrateBk(bk){
   if(!bk.children) bk.children=0;
   if(typeof bk.roomRates==='string'){try{bk.roomRates=JSON.parse(bk.roomRates);}catch(e){bk.roomRates=[];}}
   if(typeof bk.history==='string'){try{bk.history=JSON.parse(bk.history);}catch(e){bk.history=[];}}
-  if(typeof bk.bdRows==='string'){try{bk.bdRows=JSON.parse(bk.bdRows);}catch(e){bk.bdRows=[];}}
-  if(!Array.isArray(bk.bdRows)) bk.bdRows=[];
-  if(typeof bk.guestRows==='string'){try{bk.guestRows=JSON.parse(bk.guestRows);}catch(e){bk.guestRows=[];}}
-  if(!Array.isArray(bk.guestRows)) bk.guestRows=[];
   if(bk.roomRates&&bk.roomRates.length){
     bk.roomRates=bk.roomRates.map(r=>({...r,price:parseFloat(r.price)||0,count:parseInt(r.count)||0}));
   }
@@ -1591,14 +1587,10 @@ function openResModal(id){
   // Initialise formRates from existing booking or default 1 row
   if(b&&b.roomRates&&b.roomRates.length){
     formRates=b.roomRates.map(r=>({price:r.price,count:r.count,rooms:r.rooms||''}));
-  formBdRows   = Array.isArray(b.bdRows)    ? b.bdRows.map(r=>({...r}))    : [];
-  formGuestRows= Array.isArray(b.guestRows) ? b.guestRows.map(r=>({...r})) : [];
   } else if(b){
     formRates=[{price:b.roomPrice||0, count:numRooms(b), rooms:''}];
   } else {
     formRates=[{price:0, count:1, rooms:''}];
-  formBdRows=[];
-  formGuestRows=[];
   }
 
   const bfChecked=b&&b.includeBreakfast;
@@ -1656,45 +1648,43 @@ function openResModal(id){
       <div id="rate-rows"></div>
       <button type="button" class="btn btn-secondary btn-sm" onclick="addRateRow()" style="margin-top:6px;margin-bottom:10px;">+ เพิ่มแถวราคา</button>
 
-      <!-- Price Breakdown (Info Only) — เพิ่มแถวได้ -->
+      <!-- Price Breakdown (Info Only) -->
       <div style="background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;">
-        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;">📊 เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น — ไม่นับรายได้)</div>
-        <div style="display:grid;grid-template-columns:100px 90px 90px 90px 1fr auto;gap:5px;align-items:center;margin-bottom:5px;padding:0 2px;">
-          <span style="font-size:11px;color:var(--text2);font-weight:600;">ห้อง (ไม่บังคับ)</span>
-          <span style="font-size:11px;color:var(--text2);font-weight:600;">ค่าห้อง/คืน</span>
-          <span style="font-size:11px;color:var(--text2);font-weight:600;">BF ผู้ใหญ่/ท่าน</span>
-          <span style="font-size:11px;color:var(--text2);font-weight:600;">BF เด็ก/ท่าน</span>
-          <span style="font-size:11px;color:var(--text2);font-weight:600;"></span>
-          <span></span>
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;">📊 เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น — ต่อ 1 ห้อง)</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;">
+          <span style="font-size:12px;color:var(--text2);min-width:130px;">ค่าห้องพัก</span>
+          <input type="number" class="form-input" id="f-bdrp" value="${b?b.bdRoomPrice||0:0}" min="0" style="width:110px;" placeholder="0">
+          <span style="font-size:12px;color:var(--text2);">บาท/ห้อง/คืน</span>
         </div>
-        <div id="bd-rows"></div>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="addBdRow()" style="margin-top:6px;">+ เพิ่มแถว</button>
-        <div id="bd-bf-result" style="font-size:12px;color:var(--text2);margin-top:6px;min-height:16px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;">
+          <span style="font-size:12px;color:var(--text2);min-width:130px;">ค่าอาหารเช้า</span>
+          <input type="number" class="form-input" id="f-bdbfp" value="${b?b.bdBfPrice||0:0}" min="0" style="width:110px;" oninput="calcBdBf()" placeholder="0">
+          <span style="font-size:12px;color:var(--text2);">บาท/ท่าน/คืน</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+          <span style="font-size:12px;color:var(--text2);min-width:130px;">ค่าอาหารเช้า (เด็ก)</span>
+          <input type="number" class="form-input" id="f-bdbfchild" value="${b?b.bdBfChildPrice||0:0}" min="0" style="width:110px;" oninput="calcBdBf()" placeholder="0">
+          <span style="font-size:12px;color:var(--text2);">บาท/ท่าน/คืน</span>
+        </div>
+        <div id="bd-bf-result" style="font-size:12px;color:var(--text2);padding-left:138px;min-height:16px;"></div>
       </div>
 
       <div class="section-title" style="margin-top:4px;">ผู้เข้าพัก & อาหารเช้า</div>
-      <div style="background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px;">
-        <div style="display:grid;grid-template-columns:100px 70px 70px 1fr auto;gap:5px;align-items:center;margin-bottom:5px;padding:0 2px;">
-          <span style="font-size:11px;color:var(--text2);font-weight:600;">ห้อง (ไม่บังคับ)</span>
-          <span style="font-size:11px;color:var(--text2);font-weight:600;">ผู้ใหญ่</span>
-          <span style="font-size:11px;color:var(--text2);font-weight:600;">เด็ก</span>
-          <span style="font-size:11px;color:var(--text2);font-weight:600;">อาหารเช้า</span>
-          <span></span>
-        </div>
-        <div id="guest-rows"></div>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="addGuestRow()" style="margin-top:6px;">+ เพิ่มแถว</button>
-        <div style="display:flex;gap:16px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-          <label class="form-check">
-            <input type="checkbox" id="f-bf" ${bfChecked?'checked':''} onchange="onBfChange()"> รวมอาหารเช้า
-          </label>
-          <label class="form-check">
-            <input type="checkbox" id="f-nobf" ${noBfChecked?'checked':''} onchange="onNoBfChange()"> ไม่รวมอาหารเช้า
-          </label>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;">
+        <span style="font-size:13px;color:var(--text2);">จำนวนผู้พัก</span>
+        <input type="number" class="form-input" id="f-guests" value="${b?b.guestCount||1:1}" min="1" style="width:72px;" oninput="calcBdBf()">
+        <span style="font-size:13px;color:var(--text2);">ท่าน</span>
+        <span style="font-size:13px;color:var(--text2);margin-left:8px;">เด็ก</span>
+        <input type="number" class="form-input" id="f-childcount" value="${b?b.childCount||0:0}" min="0" style="width:72px;" oninput="calcBdBf()">
+        <span style="font-size:13px;color:var(--text2);">ท่าน</span>
+        <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
+        <label class="form-check">
+          <input type="checkbox" id="f-bf" ${bfChecked?'checked':''} onchange="onBfChange()"> รวมอาหารเช้า
+        </label>
+        <label class="form-check" style="margin-left:4px;">
+          <input type="checkbox" id="f-nobf" ${noBfChecked?'checked':''} onchange="onNoBfChange()"> ไม่รวมอาหารเช้า
+        </label>
       </div>
-      <!-- hidden compat fields — ให้ saveReservation อ่านได้เหมือนเดิม -->
-      <input type="hidden" id="f-guests" value="${b?b.guestCount||1:1}">
-      <input type="hidden" id="f-childcount" value="${b?b.childCount||0:0}">
 
       <label class="form-check" style="margin:10px 0 4px;">
         <input type="checkbox" id="f-extra" ${b&&b.extraBed?'checked':''}> เตียงเสริม
@@ -1723,8 +1713,6 @@ function openResModal(id){
       <button class="btn btn-primary" onclick="saveReservation()">✅ บันทึกการจอง</button>
     </div>`);
   renderRateRows();
-  renderBdRows();
-  renderGuestRows();
   onDateChange();
 }
 
@@ -1813,107 +1801,19 @@ function toggleRoom(rn){
   }
   calcDisplay();
 }
-
-/* ════════════════════════════════════════
-   BREAKDOWN ROWS (เพิ่มแถวได้)
-════════════════════════════════════════ */
-let formBdRows = [];   // [{rooms:'', room:0, bfAdult:0, bfChild:0}]
-let formGuestRows = []; // [{rooms:'', adults:1, children:0, bf:true}]
-
-function renderBdRows(){
-  const el = document.getElementById('bd-rows');
-  if(!el) return;
-  if(!formBdRows.length){
-    el.innerHTML='<div style="font-size:12px;color:var(--text2);padding:4px 0;">ยังไม่มีแถว — กด "+ เพิ่มแถว" เพื่อเพิ่ม</div>';
-    return;
-  }
-  el.innerHTML = formBdRows.map((r,i)=>`
-    <div style="display:grid;grid-template-columns:100px 90px 90px 90px 1fr auto;gap:5px;align-items:center;margin-bottom:5px;">
-      <input type="text" class="form-input" placeholder="เช่น 201-218" value="${r.rooms||''}"
-        oninput="formBdRows[${i}].rooms=this.value;calcBdBf()" style="font-size:12px;padding:4px 6px;">
-      <input type="number" class="form-input" placeholder="0" value="${r.room||''}" min="0"
-        oninput="formBdRows[${i}].room=parseFloat(this.value)||0;calcBdBf()" style="font-size:12px;padding:4px 6px;">
-      <input type="number" class="form-input" placeholder="0" value="${r.bfAdult||''}" min="0"
-        oninput="formBdRows[${i}].bfAdult=parseFloat(this.value)||0;calcBdBf()" style="font-size:12px;padding:4px 6px;">
-      <input type="number" class="form-input" placeholder="0" value="${r.bfChild||''}" min="0"
-        oninput="formBdRows[${i}].bfChild=parseFloat(this.value)||0;calcBdBf()" style="font-size:12px;padding:4px 6px;">
-      <span></span>
-      <button type="button" onclick="removeBdRow(${i})"
-        style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;">✕</button>
-    </div>`).join('');
-}
-
-function addBdRow(){
-  formBdRows.push({rooms:'', room:0, bfAdult:0, bfChild:0});
-  renderBdRows();
-}
-function removeBdRow(i){
-  formBdRows.splice(i,1);
-  renderBdRows();
-  calcBdBf();
-}
-
-/* ════════════════════════════════════════
-   GUEST ROWS (เพิ่มแถวได้)
-════════════════════════════════════════ */
-function renderGuestRows(){
-  const el = document.getElementById('guest-rows');
-  if(!el) return;
-  if(!formGuestRows.length){
-    el.innerHTML='<div style="font-size:12px;color:var(--text2);padding:4px 0;">ยังไม่มีแถว — กด "+ เพิ่มแถว" เพื่อเพิ่ม</div>';
-    return;
-  }
-  el.innerHTML = formGuestRows.map((r,i)=>`
-    <div style="display:grid;grid-template-columns:100px 70px 70px 1fr auto;gap:5px;align-items:center;margin-bottom:5px;">
-      <input type="text" class="form-input" placeholder="เช่น 201-218" value="${r.rooms||''}"
-        oninput="formGuestRows[${i}].rooms=this.value;syncGuestTotals()" style="font-size:12px;padding:4px 6px;">
-      <input type="number" class="form-input" placeholder="0" value="${r.adults||1}" min="0"
-        oninput="formGuestRows[${i}].adults=parseInt(this.value)||0;syncGuestTotals()" style="font-size:12px;padding:4px 6px;">
-      <input type="number" class="form-input" placeholder="0" value="${r.children||0}" min="0"
-        oninput="formGuestRows[${i}].children=parseInt(this.value)||0;syncGuestTotals()" style="font-size:12px;padding:4px 6px;">
-      <label class="form-check" style="font-size:12px;">
-        <input type="checkbox" ${r.bf?'checked':''} onchange="formGuestRows[${i}].bf=this.checked"> รวมอาหารเช้า
-      </label>
-      <button type="button" onclick="removeGuestRow(${i})"
-        style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;">✕</button>
-    </div>`).join('');
-}
-
-function addGuestRow(){
-  formGuestRows.push({rooms:'', adults:1, children:0, bf:true});
-  renderGuestRows();
-}
-function removeGuestRow(i){
-  formGuestRows.splice(i,1);
-  renderGuestRows();
-  syncGuestTotals();
-}
-
-// sync hidden fields ให้ saveReservation อ่านได้
-function syncGuestTotals(){
-  const totalAdults   = formGuestRows.reduce((s,r)=>s+(r.adults||0),0) || 1;
-  const totalChildren = formGuestRows.reduce((s,r)=>s+(r.children||0),0);
-  const fGuests = document.getElementById('f-guests');
-  const fChild  = document.getElementById('f-childcount');
-  if(fGuests) fGuests.value = totalAdults;
-  if(fChild)  fChild.value  = totalChildren;
-}
-
 function calcBdBf(){
-  const el = document.getElementById('bd-bf-result');
+  const bfPr=parseFloat(document.getElementById('f-bdbfp')?.value)||0;
+  const bfChildPr=parseFloat(document.getElementById('f-bdbfchild')?.value)||0;
+  const guests=parseInt(document.getElementById('f-guests')?.value)||0;
+  const children=parseInt(document.getElementById('f-childcount')?.value)||0;
+  const ci=gv('f-ci'), co=gv('f-co2'), n=nights(ci,co);
+  const paidRooms=formRates.reduce((s,r)=>(parseFloat(r.price)||0)>0?s+(parseInt(r.count)||1):s,0)||1;
+  const el=document.getElementById('bd-bf-result');
   if(!el) return;
-  // สรุปจาก formBdRows
-  if(!formBdRows.length){ el.textContent=''; return; }
-  const parts = formBdRows.map(r=>{
-    const room = r.room||0, bfA = r.bfAdult||0, bfC = r.bfChild||0;
-    const label = r.rooms ? `(${r.rooms})` : '';
-    const items = [];
-    if(room>0) items.push(`ห้อง ${room.toLocaleString()}`);
-    if(bfA>0)  items.push(`BF ${bfA.toLocaleString()}/ผู้ใหญ่`);
-    if(bfC>0)  items.push(`BF ${bfC.toLocaleString()}/เด็ก`);
-    return items.length ? label+' '+items.join(' + ') : null;
-  }).filter(Boolean);
-  el.textContent = parts.length ? parts.join(' | ') : '';
+  const parts=[];
+  if(bfPr>0&&guests>0) parts.push(`${bfPr.toLocaleString()} × ${guests} ท่าน × ${paidRooms} ห้อง = ${(bfPr*guests*paidRooms).toLocaleString()} บาท`);
+  if(bfChildPr>0&&children>0) parts.push(`เด็ก ${bfChildPr.toLocaleString()} × ${children} ท่าน × ${paidRooms} ห้อง = ${(bfChildPr*children*paidRooms).toLocaleString()} บาท`);
+  el.textContent=parts.length?'= '+parts.join(' | '):'';
 }
 function calcDisplay(){
   const ci=gv('f-ci'), co=gv('f-co2'), n=nights(ci,co);
@@ -1962,8 +1862,6 @@ async function saveReservation(){
     bdRoomPrice:parseFloat(gv('f-bdrp'))||0,
     bdBfPrice:parseFloat(gv('f-bdbfp'))||0,
     bdBfChildPrice:parseFloat(gv('f-bdbfchild'))||0,
-    bdRows:formBdRows.map(r=>({...r})),
-    guestRows:formGuestRows.map(r=>({...r})),
     guestName:name, nationality:gv('f-nat'),
     company:gv('f-co'), phone:gv('f-tel'),
     taxId:gv('f-taxid'), address:gv('f-addr'),
@@ -2081,27 +1979,6 @@ function viewBooking(id){
           <div class="pb-total"><span>รวมทั้งสิ้น</span><span>${(rT+ecTotal).toLocaleString()} บาท</span></div>`;
         })()}
       </div>
-      ${(()=>{
-          const bdr=b.bdRows||[]; const gr=b.guestRows||[];
-          if(!bdr.length&&!gr.length) return '';
-          let html='<div style="border-top:1px dashed var(--border);margin-top:8px;padding-top:8px;">';
-          html+='<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📊 เบรกดาวน์ราคา (อ้างอิง)</div>';
-          bdr.forEach(r=>{
-            const parts=[];
-            if(r.room>0)    parts.push('ห้อง '+r.room.toLocaleString()+' บาท/คืน');
-            if(r.bfAdult>0) parts.push('BF ผู้ใหญ่ '+r.bfAdult.toLocaleString()+' บาท/ท่าน');
-            if(r.bfChild>0) parts.push('BF เด็ก '+r.bfChild.toLocaleString()+' บาท/ท่าน');
-            const lbl=r.rooms?'ห้อง '+r.rooms+': ':'ทุกห้อง: ';
-            html+='<div class="pb-row"><span>'+lbl+parts.join(' + ')+'</span></div>';
-          });
-          if(gr.length){
-            html+='<div style="font-size:11px;font-weight:700;color:var(--text2);margin:6px 0 4px;">👥 ผู้เข้าพัก</div>';
-            gr.forEach(r=>{const lbl=r.rooms?'ห้อง '+r.rooms:'ทุกห้อง';
-              html+='<div class="pb-row"><span>'+lbl+': ผู้ใหญ่ '+(r.adults||0)+' ท่าน เด็ก '+(r.children||0)+' ท่าน '+(r.bf?'(รวม BF)':'')+'</span></div>';
-            });
-          }
-          html+='</div>'; return html;
-        })()}
       ${b.remarks?`<div style="margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:6px;font-size:13px;color:var(--text2);">หมายเหตุ: ${b.remarks}</div>`:''}
       <hr class="divider">
       <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;">📋 ประวัติการดำเนินการ</div>
