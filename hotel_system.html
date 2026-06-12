@@ -409,7 +409,7 @@ tfoot td{border-top:1px solid var(--border);}
           </div>
           <div style="flex:1;min-width:200px;">
             <label class="form-label">ชื่อลูกค้า / บริษัท</label>
-            <input type="text" class="form-input" id="srch-name" placeholder="พิมพ์ชื่อหรือบริษัทเพื่อค้นหา..." oninput="searchBookings()">
+            <input type="text" class="form-input" id="srch-name" placeholder="พิมพ์ชื่อ, บริษัท หรือหมายเลขการจอง..." oninput="searchBookings()">
           </div>
           <div>
             <label class="form-label">สถานะ</label>
@@ -493,7 +493,7 @@ tfoot td{border-top:1px solid var(--border);}
           </div>
           <div style="flex:1;min-width:200px;">
             <label class="form-label">ชื่อลูกค้า / บริษัท / ห้อง</label>
-            <input type="text" class="form-input" id="coh-name" placeholder="ค้นหา..." oninput="searchCheckoutHistory()">
+            <input type="text" class="form-input" id="coh-name" placeholder="พิมพ์ชื่อ, บริษัท หรือหมายเลขการจอง..." oninput="searchCheckoutHistory()">
           </div>
           <button class="btn btn-secondary btn-sm" onclick="clearCheckoutHistory()">✕ ล้าง</button>
         </div>
@@ -1464,7 +1464,8 @@ function searchBookings(){
   if(srchDate) bks=bks.filter(b=>b.checkIn<=srchDate && b.checkOut>srchDate || b.checkIn===srchDate);
   if(srchName) bks=bks.filter(b=>
     (b.guestName||'').toLowerCase().includes(srchName)||
-    (b.company||'').toLowerCase().includes(srchName)
+    (b.company||'').toLowerCase().includes(srchName)||
+    (b.id||'').toLowerCase().includes(srchName)
   );
   bks.sort((a,b)=>a.checkIn.localeCompare(b.checkIn));
 
@@ -2416,6 +2417,7 @@ function searchCheckoutHistory(){
   if(srchQ) bks=bks.filter(b=>
     (b.guestName||'').toLowerCase().includes(srchQ)||
     (b.company||'').toLowerCase().includes(srchQ)||
+    (b.id||'').toLowerCase().includes(srchQ)||
     (b.rooms||[]).some(r=>String(r).includes(srchQ))
   );
   bks.sort((a,b)=>(b.checkedOutAt||b.checkOut).localeCompare(a.checkedOutAt||a.checkOut));
