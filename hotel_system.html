@@ -1858,8 +1858,21 @@ async function saveReservation(){
   const noBf=document.getElementById('f-nobf')?.checked;
   const totalRm=formRates.reduce((s,r)=>s+(parseInt(r.count)||1),0);
   const guestType=document.querySelector('input[name="f-gtype"]:checked')?.value||'personal';
+  // ดึง Booking ID ใหม่จาก Sheets (R+6หลัก)
+  let _newBookingId = editingId || null;
+  if(!editingId){
+    _showLoading('กำลังสร้างรหัสการจอง...');
+    try{
+      const res = await _gasCall('getNextBookingId');
+      _newBookingId = res.id;
+    }catch(e){
+      // fallback: ใช้ timestamp ถ้า Sheets ไม่ตอบ
+      _newBookingId = 'R'+String(Date.now()).slice(-6)+Math.random().toString(36).slice(2,3).toUpperCase();
+    }
+    _hideLoading();
+  }
   const obj={
-    id:editingId||('R'+Date.now()+Math.random().toString(36).slice(2,4).toUpperCase()),
+    id:editingId||_newBookingId,
     status:S_RES,
     rooms:[...pickRooms].sort((a,x)=>a-x),
     roomCount:pickRooms.length||totalRm,
@@ -2823,7 +2836,7 @@ function printGuestFolio(id){
   const typeStr=showRoom?[...new Set(b.rooms.map(r=>roomTypeFull(r)))].join(', '):'-';
 
   // folio number
-  const folioNum='GF-'+b.checkIn.slice(2,4)+b.checkIn.slice(5,7)+'-'+folioSeq(b.id);
+  const folioNum='GF-'+b.checkIn.slice(2,4)+b.checkIn.slice(5,7)+'-'+String(folioSeq(b.id)).padStart(5,'0');
 
   // paid rooms count
   let paidRooms=0;
@@ -3576,10 +3589,10 @@ function folioSeq(bookingId){
   if(!_folioMap[bookingId]){
     const nextSeq=Object.keys(_folioMap).length+1;
     _folioMap[bookingId]=String(nextSeq).padStart(5,'0');
-    // sync กลับ Sheets (async, ไม่รอ)
     _gasCall('saveFolio',{folioMap:_folioMap}).catch(e=>console.warn('folio sync:',e));
   }
-  return _folioMap[bookingId];
+  // normalize เป็น 5 หลักเสมอ ไม่ว่าจะโหลดมาจากไหน
+  return String(_folioMap[bookingId]).padStart(5,'0');
 }
 function showModal(html){
   document.getElementById('modal-box').innerHTML=html;
