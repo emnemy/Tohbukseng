@@ -2947,7 +2947,6 @@ function printGuestFolio(id){
     {label:'CHECK-IN',val:fmtDate(b.checkIn)},
     {label:'CHECK-OUT',val:fmtDate(b.checkOut)},
     ...(showRoom?[{label:'ROOM NO.',val:roomStr},{label:'ROOM TYPE',val:typeStr}]:[]),
-    {label:'NO. OF GUEST',val:String(parseInt(b.guestCount)||1)},
     {label:'ROOM(S)',val:nRooms+' ห้อง'}
   ];
   const infoTds=infoCells.map(c=>`<td style="border-right:1px solid #e0c090;padding:10px 8px;text-align:center;vertical-align:middle;${c===infoCells[infoCells.length-1]?'border-right:none;':''}">
@@ -3760,9 +3759,7 @@ function printGroupFolio(groupId){
   const infoCells=[
     {label:'CHECK-IN',val:fmtDate(ciAll)},
     {label:'CHECK-OUT',val:fmtDate(coAll)},
-    {label:'GROUP ID',val:groupId},
-    {label:'NO. OF BOOKING',val:String(bookings.length)+' รายการ'},
-    {label:'ROOM(S)',val:(allRooms.length?allRooms.join(', '):totalRooms+' ห้อง')},
+    {label:'ROOM(S)',val:totalRooms+' ห้อง'},
   ];
   const infoTds=infoCells.map((c,idx)=>`<td style="border-right:1px solid #e0c090;padding:10px 8px;text-align:center;vertical-align:middle;${idx===infoCells.length-1?'border-right:none;':''}">
     <div style="font-size:9px;font-weight:700;color:#e07020;letter-spacing:1px;">${c.label}</div>
