@@ -190,6 +190,23 @@ tfoot td{border-top:1px solid var(--border);}
 .tl-vacant .tl-cell-inner{color:rgba(78,196,138,.7);}
 .tl-floor-hd-row td{background:var(--bg3);color:var(--gold);font-weight:700;
   padding:5px 8px;font-size:12px;text-align:left;border:1px solid var(--border);}
+
+/* ── REVENUE DASHBOARD ── */
+.rev-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+.rev-title{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.rev-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.rev-row:last-child{border-bottom:none;}
+.rev-row.total{font-weight:700;font-size:15px;color:var(--gold);border-top:2px solid var(--border);border-bottom:none;margin-top:4px;padding-top:8px;}
+.rev-sub{padding:3px 0 3px 16px;font-size:12px;color:var(--text2);display:flex;justify-content:space-between;}
+.rev-val{font-weight:600;color:var(--text);}
+.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+.chart-bar-wrap{display:flex;align-items:flex-end;gap:3px;height:120px;overflow-x:auto;padding-bottom:4px;}
+.chart-bar-col{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:22px;}
+.chart-bar{border-radius:3px 3px 0 0;transition:opacity .2s;cursor:pointer;}
+.chart-bar:hover{opacity:.75;}
+.chart-lbl{font-size:9px;color:var(--text2);white-space:nowrap;transform:rotate(-45deg);transform-origin:top left;margin-top:4px;height:20px;}
+.chart-month-ctrl{display:flex;gap:6px;align-items:center;margin-bottom:10px;}
 .pb-total{display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:var(--gold);
   border-top:1px solid var(--border);padding-top:8px;margin-top:5px;}
 
@@ -331,6 +348,25 @@ tfoot td{border-top:1px solid var(--border);}
           </div>
         </div>
         <div id="dash-monthly-stats"></div>
+      </div>
+      <!-- Revenue Dashboard -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">💰 รายได้ Night Audit</div>
+          <div class="chart-month-ctrl">
+            <button class="btn btn-secondary btn-sm" onclick="revShiftMonth(-1)">◀</button>
+            <span id="rev-month-label" style="font-size:13px;color:var(--text2);min-width:120px;text-align:center;"></span>
+            <button class="btn btn-secondary btn-sm" onclick="revShiftMonth(1)">▶</button>
+            <button class="btn btn-secondary btn-sm" onclick="revGoToday()">วันนี้</button>
+          </div>
+        </div>
+        <!-- ตัวเลขสรุปวันนี้ + เดือน -->
+        <div class="rev-grid" id="rev-summary"></div>
+        <!-- Bar Chart -->
+        <div class="chart-wrap" style="margin-top:12px;margin-bottom:0;">
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;">📊 รายได้รายวัน (บาท)</div>
+          <div class="chart-bar-wrap" id="rev-chart"></div>
+        </div>
       </div>
       <div class="card"><div class="card-title">ผู้เข้าพักวันนี้</div><div class="tbl-wrap" id="dash-table"></div></div>
     </div>
@@ -1167,6 +1203,9 @@ function renderDashboard(){
     }
   }
   renderDashMonthly();
+  // Revenue Phase 2
+  updateRevLabel();
+  renderRevSummary(_revYear, _revMonth);
   let vac=0,res=0,occ=0;
   ALL_ROOMS.forEach(r=>{
     const{s}=roomStatusAt(r,d);
@@ -3923,6 +3962,187 @@ function printGroupFolio(groupId){
 </td></tr></table>`;
 
   openPrint(html, 'Group Folio — ' + groupId);
+}
+
+/* ════════════════════════════════════════
+   REVENUE DASHBOARD — Phase 2
+   Night Audit: calcSimpleTotal / nights
+   Extra Charges: ตามหมวดหมู่
+════════════════════════════════════════ */
+let _revYear  = new Date().getFullYear();
+let _revMonth = new Date().getMonth(); // 0-indexed
+
+const EC_CATS = {
+  food:'🍽️ อาหาร-เครื่องดื่ม',
+  laundry:'👕 ซักรีด',
+  transport:'🚗 ยานพาหนะ',
+  phone:'📞 โทรศัพท์',
+  minibar:'🍺 มินิบาร์',
+  other:'📦 อื่นๆ',
+};
+
+const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+  'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+/** คำนวณรายได้ค่าห้อง Night Audit สำหรับวันใดวันหนึ่ง */
+function calcRoomRevenueForDate(dateStr){
+  let total = 0;
+  ST.bookings.forEach(b => {
+    if(b.status === S_CANCEL || b.status === S_RES) return;
+    if(b.checkIn <= dateStr && dateStr < b.checkOut){
+      const n = nights(b.checkIn, b.checkOut);
+      if(n > 0) total += calcSimpleTotal(b) / n;
+    }
+  });
+  return Math.round(total);
+}
+
+/** คำนวณ Extra Charges สำหรับวันใดวันหนึ่ง แยกตามหมวด */
+function calcEcForDate(dateStr){
+  let total = 0;
+  const bycat = {};
+  Object.values(ST.charges || {}).forEach(charges => {
+    charges.forEach(c => {
+      if((c.date||'') === dateStr){
+        const amt = (parseFloat(c.price)||0)*(parseInt(c.qty)||1);
+        total += amt;
+        bycat[c.cat] = (bycat[c.cat]||0) + amt;
+      }
+    });
+  });
+  return { total: Math.round(total), bycat };
+}
+
+/** คำนวณรายได้รายวันทั้งเดือน */
+function calcMonthRevenue(year, month){
+  const pad = v => String(v).padStart(2,'0');
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const days = [];
+  for(let d = 1; d <= daysInMonth; d++){
+    const dateStr = `${year}-${pad(month+1)}-${pad(d)}`;
+    const room = calcRoomRevenueForDate(dateStr);
+    const ec   = calcEcForDate(dateStr);
+    days.push({ dateStr, room, ec: ec.total, total: room + ec.total, bycat: ec.bycat });
+  }
+  return days;
+}
+
+/** สรุปรายได้วันนี้ + เดือน */
+function renderRevSummary(year, month){
+  const todayStr = today();
+  const todayRoom = calcRoomRevenueForDate(todayStr);
+  const todayEc   = calcEcForDate(todayStr);
+  const days      = calcMonthRevenue(year, month);
+
+  const monthRoom  = days.reduce((s,d) => s + d.room, 0);
+  const monthEc    = days.reduce((s,d) => s + d.ec, 0);
+  const monthTotal = monthRoom + monthEc;
+
+  // รวม bycat เดือน
+  const monthByCat = {};
+  days.forEach(d => {
+    Object.entries(d.bycat).forEach(([cat, amt]) => {
+      monthByCat[cat] = (monthByCat[cat]||0) + amt;
+    });
+  });
+
+  // EC sub rows วันนี้
+  const todayEcSubs = Object.entries(todayEc.bycat).map(([cat, amt]) =>
+    `<div class="rev-sub"><span>${EC_CATS[cat]||cat}</span><span>${amt.toLocaleString()}</span></div>`
+  ).join('');
+
+  // EC sub rows เดือน
+  const monthEcSubs = Object.entries(monthByCat).map(([cat, amt]) =>
+    `<div class="rev-sub"><span>${EC_CATS[cat]||cat}</span><span>${amt.toLocaleString()}</span></div>`
+  ).join('');
+
+  const todayTotal = todayRoom + todayEc.total;
+
+  document.getElementById('rev-summary').innerHTML = `
+    <div class="rev-section">
+      <div class="rev-title">📅 วันนี้ — ${fmtDate(todayStr)}</div>
+      <div class="rev-row">
+        <span>🏨 ค่าห้อง (Night Audit)</span>
+        <span class="rev-val">${todayRoom.toLocaleString()}</span>
+      </div>
+      <div class="rev-row" style="flex-direction:column;align-items:flex-start;gap:2px;">
+        <div style="display:flex;justify-content:space-between;width:100%;">
+          <span>💳 Extra Charges</span>
+          <span class="rev-val">${todayEc.total.toLocaleString()}</span>
+        </div>
+        ${todayEcSubs}
+      </div>
+      <div class="rev-row total">
+        <span>รวมวันนี้</span>
+        <span>${todayTotal.toLocaleString()} บาท</span>
+      </div>
+    </div>
+    <div class="rev-section">
+      <div class="rev-title">📆 ${MONTHS_TH[month]} ${year+543}</div>
+      <div class="rev-row">
+        <span>🏨 ค่าห้อง (Night Audit)</span>
+        <span class="rev-val">${monthRoom.toLocaleString()}</span>
+      </div>
+      <div class="rev-row" style="flex-direction:column;align-items:flex-start;gap:2px;">
+        <div style="display:flex;justify-content:space-between;width:100%;">
+          <span>💳 Extra Charges</span>
+          <span class="rev-val">${monthEc.toLocaleString()}</span>
+        </div>
+        ${monthEcSubs}
+      </div>
+      <div class="rev-row total">
+        <span>รวมทั้งเดือน</span>
+        <span>${monthTotal.toLocaleString()} บาท</span>
+      </div>
+    </div>`;
+
+  renderRevChart(days, year, month);
+}
+
+/** Bar Chart รายได้รายวัน */
+function renderRevChart(days, year, month){
+  const maxVal = Math.max(...days.map(d => d.total), 1);
+  const todayStr = today();
+
+  const bars = days.map(d => {
+    const hRoom = Math.round((d.room / maxVal) * 110);
+    const hEc   = Math.round((d.ec   / maxVal) * 110);
+    const isToday = d.dateStr === todayStr;
+    const dtLabel = String(new Date(d.dateStr+'T12:00:00').getDate());
+    return `<div class="chart-bar-col" title="${d.dateStr}: ห้อง ${d.room.toLocaleString()} + EC ${d.ec.toLocaleString()} = ${d.total.toLocaleString()} บาท">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:110px;gap:0;">
+        ${d.ec > 0 ? `<div class="chart-bar" style="width:18px;height:${hEc}px;background:rgba(200,168,74,.7);"></div>` : ''}
+        <div class="chart-bar" style="width:18px;height:${Math.max(hRoom,1)}px;background:${isToday?'rgba(55,138,221,.9)':'rgba(78,196,138,.6)'};${isToday?'outline:2px solid #7ab8f5;':''}"></div>
+      </div>
+      <div class="chart-lbl" style="${isToday?'color:var(--gold);font-weight:700;':''}">${dtLabel}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('rev-chart').innerHTML = bars +
+    `<div style="display:flex;gap:10px;align-items:center;font-size:11px;color:var(--text2);margin-left:8px;flex-shrink:0;align-self:flex-end;padding-bottom:24px;">
+      <span><span style="display:inline-block;width:10px;height:10px;background:rgba(78,196,138,.6);border-radius:2px;"></span> ค่าห้อง</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:rgba(200,168,74,.7);border-radius:2px;"></span> Extra</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:rgba(55,138,221,.9);border-radius:2px;"></span> วันนี้</span>
+    </div>`;
+}
+
+/** controls */
+function revShiftMonth(delta){
+  _revMonth += delta;
+  if(_revMonth > 11){ _revMonth = 0; _revYear++; }
+  if(_revMonth < 0) { _revMonth = 11; _revYear--; }
+  updateRevLabel();
+  renderRevSummary(_revYear, _revMonth);
+}
+function revGoToday(){
+  _revYear  = new Date().getFullYear();
+  _revMonth = new Date().getMonth();
+  updateRevLabel();
+  renderRevSummary(_revYear, _revMonth);
+}
+function updateRevLabel(){
+  const el = document.getElementById('rev-month-label');
+  if(el) el.textContent = MONTHS_TH[_revMonth] + ' ' + (_revYear+543);
 }
 
 /* ── Auto-restore session เมื่อ refresh ── */
