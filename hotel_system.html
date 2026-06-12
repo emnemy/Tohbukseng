@@ -408,7 +408,7 @@ tfoot td{border-top:1px solid var(--border);}
             <input type="date" class="form-input" id="srch-date" style="width:180px;" oninput="searchBookings()">
           </div>
           <div style="flex:1;min-width:200px;">
-            <label class="form-label">ชื่อลูกค้า / บริษัท</label>
+            <label class="form-label">ชื่อลูกค้า / บริษัท / หมายเลขการจอง</label>
             <input type="text" class="form-input" id="srch-name" placeholder="พิมพ์ชื่อ, บริษัท หรือหมายเลขการจอง..." oninput="searchBookings()">
           </div>
           <div>
@@ -492,7 +492,7 @@ tfoot td{border-top:1px solid var(--border);}
             <input type="date" class="form-input" id="coh-date" style="width:180px;" oninput="searchCheckoutHistory()">
           </div>
           <div style="flex:1;min-width:200px;">
-            <label class="form-label">ชื่อลูกค้า / บริษัท / ห้อง</label>
+            <label class="form-label">ชื่อลูกค้า / บริษัท / ห้อง / หมายเลขการจอง</label>
             <input type="text" class="form-input" id="coh-name" placeholder="พิมพ์ชื่อ, บริษัท หรือหมายเลขการจอง..." oninput="searchCheckoutHistory()">
           </div>
           <button class="btn btn-secondary btn-sm" onclick="clearCheckoutHistory()">✕ ล้าง</button>
@@ -1479,7 +1479,7 @@ function searchBookings(){
     const n=nights(b.checkIn,b.checkOut);
     rows+=`<tr>
       <td>${statusBadge(b.status)}</td>
-      <td>${guestTypeLabel(b.guestType)}</td>
+      <td style="font-size:12px;color:var(--text2);">${b.id||"-"}</td>
       <td><strong>${b.guestName}</strong><br><small class="text-muted">${b.nationality||''}</small></td>
       <td>${b.company||'-'}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
@@ -1498,7 +1498,7 @@ function searchBookings(){
   document.getElementById('srch-table').innerHTML=`
     <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">พบ ${bks.length} รายการ</div>
     <table>
-      <thead><tr><th>สถานะ</th><th>ประเภท</th><th>ชื่อ</th><th>บริษัท</th><th>วันเข้า</th><th>วันออก</th><th>คืน</th>
+      <thead><tr><th>สถานะ</th><th>หมายเลขจอง</th><th>ชื่อ</th><th>บริษัท</th><th>วันเข้า</th><th>วันออก</th><th>คืน</th>
         <th>ห้อง</th><th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table>`;
 }
