@@ -2410,18 +2410,32 @@ function raShowDayDetail(dateStr){
     <td>${b?fmtDate(b.checkOut):'-'}</td>
   </tr>`).join('');
 
-  const vacStr=vacRooms.length?vacRooms.sort((a,x)=>a-x).join(', '):'ไม่มีห้องว่าง';
+  // จัดกลุ่มห้องว่างตามประเภท
+  const vacByType={};
+  vacRooms.forEach(r=>{
+    const t=roomType(r);
+    if(!vacByType[t]) vacByType[t]=0;
+    vacByType[t]++;
+  });
+  const vacTypeSummary=Object.entries(vacByType)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([t,c])=>`<span style="font-size:12px;color:var(--text2);white-space:nowrap;">${t} <strong style="color:var(--green);">${c}</strong></span>`)
+    .join('<span style="color:var(--border);margin:0 4px;">|</span>');
+
   showModal(`
     <div class="modal-hd">
       <div class="modal-title">📅 ${fmtDate(dateStr)}</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
         <div class="chip">ว่าง <span>${vacRooms.length}</span></div>
         <div class="chip">มีผู้พัก <span>${occList.length}</span></div>
         <div class="chip">รวม <span>${TOTAL}</span> ห้อง</div>
       </div>
+      ${vacRooms.length&&vacTypeSummary?`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:7px 10px;background:rgba(78,196,138,.06);border:1px solid rgba(78,196,138,.2);border-radius:6px;margin-bottom:12px;">
+        ${vacTypeSummary}
+      </div>`:''}
       ${vacRooms.length?`<div style="margin-bottom:12px;">
         <div class="form-label" style="margin-bottom:6px;">ห้องว่าง</div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;">
