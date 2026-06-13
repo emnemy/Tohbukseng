@@ -329,6 +329,8 @@ tfoot td{border-top:1px solid var(--border);}
         </div>
       </div>
       <button class="btn btn-secondary btn-full btn-sm" onclick="doLogout()">ออกจากระบบ</button>
+      <button class="btn btn-secondary btn-full btn-sm" style="margin-top:4px;font-size:11px;opacity:.6;"
+        onclick="if(confirm('ล้างการตั้งค่า URL และ Key?\nต้องใส่ใหม่ในครั้งถัดไป')){localStorage.removeItem('hms_gas_url');localStorage.removeItem('hms_gas_key');doLogout();window.location.reload();}">⚙ รีเซ็ตการตั้งค่า</button>
     </div>
   </aside>
 
@@ -689,8 +691,16 @@ function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเ
 // ตัวอย่าง: hotel_system.html?url=https://script.google.com/.../exec&k=mykey123
 (function(){
   const _p = new URLSearchParams(window.location.search);
-  window._GAS_URL = _p.get('url') || '';
-  window._GAS_KEY = _p.get('k')   || '';
+  // ถ้ามี URL parameter → ใช้ค่านั้น และบันทึกลง localStorage
+  if(_p.get('url') && _p.get('k')){
+    localStorage.setItem('hms_gas_url', _p.get('url'));
+    localStorage.setItem('hms_gas_key', _p.get('k'));
+    // redirect ลบ parameter ออกจาก URL (เพื่อความปลอดภัย)
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  // อ่านจาก localStorage
+  window._GAS_URL = localStorage.getItem('hms_gas_url') || '';
+  window._GAS_KEY = localStorage.getItem('hms_gas_key') || '';
   if(!window._GAS_URL || !window._GAS_KEY){
     // แสดง setup screen แทนหน้า login
     document.addEventListener('DOMContentLoaded', function(){
@@ -722,8 +732,9 @@ function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเ
               const u=document.getElementById('setup-url').value.trim();
               const k=document.getElementById('setup-key').value.trim();
               if(!u||!k){alert('กรุณากรอกข้อมูลให้ครบ');return;}
-              const newUrl=window.location.pathname+'?url='+encodeURIComponent(u)+'&k='+encodeURIComponent(k);
-              window.location.href=newUrl;
+              localStorage.setItem('hms_gas_url',u);
+              localStorage.setItem('hms_gas_key',k);
+              window.location.reload();
             })()"
               style="background:#c8a84a;color:#0e0e1c;border:none;border-radius:8px;padding:12px 32px;
                 font-size:14px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;width:100%;">
