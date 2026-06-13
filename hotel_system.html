@@ -684,8 +684,59 @@ function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเ
    GOOGLE SHEETS CONFIG
    แก้ค่าทั้งสองนี้ให้ตรงกับของคุณ
 ════════════════════════════════════════ */
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwd82E5Yr5DjGoOg2anvRq3hEG114YJeWwk14NgutV4IOW8UjIR44MHD-nMonHD8HKQUQ/exec';   // ← วาง URL จาก Deploy Apps Script
-const GAS_KEY = 'tbsadmin';   // ← ต้องตรงกับ SECRET_KEY ใน Code.gs
+// ── ดึง GAS_URL และ GAS_KEY จาก URL parameter ──────────────
+// วิธีใช้: hotel_system.html?url=WEB_APP_URL&k=SECRET_KEY
+// ตัวอย่าง: hotel_system.html?url=https://script.google.com/.../exec&k=mykey123
+(function(){
+  const _p = new URLSearchParams(window.location.search);
+  window._GAS_URL = _p.get('url') || '';
+  window._GAS_KEY = _p.get('k')   || '';
+  if(!window._GAS_URL || !window._GAS_KEY){
+    // แสดง setup screen แทนหน้า login
+    document.addEventListener('DOMContentLoaded', function(){
+      const body = document.body;
+      body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
+        background:#0e0e1c;font-family:'Sarabun',sans-serif;padding:20px;">
+        <div style="background:#1a1a2e;border:1px solid #c8a84a;border-radius:16px;padding:36px;max-width:520px;width:100%;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🔑</div>
+          <div style="color:#c8a84a;font-size:20px;font-weight:700;margin-bottom:6px;">Setup Required</div>
+          <div style="color:#aaa;font-size:13px;margin-bottom:24px;">กรุณาเปิดระบบผ่าน URL ที่ถูกต้อง</div>
+          <div style="background:#0e0e1c;border-radius:10px;padding:16px;text-align:left;margin-bottom:20px;">
+            <div style="color:#aaa;font-size:12px;margin-bottom:8px;">รูปแบบ URL:</div>
+            <code style="color:#7ab8f5;font-size:12px;word-break:break-all;">
+              hotel_system.html?url=WEB_APP_URL&k=SECRET_KEY
+            </code>
+          </div>
+          <div id="setup-form">
+            <div style="margin-bottom:12px;text-align:left;">
+              <label style="color:#aaa;font-size:12px;display:block;margin-bottom:4px;">Web App URL</label>
+              <input id="setup-url" type="text" placeholder="https://script.google.com/macros/s/.../exec"
+                style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0e0e1c;color:#fff;font-size:12px;box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:20px;text-align:left;">
+              <label style="color:#aaa;font-size:12px;display:block;margin-bottom:4px;">Secret Key</label>
+              <input id="setup-key" type="password" placeholder="ใส่ Secret Key"
+                style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0e0e1c;color:#fff;font-size:12px;box-sizing:border-box;">
+            </div>
+            <button onclick="(function(){
+              const u=document.getElementById('setup-url').value.trim();
+              const k=document.getElementById('setup-key').value.trim();
+              if(!u||!k){alert('กรุณากรอกข้อมูลให้ครบ');return;}
+              const newUrl=window.location.pathname+'?url='+encodeURIComponent(u)+'&k='+encodeURIComponent(k);
+              window.location.href=newUrl;
+            })()"
+              style="background:#c8a84a;color:#0e0e1c;border:none;border-radius:8px;padding:12px 32px;
+                font-size:14px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;width:100%;">
+              เข้าสู่ระบบ
+            </button>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+})();
+const GAS_URL = window._GAS_URL;
+const GAS_KEY = window._GAS_KEY;
 // ⚠️  หมายเหตุ: แก้ Code.gs → ลบโค้ดส่วน "ลบ backup เก่าเกิน 30 วัน" ออก (บรรทัดประมาณ 347-354)
 
 /* ── Loading overlay ── */
