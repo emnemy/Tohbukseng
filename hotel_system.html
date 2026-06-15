@@ -865,16 +865,20 @@ async function doLogin(){
   const u=gv('lg-user').trim(), p=gv('lg-pass');
   document.getElementById('login-error').style.display='none';
   _showLoading('กำลังเข้าสู่ระบบ...');
+  let found=null;
   try{
-    const users=await _gasCall('getUsers');
-    if(Array.isArray(users)&&users.length) ST.users=users;
+    // ตรวจ password ผ่าน Sheets (hash อัตโนมัติถ้ายังเป็น plain text)
+    const res=await _gasCall('verifyLogin',{username:u,password:p});
+    if(res&&res.success) found=res.user;
+    else { _hideLoading(); document.getElementById('login-error').style.display='block'; return; }
   }catch(e){
-    _hideLoading();
-    alert('❌ เชื่อมต่อ Google Sheets ไม่ได้\nกรุณาตรวจสอบ internet แล้วลองใหม่');
-    return;
+    // fallback: เทียบ local ถ้า network ล้มเหลว
+    const users=ST.users||[];
+    const local=users.find(x=>sval(x.username).trim()===u&&sval(x.password)===p);
+    if(!local){ _hideLoading(); document.getElementById('login-error').style.display='block'; return; }
+    found={id:local.id,username:local.username,name:local.name,role:local.role};
   }
   _hideLoading();
-  const found=ST.users.find(x=>sval(x.username).trim()===u&&sval(x.password)===p);
   if(!found){document.getElementById('login-error').style.display='block';return;}
   ST.currentUser=found;
   try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role}));}catch(e){}
