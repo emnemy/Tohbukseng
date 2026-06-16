@@ -1357,7 +1357,7 @@ function renderDashboard(){
       <td><button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button></td></tr>`;
   });
   document.getElementById('dash-table').innerHTML=`<table>
-    <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันที่</th><th>คืน</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+    <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันที่</th><th>คืน</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
 
@@ -1667,7 +1667,7 @@ function searchBookings(){
     <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">พบ ${bks.length} รายการ</div>
     <table>
       <thead><tr><th>สถานะ</th><th>หมายเลขจอง</th><th>ชื่อ</th><th>บริษัท</th><th>วันเข้า</th><th>วันออก</th><th>คืน</th>
-        <th>ห้อง</th><th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+        <th>ห้อง</th><th>อาหารเช้า</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table>`;
 }
 
@@ -1710,7 +1710,7 @@ function renderArrival(){
   });
   document.getElementById('arr-table').innerHTML=`<table>
     <thead><tr><th>สถานะ</th><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันออก</th><th>คืน</th>
-      <th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <th>อาหารเช้า</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
     <tfoot><tr><td colspan="7" style="text-align:right;font-size:12px;color:var(--text2);">ยอดรวม</td>
       <td style="text-align:right;color:var(--gold);font-weight:700;">${tot.toLocaleString()}</td>
@@ -2226,7 +2226,7 @@ function renderCheckin(){
   });
   document.getElementById('ci-table').innerHTML=`<table>
     <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันออก</th><th>คืน</th>
-      <th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <th>อาหารเช้า</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
 
@@ -2629,7 +2629,7 @@ function searchCheckoutHistory(){
     <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">พบ ${bks.length} รายการ</div>
     <table>
       <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>ประเภท</th>
-        <th>วันเข้า</th><th>วันออก</th><th>คืน</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+        <th>วันเข้า</th><th>วันออก</th><th>คืน</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -2739,7 +2739,7 @@ function renderCheckout(){
   });
   document.getElementById('co-table').innerHTML=`<table>
     <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันเข้า</th><th>วันออก</th><th>คืน</th>
-      <th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
 async function doCheckout(id){
