@@ -610,6 +610,45 @@ tfoot td{border-top:1px solid var(--border);}
           <p style="font-size:13px;color:var(--text2);">กด <strong>"🔄 โหลดใหม่"</strong> เพื่อดู Error Logs</p>
         </div>
       </div>
+
+      <!-- ── Archive ── -->
+      <div class="card" style="max-width:760px;overflow:hidden;">
+        <div class="card-title">📦 Archive ข้อมูลเก่า</div>
+
+        <div style="background:rgba(55,138,221,.08);border:1px solid rgba(55,138,221,.25);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;">
+          <div style="font-weight:700;color:#7ab8f5;margin-bottom:8px;">📋 วิธีการทำงาน</div>
+          <div style="display:flex;flex-direction:column;gap:5px;color:var(--text2);">
+            <div><span style="color:#7ab8f5;font-weight:700;">1.</span> เลือกปีที่ต้องการ Archive เช่น 2568</div>
+            <div><span style="color:#7ab8f5;font-weight:700;">2.</span> ระบบจะย้าย booking ที่ checkOut ก่อน 1 ม.ค. ของปีถัดไปไปเก็บใน Sheet ใหม่ชื่อ <strong style="color:var(--text);">bookings_2568</strong></div>
+            <div><span style="color:#7ab8f5;font-weight:700;">3.</span> Sheet หลัก <strong style="color:var(--text);">bookings</strong> จะเหลือแค่ข้อมูลที่ยังไม่ถูก Archive</div>
+            <div><span style="color:#7ab8f5;font-weight:700;">4.</span> ดูข้อมูลเก่าได้โดยเปิด Google Sheets และดูที่ tab <strong style="color:var(--text);">bookings_2568</strong></div>
+          </div>
+          <div style="margin-top:8px;padding:8px 10px;background:rgba(220,60,60,.12);border-radius:6px;font-size:12px;color:#ff6b6b;">
+            ⚠️ <strong>แนะนำ:</strong> Backup ข้อมูลก่อนทำ Archive ทุกครั้ง — Archive แล้วย้อนกลับไม่ได้ผ่าน UI
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <label class="form-label">เลือกปีที่ต้องการ Archive (พ.ศ.)</label>
+            <select class="form-input" id="archive-year" style="width:140px;" onchange="previewArchive()">
+              <option value="">-- เลือกปี --</option>
+            </select>
+          </div>
+          <div id="archive-count" style="font-size:13px;color:var(--text2);padding-bottom:2px;"></div>
+        </div>
+
+        <div id="archive-preview" style="display:none;margin-bottom:12px;"></div>
+
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-danger btn-sm" id="archive-btn" onclick="doArchive()" disabled style="opacity:.5;">
+            📦 Archive ข้อมูล
+          </button>
+          <span id="archive-hint" style="font-size:12px;color:var(--text2);">← เลือกปีก่อน</span>
+        </div>
+        <div id="archive-result" style="margin-top:10px;"></div>
+      </div>
+
     </div>
 
   </main>
@@ -1357,7 +1396,7 @@ function renderDashboard(){
       <td><button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button></td></tr>`;
   });
   document.getElementById('dash-table').innerHTML=`<table>
-    <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันที่</th><th>คืน</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+    <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันที่</th><th>คืน</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
 
@@ -1667,7 +1706,7 @@ function searchBookings(){
     <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">พบ ${bks.length} รายการ</div>
     <table>
       <thead><tr><th>สถานะ</th><th>หมายเลขจอง</th><th>ชื่อ</th><th>บริษัท</th><th>วันเข้า</th><th>วันออก</th><th>คืน</th>
-        <th>ห้อง</th><th>อาหารเช้า</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+        <th>ห้อง</th><th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table>`;
 }
 
@@ -1710,7 +1749,7 @@ function renderArrival(){
   });
   document.getElementById('arr-table').innerHTML=`<table>
     <thead><tr><th>สถานะ</th><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันออก</th><th>คืน</th>
-      <th>อาหารเช้า</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
     <tfoot><tr><td colspan="7" style="text-align:right;font-size:12px;color:var(--text2);">ยอดรวม</td>
       <td style="text-align:right;color:var(--gold);font-weight:700;">${tot.toLocaleString()}</td>
@@ -2226,7 +2265,7 @@ function renderCheckin(){
   });
   document.getElementById('ci-table').innerHTML=`<table>
     <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันออก</th><th>คืน</th>
-      <th>อาหารเช้า</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <th>อาหารเช้า</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
 
@@ -2629,7 +2668,7 @@ function searchCheckoutHistory(){
     <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">พบ ${bks.length} รายการ</div>
     <table>
       <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>ประเภท</th>
-        <th>วันเข้า</th><th>วันออก</th><th>คืน</th><th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+        <th>วันเข้า</th><th>วันออก</th><th>คืน</th><th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -2739,7 +2778,7 @@ function renderCheckout(){
   });
   document.getElementById('co-table').innerHTML=`<table>
     <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>บริษัท</th><th>วันเข้า</th><th>วันออก</th><th>คืน</th>
-      <th style="text-align:right;">รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
+      <th>รวม(บาท)</th><th>ชำระ</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
 async function doCheckout(id){
@@ -4293,7 +4332,7 @@ function updateRevLabel(){
 ════════════════════════════════════════ */
 let _restoreData = null;
 
-function renderAdminTools(){ /* แสดงหน้า admin tools ไม่ต้อง render อะไรเพิ่ม */ }
+function renderAdminTools(){ initArchiveYears(); }
 
 /* ── Restore ── */
 function onRestoreFileSelected(){
@@ -4392,6 +4431,132 @@ async function clearErrLogs(){
     alert('✅ ล้างแล้ว '+res.cleared+' รายการ');
     document.getElementById('error-log-table').innerHTML='<p style="font-size:13px;color:var(--text2);">✅ ไม่มี Error Log</p>';
   }catch(e){ _hideLoading(); alert('❌ '+e.message); }
+}
+
+/* ════════════════════════════════════════
+   ARCHIVE
+════════════════════════════════════════ */
+function initArchiveYears(){
+  const sel = document.getElementById('archive-year');
+  if(!sel) return;
+  // สร้าง option ปี พ.ศ. ย้อนหลัง 5 ปี
+  const thisYear = new Date().getFullYear() + 543;
+  sel.innerHTML = '<option value="">-- เลือกปี --</option>';
+  for(let y = thisYear - 1; y >= thisYear - 5; y--){
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = 'พ.ศ. ' + y;
+    sel.appendChild(opt);
+  }
+}
+
+function previewArchive(){
+  const yearBE = parseInt(document.getElementById('archive-year').value);
+  const btn    = document.getElementById('archive-btn');
+  const hint   = document.getElementById('archive-hint');
+  const preview= document.getElementById('archive-preview');
+  const countEl= document.getElementById('archive-count');
+
+  if(!yearBE){
+    btn.disabled = true; btn.style.opacity = '.5';
+    if(hint) hint.style.display = '';
+    preview.style.display = 'none';
+    countEl.textContent = '';
+    return;
+  }
+
+  // cutoff: 31 ธ.ค. ของปี BE ที่เลือก = 31 ธ.ค. ของปี CE (BE-543)
+  const cutoffCE = yearBE - 543;
+  const cutoffStr = `${cutoffCE}-12-31`;
+
+  // นับ bookings ที่ checkOut <= cutoffStr และยังอยู่ใน ST.bookings
+  const toArchive = ST.bookings.filter(b =>
+    b.checkOut && b.checkOut <= cutoffStr &&
+    b.status !== 'reserved' // archive เฉพาะที่ไม่ใช่ reserved ที่ยังไม่เข้าพัก
+  );
+  const totalAll = ST.bookings.filter(b => b.checkOut && b.checkOut <= cutoffStr);
+
+  countEl.innerHTML = toArchive.length
+    ? `<span style="color:var(--gold);font-weight:600;">พบ ${toArchive.length} รายการ</span> ที่จะถูก Archive`
+    : `<span style="color:var(--text2);">ไม่พบข้อมูลที่จะ Archive สำหรับปี ${yearBE}</span>`;
+
+  if(!toArchive.length){
+    btn.disabled = true; btn.style.opacity = '.5';
+    preview.style.display = 'none';
+    return;
+  }
+
+  // preview สรุป
+  const statuses = {};
+  toArchive.forEach(b => { statuses[b.status] = (statuses[b.status]||0)+1; });
+  const statusRows = Object.entries(statuses).map(([s,c])=>
+    `<span style="font-size:12px;color:var(--text2);">${statusBadge(s)} ${c} รายการ</span>`
+  ).join('  ');
+
+  preview.style.display = '';
+  preview.innerHTML = `
+    <div style="background:rgba(200,168,74,.07);border:1px solid rgba(200,168,74,.2);border-radius:8px;padding:12px 14px;font-size:13px;">
+      <div style="font-weight:600;color:var(--gold);margin-bottom:8px;">📋 สรุปที่จะถูก Archive ไปไว้ใน <code>bookings_${yearBE}</code></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="color:var(--text2);">จำนวนทั้งหมด: <strong style="color:var(--text);">${toArchive.length} รายการ</strong></div>
+        <div style="color:var(--text2);">checkOut ก่อน: <strong style="color:var(--text);">1 ม.ค. ${yearBE+1}</strong></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">${statusRows}</div>
+    </div>`;
+
+  btn.disabled = false; btn.style.opacity = '1';
+  if(hint) hint.style.display = 'none';
+}
+
+async function doArchive(){
+  const yearBE = parseInt(document.getElementById('archive-year').value);
+  if(!yearBE){ alert('กรุณาเลือกปีก่อน'); return; }
+
+  if(!confirm(
+    `⚠️ ยืนยันการ Archive ข้อมูลปี พ.ศ. ${yearBE}?
+
+` +
+    `ข้อมูลจะถูกย้ายไป Sheet "bookings_${yearBE}"
+` +
+    `แนะนำให้ Backup ก่อนดำเนินการ
+
+` +
+    `ดำเนินการต่อ?`
+  )) return;
+
+  _showLoading(`กำลัง Archive ข้อมูลปี ${yearBE}...`);
+  try{
+    const res = await _gasCall('archiveBookings', { yearBE });
+    _hideLoading();
+    if(res.error){ alert('❌ Archive ล้มเหลว: ' + res.error); return; }
+
+    // ลบ bookings ที่ archive ออกจาก ST.bookings
+    const cutoffCE = yearBE - 543;
+    const cutoffStr = `${cutoffCE}-12-31`;
+    const before = ST.bookings.length;
+    ST.bookings = ST.bookings.filter(b => !b.checkOut || b.checkOut > cutoffStr);
+    const removed = before - ST.bookings.length;
+
+    document.getElementById('archive-result').innerHTML = `
+      <div style="background:rgba(78,196,138,.1);border:1px solid rgba(78,196,138,.3);border-radius:8px;padding:12px;font-size:13px;">
+        ✅ <strong>Archive สำเร็จ</strong><br>
+        ย้าย <strong>${res.archived}</strong> รายการ ไปที่ Sheet <code>bookings_${yearBE}</code><br>
+        <span style="color:var(--text2);font-size:12px;">Sheet หลักเหลือ ${ST.bookings.length} รายการ</span>
+      </div>`;
+
+    // reset form
+    document.getElementById('archive-year').value = '';
+    document.getElementById('archive-btn').disabled = true;
+    document.getElementById('archive-btn').style.opacity = '.5';
+    document.getElementById('archive-preview').style.display = 'none';
+    document.getElementById('archive-count').textContent = '';
+    const hint = document.getElementById('archive-hint');
+    if(hint) hint.style.display = '';
+
+  }catch(e){
+    _hideLoading();
+    alert('❌ ' + e.message);
+  }
 }
 
 /* ── Auto-restore session เมื่อ refresh ── */
