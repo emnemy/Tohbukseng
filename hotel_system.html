@@ -329,6 +329,7 @@ tfoot td{border-top:1px solid var(--border);}
           <button onclick="resetCustomColor()" title="รีเซ็ต" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:0 2px;">↺</button>
         </div>
       </div>
+      <button class="btn btn-secondary btn-full btn-sm" onclick="openChangePwModal()" style="margin-bottom:4px;">🔑 เปลี่ยนรหัสผ่าน</button>
       <button class="btn btn-secondary btn-full btn-sm" onclick="doLogout()">ออกจากระบบ</button>
       <button class="btn btn-secondary btn-full btn-sm" style="margin-top:4px;font-size:11px;opacity:.6;"
         onclick="if(confirm('ล้างการตั้งค่า URL และ Key?\nต้องใส่ใหม่ในครั้งถัดไป')){localStorage.removeItem('hms_gas_url');localStorage.removeItem('hms_gas_key');doLogout();window.location.reload();}">⚙ รีเซ็ตการตั้งค่า</button>
@@ -652,6 +653,34 @@ tfoot td{border-top:1px solid var(--border);}
     </div>
 
   </main>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div id="chpw-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;align-items:center;justify-content:center;">
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:28px;width:min(420px,96vw);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-size:16px;font-weight:700;color:var(--gold);">🔑 เปลี่ยนรหัสผ่าน</div>
+      <button onclick="closeChangePwModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="chpw-user-info" style="font-size:13px;color:var(--text2);margin-bottom:16px;padding:8px 12px;background:var(--bg2);border-radius:8px;"></div>
+    <div style="margin-bottom:12px;">
+      <label class="form-label">รหัสผ่านปัจจุบัน</label>
+      <input type="password" class="form-input" id="chpw-old" placeholder="ใส่รหัสผ่านปัจจุบัน">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="form-label">รหัสผ่านใหม่</label>
+      <input type="password" class="form-input" id="chpw-new" placeholder="ใส่รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
+      <input type="password" class="form-input" id="chpw-confirm" placeholder="ใส่รหัสผ่านใหม่อีกครั้ง">
+    </div>
+    <div id="chpw-error" style="display:none;color:#ff6b6b;font-size:13px;margin-bottom:12px;padding:8px 12px;background:rgba(220,60,60,.1);border-radius:6px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-secondary btn-sm" onclick="closeChangePwModal()">ยกเลิก</button>
+      <button class="btn btn-primary btn-sm" onclick="doChangePassword()">💾 บันทึก</button>
+    </div>
+  </div>
 </div>
 
 <!-- EXTRA CHARGES MODAL -->
@@ -4556,6 +4585,79 @@ async function doArchive(){
   }catch(e){
     _hideLoading();
     alert('❌ ' + e.message);
+  }
+}
+
+/* ════════════════════════════════════════
+   CHANGE PASSWORD
+════════════════════════════════════════ */
+function openChangePwModal(){
+  if(!ST.currentUser){ alert('กรุณา Login ก่อน'); return; }
+  document.getElementById('chpw-user-info').textContent =
+    'ผู้ใช้: ' + ST.currentUser.name + ' (' + ST.currentUser.username + ')';
+  document.getElementById('chpw-old').value = '';
+  document.getElementById('chpw-new').value = '';
+  document.getElementById('chpw-confirm').value = '';
+  document.getElementById('chpw-error').style.display = 'none';
+  const ov = document.getElementById('chpw-overlay');
+  ov.style.display = 'flex';
+  setTimeout(()=>document.getElementById('chpw-old').focus(), 100);
+}
+
+function closeChangePwModal(){
+  document.getElementById('chpw-overlay').style.display = 'none';
+}
+
+async function doChangePassword(){
+  const oldPw  = document.getElementById('chpw-old').value;
+  const newPw  = document.getElementById('chpw-new').value;
+  const confirm= document.getElementById('chpw-confirm').value;
+  const errEl  = document.getElementById('chpw-error');
+
+  const showErr = msg => {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  };
+
+  errEl.style.display = 'none';
+
+  if(!oldPw)              return showErr('กรุณาใส่รหัสผ่านปัจจุบัน');
+  if(!newPw)              return showErr('กรุณาใส่รหัสผ่านใหม่');
+  if(newPw.length < 4)   return showErr('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัว');
+  if(newPw !== confirm)  return showErr('รหัสผ่านใหม่ไม่ตรงกัน');
+  if(oldPw === newPw)    return showErr('รหัสผ่านใหม่ต้องไม่เหมือนเดิม');
+
+  _showLoading('กำลังตรวจสอบ...');
+  try{
+    // ตรวจ password เดิมก่อนผ่าน verifyLogin
+    const verify = await _gasCall('verifyLogin',{
+      username: ST.currentUser.username,
+      password: oldPw,
+    });
+    if(!verify || !verify.success){
+      _hideLoading();
+      return showErr('รหัสผ่านปัจจุบันไม่ถูกต้อง');
+    }
+
+    // บันทึก password ใหม่ผ่าน saveUser
+    _showLoading('กำลังบันทึกรหัสผ่านใหม่...');
+    const userObj = ST.users.find(u => u.id === ST.currentUser.id);
+    if(!userObj){ _hideLoading(); return showErr('ไม่พบข้อมูลผู้ใช้'); }
+
+    const res = await _gasCall('saveUser', { ...userObj, password: newPw });
+    _hideLoading();
+
+    if(res && res.error){ return showErr('บันทึกไม่สำเร็จ: ' + res.error); }
+
+    // อัปเดต ST.users local
+    const idx = ST.users.findIndex(u => u.id === ST.currentUser.id);
+    if(idx !== -1) ST.users[idx].password = newPw;
+
+    closeChangePwModal();
+    alert('✅ เปลี่ยนรหัสผ่านสำเร็จ');
+  }catch(e){
+    _hideLoading();
+    showErr('เกิดข้อผิดพลาด: ' + e.message);
   }
 }
 
