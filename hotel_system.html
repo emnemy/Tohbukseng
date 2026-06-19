@@ -1338,7 +1338,7 @@ function renderDashMonthly(){
   const s=calcMonthlyStats(year,month);
   const MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
     'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-  const periodNote=s.isCurrent?`ถึงวันที่ ${fmtDate(s.cutoffStr)} (ข้อมูลที่เกิดขึ้นจริง)`:
+  const periodNote=s.isCurrent?`ถึงวันที่ ${fmtDate(s.cutoffStr)}`:
     `ทั้งเดือน ${MONTHS[month]} ${year+543}`;
 
   document.getElementById('dash-monthly-stats').innerHTML=`
