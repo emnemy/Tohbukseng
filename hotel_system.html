@@ -795,7 +795,7 @@ const S_RES='reserved', S_CI='checkedin', S_CO='checkedout', S_CANCEL='cancelled
    STORE
 ════════════════════════════════════════ */
 let ST={
-  users:[{id:'admin',username:'tbsadmin',password:'tbsadmin',name:'Administrator',role:'admin'}],
+  users:[],
   bookings:[], currentUser:null
 };
 let pickRooms=[], editingId=null, assignId=null;
@@ -1082,8 +1082,7 @@ async function load(){
       _gasCall('getCharges'),
     ]);
     ST.bookings=Array.isArray(bookings)?bookings.map(_migrateBk):[];
-    ST.users=Array.isArray(users)&&users.length?users
-      :[{id:'admin',username:'tbsadmin',password:'tbsadmin',name:'Administrator',role:'admin'}];
+    ST.users=Array.isArray(users)&&users.length?users:[];
     _folioMap=folio||{};
     ST.charges={};
     if(Array.isArray(charges)){
@@ -1141,11 +1140,10 @@ async function doLogin(){
     if(res&&res.success) found=res.user;
     else { _hideLoading(); document.getElementById('login-error').style.display='block'; return; }
   }catch(e){
-    // fallback: เทียบ local ถ้า network ล้มเหลว
-    const users=ST.users||[];
-    const local=users.find(x=>sval(x.username).trim()===u&&sval(x.password)===p);
-    if(!local){ _hideLoading(); document.getElementById('login-error').style.display='block'; return; }
-    found={id:local.id,username:local.username,name:local.name,role:local.role};
+    // ไม่อนุญาต login offline — ป้องกัน hardcoded credential bypass
+    _hideLoading();
+    alert('❌ ไม่สามารถเชื่อมต่อระบบได้\nกรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
+    return;
   }
   _hideLoading();
   if(!found){document.getElementById('login-error').style.display='block';return;}
