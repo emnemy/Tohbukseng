@@ -959,7 +959,18 @@ async function _gasCallDirect(action, body){
   const opts=body
     ?{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}
     :{method:'GET'};
-  const res=await fetch(url,{...opts,redirect:'follow'});
+  // timeout 30 วิ — ป้องกัน loading ค้างไม่มีกำหนด
+  const controller = new AbortController();
+  const tid = setTimeout(()=>controller.abort(), 30000);
+  let res;
+  try{
+    res = await fetch(url,{...opts, redirect:'follow', signal:controller.signal});
+  } catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError') throw new Error('หมดเวลาเชื่อมต่อ (30 วิ) — กรุณาลองใหม่');
+    throw e;
+  }
+  clearTimeout(tid);
   const text=await res.text();
   let data;
   try{data=JSON.parse(text);}catch(e){throw new Error('Parse error: '+text.slice(0,200));}
