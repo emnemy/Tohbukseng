@@ -75,6 +75,7 @@ textarea.form-input{resize:vertical;}
 .nav-icon{font-size:14px;width:17px;text-align:center;}
 .sidebar-footer{margin-top:auto;padding:13px 18px;border-top:1px solid var(--border);}
 .sf-name{font-size:14px;font-weight:600;} .sf-role{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.queue-badge{display:none;font-size:10px;padding:3px 8px;background:rgba(212,120,50,.18);color:var(--orange,#d47832);border:1px solid rgba(212,120,50,.35);border-radius:12px;margin-bottom:6px;text-align:center;}
 
 .main-content{margin-left:228px;padding:20px 24px;min-height:100vh;}
 .page{display:none;} .page.active{display:block;}
@@ -300,6 +301,7 @@ tfoot td{border-top:1px solid var(--border);}
     <div class="sidebar-footer">
       <div class="sf-name" id="sf-name">-</div>
       <div class="sf-role" id="sf-role">-</div>
+      <div class="queue-badge" id="_queue_badge"></div>
       <!-- Theme Switcher -->
       <div style="margin-bottom:10px;">
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">ธีมสี</div>
@@ -896,8 +898,63 @@ function _showLoading(msg){
 }
 function _hideLoading(){const el=document.getElementById('_gas_loading');if(el)el.style.display='none';}
 
-/* ── API helper ── */
-async function _gasCall(action,body){
+/* ── Offline Queue System ── */
+const _QUEUE_KEY = 'hms_offline_queue';
+
+function _queueGet(){
+  try{ return JSON.parse(localStorage.getItem(_QUEUE_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+function _queueSave(q){
+  try{ localStorage.setItem(_QUEUE_KEY, JSON.stringify(q)); }
+  catch(e){ console.warn('Queue save failed:', e); }
+}
+function _queueAdd(action, body){
+  const q = _queueGet();
+  q.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2), action, body, addedAt: new Date().toISOString() });
+  _queueSave(q);
+  _queueBadgeUpdate();
+}
+function _queueBadgeUpdate(){
+  const q = _queueGet();
+  const badge = document.getElementById('_queue_badge');
+  if(!badge) return;
+  if(q.length > 0){
+    badge.textContent = '⏳ Pending '+q.length+' รายการ';
+    badge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+async function _queueFlush(){
+  const q = _queueGet();
+  if(!q.length) return;
+  console.log('[Queue] Flushing', q.length, 'items...');
+  const failed = [];
+  for(const item of q){
+    try{
+      await _gasCallDirect(item.action, item.body);
+      console.log('[Queue] Sent:', item.action);
+    } catch(e){
+      console.warn('[Queue] Still failed:', item.action, e.message);
+      failed.push(item);
+    }
+  }
+  _queueSave(failed);
+  _queueBadgeUpdate();
+  if(failed.length === 0 && q.length > 0){
+    console.log('[Queue] All items sent successfully');
+  }
+}
+
+// Auto-retry เมื่อ internet กลับมา
+window.addEventListener('online', ()=>{
+  console.log('[Queue] Network online — flushing queue...');
+  setTimeout(_queueFlush, 1000); // รอ 1 วิให้ connection มั่นคงก่อน
+});
+
+/* ── API helper (direct — ไม่ผ่าน queue) ── */
+async function _gasCallDirect(action, body){
   const url=`${GAS_URL}?action=${action}&key=${GAS_KEY}`;
   const opts=body
     ?{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}
@@ -908,6 +965,26 @@ async function _gasCall(action,body){
   try{data=JSON.parse(text);}catch(e){throw new Error('Parse error: '+text.slice(0,200));}
   if(data&&data.error) throw new Error(data.error);
   return data;
+}
+
+/* ── API helper (เดิม — ถ้า network ตาย จะเก็บลง queue อัตโนมัติ) ── */
+async function _gasCall(action,body){
+  // GET actions (read-only) ไม่ queue — ถ้าออฟไลน์ให้ throw ตามปกติ
+  const READ_ACTIONS = ['getBookings','getUsers','getFolio','getCharges','getFolio',
+                        'getBackupLogs','getErrorLogs','getNextBookingId','verifyLogin'];
+  try{
+    return await _gasCallDirect(action, body);
+  } catch(e){
+    // ถ้าเป็น network error (ไม่ใช่ server error) และเป็น write action → queue
+    const isNetworkErr = (e instanceof TypeError) || e.message.includes('Failed to fetch') || e.message.includes('NetworkError');
+    const isWriteAction = !READ_ACTIONS.includes(action);
+    if(isNetworkErr && isWriteAction && body){
+      console.warn('[Queue] Network error on', action, '— queuing for retry');
+      _queueAdd(action, body);
+      throw new Error('ไม่มีอินเทอร์เน็ต — บันทึกข้อมูลไว้ในคิวแล้ว จะส่งอัตโนมัติเมื่อออนไลน์');
+    }
+    throw e;
+  }
 }
 
 /* ── migrate helper (ใช้ร่วมกัน) ── */
@@ -1032,6 +1109,8 @@ function doLogout(){
 }
 document.getElementById('lg-pass').onkeypress=e=>{if(e.key==='Enter')doLogin();};
 document.getElementById('lg-user').onkeypress=e=>{if(e.key==='Enter')document.getElementById('lg-pass').focus();};
+// init queue badge (แสดงจำนวนที่ค้างตั้งแต่ตอน load)
+_queueBadgeUpdate();
 
 /* ════════════════════════════════════════
    NAVIGATION
