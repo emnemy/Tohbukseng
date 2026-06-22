@@ -802,9 +802,9 @@ let pickRooms=[], editingId=null, assignId=null;
 
 /* ════════════════════════════════════════
    PERMISSION HELPERS
-   admin   = สิทธิ์เต็ม (จัดการ user, แก้ไข/ยกเลิกการจอง, เช็คอิน/เอาท์)
-   manager = แก้ไข/ยกเลิกการจอง, เช็คอิน/เอาท์ได้ ไม่จัดการ user
-   staff   = ดูข้อมูล, เช็คอิน/เช็คเอาท์เท่านั้น ไม่แก้ไข/ยกเลิกการจอง
+   admin   = สิทธิ์เต็ม (จัดการ user, สร้าง/แก้ไข/ยกเลิกการจอง, เช็คอิน/เอาท์)
+   manager = สร้าง/แก้ไข/ยกเลิกการจอง, เช็คอิน/เอาท์ได้ ไม่จัดการ user
+   staff   = สร้าง/แก้ไข/ยกเลิกการจอง, เช็คอิน/เช็คเอาท์ได้ ไม่จัดการ user
 ════════════════════════════════════════ */
 function getRole(){ return ST.currentUser?.role||'staff'; }
 function canManageUsers(){ return getRole()==='admin'||getRole()==='manager'; }
@@ -813,7 +813,7 @@ function canCancelBooking(){ return true; }  // ทุก role ทำได้
 function canCheckin(){ return true; }
 function canCheckout(){ return true; }
 function canCreateBooking(){ return true; }  // ทุก role ทำได้
-function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเนินการ: ${action}\nกรุณาติดต่อ Admin หรือ Manager`); }
+function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเนินการ: ${action}\nกรุณาติดต่อ Admin`); }
 
 /* ════════════════════════════════════════
    GOOGLE SHEETS CONFIG
@@ -884,7 +884,10 @@ const GAS_KEY = window._GAS_KEY;
 // ⚠️  หมายเหตุ: แก้ Code.gs → ลบโค้ดส่วน "ลบ backup เก่าเกิน 30 วัน" ออก (บรรทัดประมาณ 347-354)
 
 /* ── Loading overlay ── */
+let _isSaving = false; // double-submit lock
+
 function _showLoading(msg){
+  _isSaving = true;
   let el=document.getElementById('_gas_loading');
   if(!el){
     el=document.createElement('div');
@@ -896,13 +899,56 @@ function _showLoading(msg){
   document.getElementById('_gas_msg').textContent=msg||'กำลังโหลด...';
   el.style.display='flex';
 }
-function _hideLoading(){const el=document.getElementById('_gas_loading');if(el)el.style.display='none';}
+function _hideLoading(){
+  _isSaving = false;
+  const el=document.getElementById('_gas_loading');
+  if(el)el.style.display='none';
+}
+// guard: ใช้ก่อน _showLoading ในทุก action ที่เขียนข้อมูล
+function _guardSave(label){
+  if(_isSaving){
+    console.warn('[Guard] ยังบันทึกอยู่ — blocked duplicate:', label);
+    return true; // true = ให้ caller return ออกทันที
+  }
+  return false;
+}
+
+/* ── Auto-logout เมื่อ idle ── */
+const _IDLE_LIMIT = 4 * 60 * 60 * 1000; // 4 ชั่วโมง (ms)
+let _idleTimer = null;
+function _resetIdleTimer(){
+  clearTimeout(_idleTimer);
+  if(!ST.currentUser) return; // ยังไม่ login ไม่ต้องนับ
+  _idleTimer = setTimeout(()=>{
+    if(!ST.currentUser) return;
+    alert('⏰ ระบบออกจากบัญชีอัตโนมัติ\nเนื่องจากไม่มีการใช้งานนาน 4 ชั่วโมง');
+    doLogout();
+  }, _IDLE_LIMIT);
+}
+// นับ activity จาก click / keydown / touchstart
+['click','keydown','touchstart'].forEach(ev=>{
+  document.addEventListener(ev, _resetIdleTimer, {passive:true});
+});
 
 /* ── Offline Queue System ── */
 const _QUEUE_KEY = 'hms_offline_queue';
 
 function _queueGet(){
-  try{ return JSON.parse(localStorage.getItem(_QUEUE_KEY)||'[]'); }
+  try{
+    const raw = JSON.parse(localStorage.getItem(_QUEUE_KEY)||'[]');
+    const EXPIRE_MS = 24 * 60 * 60 * 1000; // 24 ชั่วโมง
+    const now = Date.now();
+    const valid = raw.filter(item => {
+      if(!item.addedAt) return false; // ไม่มี timestamp ทิ้งทิ้งทิ้ง
+      return (now - new Date(item.addedAt).getTime()) < EXPIRE_MS;
+    });
+    // ถ้ามีของหมดอายุ ให้ save ทันทีเพื่อล้างออก
+    if(valid.length !== raw.length){
+      try{ localStorage.setItem(_QUEUE_KEY, JSON.stringify(valid)); }catch(_){}
+      console.log('[Queue] Removed', raw.length - valid.length, 'expired item(s)');
+    }
+    return valid;
+  }
   catch(e){ return []; }
 }
 function _queueSave(q){
@@ -981,15 +1027,19 @@ async function _gasCallDirect(action, body){
 /* ── API helper (เดิม — ถ้า network ตาย จะเก็บลง queue อัตโนมัติ) ── */
 async function _gasCall(action,body){
   // GET actions (read-only) ไม่ queue — ถ้าออฟไลน์ให้ throw ตามปกติ
-  const READ_ACTIONS = ['getBookings','getUsers','getFolio','getCharges','getFolio',
-                        'getBackupLogs','getErrorLogs','getNextBookingId','verifyLogin'];
+  // READ_ACTIONS = ถ้าออฟไลน์จะ throw ตามปกติ (ไม่ queue เพราะอ่านข้อมูล)
+  const READ_ACTIONS = ['getBookings','getUsers','getFolio','getCharges',
+                        'getBackupLogs','getErrorLogs','verifyLogin'];
+  // NEVER_QUEUE = write actions ที่ห้าม queue เพราะต้องการ response กลับมา (เช่น ID)
+  const NEVER_QUEUE = ['getNextBookingId','backup','archiveBookings','restoreBackup'];
   try{
     return await _gasCallDirect(action, body);
   } catch(e){
     // ถ้าเป็น network error (ไม่ใช่ server error) และเป็น write action → queue
     const isNetworkErr = (e instanceof TypeError) || e.message.includes('Failed to fetch') || e.message.includes('NetworkError');
     const isWriteAction = !READ_ACTIONS.includes(action);
-    if(isNetworkErr && isWriteAction && body){
+    const canQueue = !NEVER_QUEUE.includes(action);
+    if(isNetworkErr && isWriteAction && canQueue && body){
       console.warn('[Queue] Network error on', action, '— queuing for retry');
       _queueAdd(action, body);
       throw new Error('ไม่มีอินเทอร์เน็ต — บันทึกข้อมูลไว้ในคิวแล้ว จะส่งอัตโนมัติเมื่อออนไลน์');
@@ -1107,11 +1157,13 @@ async function doLogin(){
   const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
   document.getElementById('sf-role').textContent=roleLabel;
   document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+  _resetIdleTimer(); // เริ่มนับ idle หลัง login
   await load();
   showPage('dashboard');
 }
 function doLogout(){
   ST.currentUser=null;
+  clearTimeout(_idleTimer); // หยุดนับ idle
   try{sessionStorage.removeItem('hms_session');}catch(e){}
   document.getElementById('app').style.display='none';
   document.getElementById('login-page').style.display='flex';
@@ -1876,6 +1928,7 @@ function renderArrival(){
 }
 
 async function cancelRes(id){
+  if(_guardSave('cancelRes')) return;
   if(!canCancelBooking()){permDeny('ยกเลิกการจอง');return;}
   if(!confirm('ยกเลิกการจองนี้?')) return;
   const b=ST.bookings.find(x=>x.id===id);
@@ -2170,6 +2223,7 @@ function calcDisplay(){
 }
 
 async function saveReservation(){
+  if(_guardSave('saveReservation')) return;
   if(editingId&&!canEditBooking()){permDeny('แก้ไขการจอง');return;}
   if(!editingId&&!canCreateBooking()){permDeny('สร้างการจอง');return;}
   const name=gv('f-name').trim();
@@ -2186,15 +2240,18 @@ async function saveReservation(){
   const totalRm=formRates.reduce((s,r)=>s+(parseInt(r.count)||1),0);
   const guestType=document.querySelector('input[name="f-gtype"]:checked')?.value||'personal';
   // ดึง Booking ID ใหม่จาก Sheets (R+6หลัก)
+  // ⚠️ ไม่ใช้ fallback ID — ถ้าออฟไลน์ให้หยุดทันที ป้องกัน ID ชนกันใน Sheets
   let _newBookingId = editingId || null;
   if(!editingId){
     _showLoading('กำลังสร้างรหัสการจอง...');
     try{
       const res = await _gasCall('getNextBookingId');
+      if(!res || !res.id) throw new Error('ไม่ได้รับรหัสการจองจาก server');
       _newBookingId = res.id;
     }catch(e){
-      // fallback: ใช้ timestamp ถ้า Sheets ไม่ตอบ
-      _newBookingId = 'R'+String(Date.now()).slice(-6)+Math.random().toString(36).slice(2,3).toUpperCase();
+      _hideLoading();
+      alert('❌ ไม่สามารถสร้างรหัสการจองได้\n' + e.message + '\n\nกรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่');
+      return; // หยุดการบันทึก — ไม่ใช้ fallback ID
     }
     _hideLoading();
   }
@@ -2389,6 +2446,7 @@ function renderCheckin(){
 }
 
 async function doCheckinAction(id){
+  if(_guardSave('doCheckinAction')) return;
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
   if(b.rooms&&b.rooms.length>0){
@@ -2901,6 +2959,7 @@ function renderCheckout(){
     <tbody>${rows}</tbody></table>`;
 }
 async function doCheckout(id){
+  if(_guardSave('doCheckout')) return;
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
   if(!confirm(`ยืนยันเช็คเอาท์ ${b.guestName} ?`)) return;
@@ -3006,6 +3065,7 @@ function openAddUserModal(){
     </div>`);
 }
 async function saveUser(){
+  if(_guardSave('saveUser')) return;
   if(!canManageUsers()){permDeny('จัดการผู้ใช้งาน');return;}
   const usr=gv('nu-usr').trim(),name=gv('nu-name').trim(),pass=gv('nu-pass'),role=gv('nu-role');
   if(!usr||!name||!pass){alert('กรุณากรอกข้อมูลให้ครบ');return;}
@@ -4765,6 +4825,7 @@ async function doChangePassword(){
     const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
     document.getElementById('sf-role').textContent=roleLabel;
     document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+    _resetIdleTimer(); // เริ่มนับ idle หลัง restore session
     await load();
     showPage('dashboard');
   }catch(e){
@@ -4875,6 +4936,7 @@ function deleteEcItem(idx){
 }
 
 async function saveEcCharges(){
+  if(_guardSave('saveEcCharges')) return;
   const charges=ST.charges[_ecBookingId]||[];
   _showLoading('กำลังบันทึก Extra Charges...');
   try{
