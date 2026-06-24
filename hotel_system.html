@@ -2294,7 +2294,38 @@ async function saveReservation(){
     const idx=ST.bookings.findIndex(b=>b.id===editingId);
     if(idx>=0){
       const old=ST.bookings[idx];
-      const historyEntry={by:ST.currentUser.username,name:ST.currentUser.name,at:new Date().toISOString(),action:'แก้ไข'};
+
+      // ── สร้าง diff รายการที่เปลี่ยน ──
+      const _diffLabel={
+        guestName:'ชื่อแขก', nationality:'สัญชาติ', company:'บริษัท',
+        phone:'โทรศัพท์', taxId:'เลขภาษี', address:'ที่อยู่',
+        checkIn:'เช็คอิน', checkOut:'เช็คเอาท์',
+        guestCount:'จำนวนผู้พัก', childCount:'เด็ก',
+        payment:'การชำระ', remarks:'หมายเหตุ',
+        includeBreakfast:'อาหารเช้า', noBreakfast:'ไม่รวมอาหารเช้า',
+        extraBed:'เตียงเสริม', guestType:'ประเภทแขก',
+        roomPrice:'ราคาห้อง', groupId:'กลุ่ม',
+      };
+      const _fmtVal = v => {
+        if(v===true||v==='true') return 'ใช่';
+        if(v===false||v==='false'||v===''||v===null||v===undefined) return '-';
+        return String(v);
+      };
+      const diffs=[];
+      for(const [k,label] of Object.entries(_diffLabel)){
+        const ov=_fmtVal(old[k]), nv=_fmtVal(obj[k]);
+        if(ov!==nv) diffs.push(`${label}: ${ov}→${nv}`);
+      }
+      // ตรวจห้องพัก
+      const oldRooms=(old.rooms||[]).slice().sort((a,b)=>a-b).join(',');
+      const newRooms=[...pickRooms].sort((a,x)=>a-x).join(',');
+      if(oldRooms!==newRooms) diffs.push(`ห้อง: ${oldRooms||'-'}→${newRooms||'-'}`);
+
+      const actionText = diffs.length
+        ? 'แก้ไข: ' + diffs.join(' | ')
+        : 'แก้ไข (ไม่มีการเปลี่ยนแปลง)';
+
+      const historyEntry={by:ST.currentUser.username,name:ST.currentUser.name,at:new Date().toISOString(),action:actionText};
       const history=[...(old.history||[]),historyEntry];
       ST.bookings[idx]={...obj,status:old.status,createdAt:old.createdAt,createdBy:old.createdBy,
         checkedInBy:old.checkedInBy,checkedInAt:old.checkedInAt,
