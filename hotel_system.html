@@ -47,7 +47,7 @@ textarea.form-input{resize:vertical;}
 .form-check{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;white-space:nowrap;}
 .form-check input{accent-color:var(--gold);width:15px;height:15px;}
 .error-box{background:rgba(223,88,88,.1);border:1px solid rgba(223,88,88,.3);border-radius:var(--radius);
-  padding:9px 13px;color:var(--red);font-size:13px;margin-bottom:14px;display:none;}
+  padding:10px 13px;color:var(--red);font-size:13px;margin-bottom:14px;display:none;line-height:1.6;}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 18px;border-radius:var(--radius);
@@ -1154,25 +1154,51 @@ async function doLogin(){
     if(res&&res.success){
       found=res.user;
     } else {
-      // GAS ส่ง error กลับมาใน res.error (ไม่ใช่ exception)
       _hideLoading();
-      const msg=res&&res.error?res.error:'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
-      errEl.textContent='❌ '+msg;
-      errEl.style.display='block';
+      // แยกประเภท error จาก GAS
+      if(res&&res.error==='LOCKED'){
+        // ถูก lock แล้ว
+        errEl.innerHTML=
+          '<strong>🔒 บัญชีถูกล็อคชั่วคราว</strong><br>'+
+          'เนื่องจากใส่รหัสผ่านผิดครบ 5 ครั้ง<br>'+
+          'กรุณาลองใหม่ใน <strong>'+(res.lockMinutes||15)+' นาที</strong>';
+        errEl.style.display='block';
+      } else if(res&&res.error==='WRONG_PASSWORD'){
+        // รหัสผิด — แสดงจำนวนครั้งที่เหลือ
+        const left=res.attemptsLeft||0;
+        const max=res.maxAttempts||5;
+        if(left<=0){
+          errEl.innerHTML=
+            '<strong>🔒 บัญชีถูกล็อคชั่วคราว</strong><br>'+
+            'เนื่องจากใส่รหัสผ่านผิดครบ '+max+' ครั้ง<br>'+
+            'กรุณาลองใหม่ใน <strong>15 นาที</strong>';
+        } else {
+          const bar='█'.repeat(max-left)+'░'.repeat(left);
+          errEl.innerHTML=
+            '❌ <strong>รหัสผ่านไม่ถูกต้อง</strong><br>'+
+            'เหลือโอกาสอีก <strong style="color:#e57373;">'+left+' ครั้ง</strong> จาก '+max+' ครั้ง<br>'+
+            '<span style="font-family:monospace;letter-spacing:2px;font-size:13px;">'+bar+'</span><br>'+
+            '<small style="color:var(--text2);">หากผิดครบจะถูกล็อค 15 นาที</small>';
+        }
+        errEl.style.display='block';
+      } else {
+        // error อื่นๆ (เช่น missing fields)
+        const msg=res&&res.error?res.error:'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+        errEl.textContent='❌ '+msg;
+        errEl.style.display='block';
+      }
       return;
     }
   }catch(e){
     _hideLoading();
-    // แยก server error (รหัสผิด/ถูก lock) จาก network error
+    // แยก network error จาก server error อื่นๆ
     const isNetworkErr=(e instanceof TypeError)||
       e.message.includes('Failed to fetch')||
       e.message.includes('NetworkError')||
       e.message.includes('หมดเวลาเชื่อมต่อ');
     if(isNetworkErr){
-      // ไม่อนุญาต login offline — ป้องกัน hardcoded credential bypass
       alert('❌ ไม่สามารถเชื่อมต่อระบบได้\nกรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
     } else {
-      // server error: รหัสผิด, ถูก lock, ฯลฯ — แสดงข้อความจาก GAS ตรงๆ
       errEl.textContent='❌ '+e.message;
       errEl.style.display='block';
     }
