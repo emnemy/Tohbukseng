@@ -5025,6 +5025,21 @@ async function saveEcCharges(){
       bookingId:_ecBookingId,
       charges:charges,
     });
+    // บันทึก audit log ใน booking history
+    const _ecBk=ST.bookings.find(x=>x.id===_ecBookingId);
+    if(_ecBk){
+      const _ecNote=charges.length>0
+        ?`บันทึก Extra Charges ${charges.length} รายการ`
+        :'ลบ Extra Charges ทั้งหมด';
+      _ecBk.history=[...(_ecBk.history||[]),{
+        by:ST.currentUser.username,
+        name:ST.currentUser.name,
+        at:new Date().toISOString(),
+        action:_ecNote,
+      }];
+      // sync กลับ Sheets พร้อมกับ history ที่อัปเดต
+      await _gasCall('updateStatus',_ecBk);
+    }
     _hideLoading();
     alert('✅ บันทึก Extra Charges เรียบร้อย');
     closeEcModal();
