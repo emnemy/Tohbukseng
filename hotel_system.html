@@ -913,6 +913,17 @@ function _guardSave(label){
   return false;
 }
 
+/* ── XSS escape — ใช้ครอบทุก user-input ก่อนใส่ innerHTML ── */
+function esc(str){
+  if(str===null||str===undefined) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
 /* ── Auto-logout เมื่อ idle ── */
 const _IDLE_LIMIT = 4 * 60 * 60 * 1000; // 4 ชั่วโมง (ms)
 let _idleTimer = null;
@@ -1222,7 +1233,7 @@ function cellHtml(rn, date, pickMode, selRooms, from, to, excId){
     else { cls='room-vacant'; extra=`onclick="toggleRoom(${rn})"`; }
   } else {
     const{s,b}=roomStatusAt(rn,date);
-    const tip=b?`title="${b.guestName} (${b.checkIn}→${b.checkOut})"`:'' ;
+    const tip=b?`title="${esc(b.guestName)} (${b.checkIn}→${b.checkOut})"`:'' ;
     // จองค้างข้ามวัน = reserved แต่ checkIn ผ่านวันนี้ไปแล้ว
     const todayStr=today();
     const isOverdue=s==='res'&&b&&b.checkIn<todayStr&&date>=todayStr;
@@ -1557,8 +1568,8 @@ function renderDashboard(){
   if(!bks.length){document.getElementById('dash-table').innerHTML='<p style="color:var(--text2);padding:14px;text-align:center;">ไม่มีผู้เข้าพักวันนี้</p>';return;}
   let rows='';
   bks.forEach(b=>{
-    rows+=`<tr><td><strong>${roomsDisplay(b)}</strong></td><td>${b.guestName}</td>
-      <td>${b.company||'-'}</td><td>${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</td>
+    rows+=`<tr><td><strong>${roomsDisplay(b)}</strong></td><td>${esc(b.guestName)}</td>
+      <td>${esc(b.company||'-')}</td><td>${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</td>
       <td>${nights(b.checkIn,b.checkOut)}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
       <td>${payLabel(b.payment)}</td>
@@ -1738,7 +1749,7 @@ function printRoomChart(){
         <strong>${rn}</strong>
         <div style="font-size:9px;">${roomType(rn)}</div>
         <div style="font-size:8.5px;color:#555;">${lblMap[s]||'ว่าง'}</div>
-        ${b?`<div style="font-size:7.5px;color:#333;white-space:nowrap;overflow:hidden;max-width:76px;text-overflow:ellipsis;">${b.guestName}</div>`:''}
+        ${b?`<div style="font-size:7.5px;color:#333;white-space:nowrap;overflow:hidden;max-width:76px;text-overflow:ellipsis;">${esc(b.guestName)}</div>`:''}
       </div>`;
     });
     html+='</div>';
@@ -1778,7 +1789,7 @@ function showOverdueModal(){
   if(!overdue.length){alert('ไม่มีการจองค้าง');return;}
   let rows=overdue.map(b=>`<tr>
     <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
-    <td>${b.guestName}</td>
+    <td>${esc(b.guestName)}</td>
     <td>${fmtDate(b.checkIn)}</td>
     <td>${fmtDate(b.checkOut)}</td>
     <td style="color:#e05050;font-weight:700;">${Math.abs(nights(b.checkIn,d))} วัน</td>
@@ -1856,8 +1867,8 @@ function searchBookings(){
     rows+=`<tr>
       <td>${statusBadge(b.status)}</td>
       <td style="font-size:12px;color:var(--text2);">${b.id||"-"}</td>
-      <td><strong>${b.guestName}</strong><br><small class="text-muted">${b.nationality||''}</small></td>
-      <td>${b.company||'-'}</td>
+      <td><strong>${esc(b.guestName)}</strong><br><small class="text-muted">${esc(b.nationality||'')}</small></td>
+      <td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${roomsDisplay(b)}</td>
       <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
@@ -1867,7 +1878,7 @@ function searchBookings(){
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-secondary" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
         ${canCancelBooking()&&b.status===S_RES?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
-        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${b.groupId}')">🔗 Group</button>`:''}
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')">🔗 Group</button>`:''}
         ${b.status===S_CI?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="doCheckout('${b.id}')">เช็คเอาท์</button>`:''}
       </td></tr>`;
   });
@@ -1903,7 +1914,7 @@ function renderArrival(){
     rows+=`<tr>
       <td>${statusBadge(b.status)}</td>
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
-      <td><strong>${b.guestName}</strong></td><td>${b.company||'-'}</td>
+      <td><strong>${esc(b.guestName)}</strong></td><td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${nights(b.checkIn,b.checkOut)}</td>
       <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
       <td style="text-align:right;">${t.toLocaleString()}</td>
@@ -1912,7 +1923,7 @@ function renderArrival(){
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-secondary" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
         ${canCancelBooking()&&b.status===S_RES?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
-        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${b.groupId}')">🔗 Group</button>`:''}
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')">🔗 Group</button>`:''}
       </td>
     </tr>`;
   });
@@ -2329,10 +2340,10 @@ function viewBooking(id){
         <div><div class="form-label">สถานะ</div>${statusBadge(b.status)}</div>
         <div><div class="form-label">ประเภทการจอง</div>${guestTypeLabel(b.guestType)}</div>
         <div><div class="form-label">รหัสการจอง</div><div class="text-sm text-muted">${b.id}</div></div>
-        <div><div class="form-label">ชื่อผู้เข้าพัก</div><div style="font-size:15px;font-weight:700;">${b.guestName}</div></div>
-        <div><div class="form-label">สัญชาติ</div>${b.nationality||'-'}</div>
-        <div><div class="form-label">บริษัท/หน่วยงาน</div>${b.company||'-'}</div>
-        <div><div class="form-label">เบอร์โทร</div>${b.phone||'-'}</div>
+        <div><div class="form-label">ชื่อผู้เข้าพัก</div><div style="font-size:15px;font-weight:700;">${esc(b.guestName)}</div></div>
+        <div><div class="form-label">สัญชาติ</div>${esc(b.nationality||'-')}</div>
+        <div><div class="form-label">บริษัท/หน่วยงาน</div>${esc(b.company||'-')}</div>
+        <div><div class="form-label">เบอร์โทร</div>${esc(b.phone||'-')}</div>
         <div><div class="form-label">ห้องพัก</div>
           <div style="font-size:15px;font-weight:700;color:var(--gold);">${roomsDisplay(b)}</div>
           ${b.rooms&&b.rooms.length?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">
@@ -2384,7 +2395,7 @@ function viewBooking(id){
           <div class="pb-total"><span>รวมทั้งสิ้น</span><span>${(rT+ecTotal).toLocaleString()} บาท</span></div>`;
         })()}
       </div>
-      ${b.remarks?`<div style="margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:6px;font-size:13px;color:var(--text2);">หมายเหตุ: ${b.remarks}</div>`:''}
+      ${b.remarks?`<div style="margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:6px;font-size:13px;color:var(--text2);">หมายเหตุ: ${esc(b.remarks)}</div>`:''}
       <hr class="divider">
       <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;">📋 ประวัติการดำเนินการ</div>
       <div style="display:flex;flex-direction:column;gap:4px;">
@@ -2426,8 +2437,8 @@ function renderCheckin(){
     const n=nights(b.checkIn,b.checkOut);
     rows+=`<tr>
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
-      <td><strong>${b.guestName}</strong><br><small class="text-muted">${b.nationality||''}</small></td>
-      <td>${b.company||'-'}</td>
+      <td><strong>${esc(b.guestName)}</strong><br><small class="text-muted">${esc(b.nationality||'')}</small></td>
+      <td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${b.includeBreakfast?guestCellText(b):'-'}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${calcSimpleTotal(b).toLocaleString()}</td>
@@ -2479,7 +2490,7 @@ function openAssignModal(id){
         <div style="background:rgba(200,168,74,.1);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:13px;">
           จองไว้ <strong style="color:var(--gold);font-size:15px;">${maxRooms}</strong> ห้อง
           | ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}
-          | ${b.guestName}
+          | ${esc(b.guestName)}
         </div>
         <div id="assign-counter" style="font-size:13px;color:var(--text2);">เลือกแล้ว 0 / ${maxRooms} ห้อง</div>
       </div>
@@ -2611,8 +2622,8 @@ function renderGuests(){
     sumRoomTotal+=comp?0:pricePerNight;
     html+=`<tr>
       <td><strong style="font-size:15px;color:var(--gold);">${rnStr}</strong></td>
-      <td>${b.guestName}<br><small class="text-muted">${b.nationality||''}</small></td>
-      <td>${b.company||'-'}</td>
+      <td>${esc(b.guestName)}<br><small class="text-muted">${esc(b.nationality||'')}</small></td>
+      <td>${esc(b.company||'-')}</td>
       <td>${guestTypeLabel(b.guestType)}</td>
       <td>${fmtDate(b.checkIn)}</td>
       <td style="${b.checkOut===d?'color:var(--orange);font-weight:700;':''}">
@@ -2628,7 +2639,7 @@ function renderGuests(){
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-warning" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
         <button class="btn btn-xs" style="margin-left:3px;background:rgba(200,168,74,.2);color:var(--gold);border:1px solid rgba(200,168,74,.5);" onclick="openEcModal('${b.id}')">💳 Charges</button>
-        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${b.groupId}')">🔗 Group Folio</button>`:''}
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')">🔗 Group Folio</button>`:''}
       </td></tr>`;
   });
   document.getElementById('gh-table').innerHTML=`<table>
@@ -2827,8 +2838,8 @@ function searchCheckoutHistory(){
     const n=nights(b.checkIn,b.checkOut);
     rows+=`<tr>
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
-      <td><strong>${b.guestName}</strong><br><small class="text-muted">${b.nationality||''}</small></td>
-      <td>${b.company||'-'}</td>
+      <td><strong>${esc(b.guestName)}</strong><br><small class="text-muted">${esc(b.nationality||'')}</small></td>
+      <td>${esc(b.company||'-')}</td>
       <td>${guestTypeLabel(b.guestType)}</td>
       <td>${fmtDate(b.checkIn)}</td>
       <td>${fmtDate(b.checkOut)}</td>
@@ -2893,7 +2904,7 @@ function printDepartureList(){
     const statusTxt=b.status===S_CO?'✅ เช็คเอาท์แล้ว':'⏳ รอเช็คเอาท์';
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
-      <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
+      <td>${esc(b.guestName)}</td><td>${esc(b.nationality||'-')}</td><td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${guestCellText(b)}</td>
       <td style="text-align:right;">${comp?'Comp.':(bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString())}</td>
@@ -2939,8 +2950,8 @@ function renderCheckout(){
   due.forEach(b=>{
     rows+=`<tr>
       <td><strong style="color:var(--gold);">${roomsDisplay(b)}</strong></td>
-      <td><strong>${b.guestName}</strong></td>
-      <td>${b.company||'-'}</td>
+      <td><strong>${esc(b.guestName)}</strong></td>
+      <td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkIn)}</td>
       <td style="color:var(--orange);font-weight:700;">${fmtDate(b.checkOut)}</td>
       <td>${nights(b.checkIn,b.checkOut)}</td>
@@ -2960,7 +2971,7 @@ async function doCheckout(id){
   if(_guardSave('doCheckout')) return;
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
-  if(!confirm(`ยืนยันเช็คเอาท์ ${b.guestName} ?`)) return;
+  if(!confirm(`ยืนยันเช็คเอาท์ ${esc(b.guestName)} ?`)) return;
   b.status=S_CO;
   b.checkedOutBy=ST.currentUser.username;
   b.checkedOutName=ST.currentUser.name;
@@ -2980,7 +2991,7 @@ function openGroupCOModal(){
   due.forEach(b=>{
     rows+=`<tr>
       <td><input type="checkbox" class="grp-co" value="${b.id}" style="accent-color:var(--gold);width:15px;height:15px;"></td>
-      <td>${roomsDisplay(b)}</td><td>${b.guestName}</td><td>${fmtDate(b.checkOut)}</td></tr>`;
+      <td>${roomsDisplay(b)}</td><td>${esc(b.guestName)}</td><td>${fmtDate(b.checkOut)}</td></tr>`;
   });
   showModal(`
     <div class="modal-hd"><div class="modal-title">🚪 Check-Out Group</div>
@@ -3037,7 +3048,7 @@ ${e.message}
 function renderUsers(){
   let rows='';
   ST.users.forEach(u=>{
-    rows+=`<tr><td>${u.username}</td><td>${u.name}</td>
+    rows+=`<tr><td>${esc(u.username)}</td><td>${esc(u.name)}</td>
       <td><span class="badge ${{admin:'badge-gold',manager:'badge-orange',staff:'badge-blue'}[u.role]||'badge-blue'}">${{admin:'Admin',manager:'Manager',staff:'Staff'}[u.role]||u.role}</span></td>
       <td>${u.id!=='admin'?`<button class="btn btn-xs btn-danger" onclick="delUser('${u.id}')">ลบ</button>`:'<span class="text-muted">-</span>'}</td></tr>`;
   });
@@ -3126,7 +3137,7 @@ function printDailySummary(){
     const bfTotal=bfCellText(b,comp);
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
-      <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
+      <td>${esc(b.guestName)}</td><td>${esc(b.nationality||'-')}</td><td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${guestCellText(b)}</td>
       <td style="text-align:right;">${comp?'Comp.':bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString()}</td>
@@ -3194,7 +3205,7 @@ function printArrival(){
     const displayBdRoom=bdRoomPr>0?bdRoomPr:(comp?0:rCost);
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
-      <td>${b.guestName}</td><td>${b.nationality||'-'}</td><td>${b.company||'-'}</td>
+      <td>${esc(b.guestName)}</td><td>${esc(b.nationality||'-')}</td><td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
       <td>${guestCellText(b)}</td>
       <td style="text-align:right;">${comp?'Comp.':displayBdRoom.toLocaleString()}</td>
@@ -3428,11 +3439,11 @@ function printGuestFolio(id){
 <!-- GUEST INFO -->
 <div style="color:#e07020;font-weight:700;font-size:12px;letter-spacing:1px;border-bottom:1.5px solid #e07020;padding-bottom:3px;margin-bottom:8px;">GUEST INFORMATION / ข้อมูลผู้เข้าพัก</div>
 <table width="100%" cellpadding="4" cellspacing="0" border="0" style="font-size:12px;margin-bottom:10px;">
-  <tr><td width="200" style="color:#888;">Guest Name (ชื่อ-นามสกุล)</td><td>:&nbsp;&nbsp;${b.guestName||'-'}</td></tr>
-  <tr><td style="color:#888;">Company Name (ชื่อบริษัท)</td><td>:&nbsp;&nbsp;${b.company||'-'}</td></tr>
-  <tr><td style="color:#888;">Address (ที่อยู่)</td><td>:&nbsp;&nbsp;${b.address||'-'}</td></tr>
-  <tr><td style="color:#888;">Telephone (โทรศัพท์)</td><td>:&nbsp;&nbsp;${b.phone||'-'}</td></tr>
-  <tr><td style="color:#888;">Tax ID / Passport No.</td><td>:&nbsp;&nbsp;${b.taxId||'-'}</td></tr>
+  <tr><td width="200" style="color:#888;">Guest Name (ชื่อ-นามสกุล)</td><td>:&nbsp;&nbsp;${esc(b.guestName||'-')}</td></tr>
+  <tr><td style="color:#888;">Company Name (ชื่อบริษัท)</td><td>:&nbsp;&nbsp;${esc(b.company||'-')}</td></tr>
+  <tr><td style="color:#888;">Address (ที่อยู่)</td><td>:&nbsp;&nbsp;${esc(b.address||'-')}</td></tr>
+  <tr><td style="color:#888;">Telephone (โทรศัพท์)</td><td>:&nbsp;&nbsp;${esc(b.phone||'-')}</td></tr>
+  <tr><td style="color:#888;">Tax ID / Passport No.</td><td>:&nbsp;&nbsp;${esc(b.taxId||'-')}</td></tr>
 </table>
 
 <!-- CHARGES -->
@@ -3528,8 +3539,8 @@ function printRoomingList(id){
     rows+=`<tr style="height:36px;">
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${idx+1}</td>
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;font-weight:700;font-size:15px;">${rn!=='-'?rn:'-'}</td>
-      <td style="border:1px solid #ccc;padding:5px 8px;">${b.guestName}</td>
-      <td style="border:1px solid #ccc;padding:5px 8px;">${b.company||'-'}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;">${esc(b.guestName)}</td>
+      <td style="border:1px solid #ccc;padding:5px 8px;">${esc(b.company||'-')}</td>
       <td style="border:1px solid #ccc;padding:5px 8px;">${rn!=='-'?roomTypeFull(parseInt(rn)):'-'}</td>
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkIn)}</td>
       <td style="text-align:center;border:1px solid #ccc;padding:5px 8px;">${fmtDate(b.checkOut)}</td>
@@ -3542,8 +3553,8 @@ function printRoomingList(id){
       <div style="margin-bottom:16px;">
         <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Rooming List</div>
         <table style="font-size:12px;color:#555;border-collapse:collapse;width:auto;">
-          <tr><td style="padding:1px 10px 1px 0;">ชื่อผู้จอง:</td><td><strong>${b.guestName}</strong></td></tr>
-          <tr><td style="padding:1px 10px 1px 0;">บริษัท:</td><td>${b.company||'-'}</td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">ชื่อผู้จอง:</td><td><strong>${esc(b.guestName)}</strong></td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">บริษัท:</td><td>${esc(b.company||'-')}</td></tr>
           <tr><td style="padding:1px 10px 1px 0;">วันเข้าพัก:</td><td><strong>${fmtDate(b.checkIn)}</strong></td></tr>
           <tr><td style="padding:1px 10px 1px 0;">วันออก:</td><td><strong>${fmtDate(b.checkOut)}</strong></td></tr>
           <tr><td style="padding:1px 10px 1px 0;">จำนวนคืน:</td><td>${n} คืน</td></tr>
@@ -3570,7 +3581,7 @@ function printRoomingList(id){
         <span>รหัสการจอง: ${b.id}</span>
         <span>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')}</span>
       </div>
-    </div>`, `Rooming List — ${b.guestName}`);
+    </div>`, `Rooming List — ${esc(b.guestName)}`);
 }
 
 function printRoomingListGuest(id){
@@ -3598,8 +3609,8 @@ function printRoomingListGuest(id){
       <div style="margin-bottom:16px;">
         <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Rooming List</div>
         <table style="font-size:12px;color:#555;border-collapse:collapse;width:auto;">
-          <tr><td style="padding:1px 10px 1px 0;">ชื่อผู้จอง:</td><td><strong>${b.guestName}</strong></td></tr>
-          <tr><td style="padding:1px 10px 1px 0;">บริษัท:</td><td>${b.company||'-'}</td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">ชื่อผู้จอง:</td><td><strong>${esc(b.guestName)}</strong></td></tr>
+          <tr><td style="padding:1px 10px 1px 0;">บริษัท:</td><td>${esc(b.company||'-')}</td></tr>
           <tr><td style="padding:1px 10px 1px 0;">วันเข้าพัก:</td><td><strong>${fmtDate(b.checkIn)}</strong></td></tr>
           <tr><td style="padding:1px 10px 1px 0;">วันออก:</td><td><strong>${fmtDate(b.checkOut)}</strong></td></tr>
           <tr><td style="padding:1px 10px 1px 0;">จำนวนคืน:</td><td>${n} คืน</td></tr>
@@ -3623,7 +3634,7 @@ function printRoomingListGuest(id){
         <span>รหัสการจอง: ${b.id}</span>
         <span>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')}</span>
       </div>
-    </div>`, `Rooming List (ลูกค้า) — ${b.guestName}`);
+    </div>`, `Rooming List (ลูกค้า) — ${esc(b.guestName)}`);
 }
 
 function printBookingAll(id){
@@ -3662,10 +3673,10 @@ function printBookingAll(id){
     <h2 style="text-align:center;margin-bottom:4px;">ข้อมูลการจองห้องพัก</h2>
     <p style="text-align:center;color:#666;margin-bottom:20px;">รหัส: ${b.id}</p>
     <table style="font-size:14px;width:100%;border-collapse:collapse;">
-      <tr><td style="padding:6px;color:#666;width:170px;">ชื่อผู้เข้าพัก</td><td style="padding:6px;font-weight:700;">${b.guestName}</td></tr>
-      <tr><td style="padding:6px;color:#666;">สัญชาติ</td><td style="padding:6px;">${b.nationality||'-'}</td></tr>
-      <tr><td style="padding:6px;color:#666;">บริษัท/หน่วยงาน</td><td style="padding:6px;">${b.company||'-'}</td></tr>
-      <tr><td style="padding:6px;color:#666;">เบอร์โทร</td><td style="padding:6px;">${b.phone||'-'}</td></tr>
+      <tr><td style="padding:6px;color:#666;width:170px;">ชื่อผู้เข้าพัก</td><td style="padding:6px;font-weight:700;">${esc(b.guestName)}</td></tr>
+      <tr><td style="padding:6px;color:#666;">สัญชาติ</td><td style="padding:6px;">${esc(b.nationality||'-')}</td></tr>
+      <tr><td style="padding:6px;color:#666;">บริษัท/หน่วยงาน</td><td style="padding:6px;">${esc(b.company||'-')}</td></tr>
+      <tr><td style="padding:6px;color:#666;">เบอร์โทร</td><td style="padding:6px;">${esc(b.phone||'-')}</td></tr>
       <tr><td style="padding:6px;color:#666;">ห้องพัก</td><td style="padding:6px;font-weight:700;">${roomsDisplay(b)}</td></tr>
       <tr><td style="padding:6px;color:#666;">ประเภทห้อง</td><td style="padding:6px;">${
         b.rooms&&b.rooms.length
@@ -3755,10 +3766,10 @@ function printBookingAll(id){
           </div>
         </div>`;
     })()}
-    ${b.remarks?`<p style="margin-top:10px;font-size:13px;color:#666;">หมายเหตุ: ${b.remarks}</p>`:''}
+    ${b.remarks?`<p style="margin-top:10px;font-size:13px;color:#666;">หมายเหตุ: ${esc(b.remarks)}</p>`:''}
     <hr style="margin:10px 0;">
     <p style="font-size:11px;color:#999;">บันทึกโดย: ${b.createdBy||'-'} | ${b.createdAt?new Date(b.createdAt).toLocaleString('th-TH'):''}</p>`,
-    `ข้อมูลการจอง — ${b.guestName}`);
+    `ข้อมูลการจอง — ${esc(b.guestName)}`);
 }
 
 function printBookingByRoom(id){
@@ -3795,8 +3806,8 @@ function printBookingByRoom(id){
         </div>
         <hr style="border:1px solid #eee;margin:8px 0;">
         <table style="font-size:13px;width:100%;border-collapse:collapse;">
-          <tr><td style="padding:4px;color:#666;width:150px;">ชื่อผู้เข้าพัก</td><td style="padding:4px;font-weight:700;">${b.guestName}</td></tr>
-          <tr><td style="padding:4px;color:#666;">บริษัท/หน่วยงาน</td><td style="padding:4px;">${b.company||'-'}</td></tr>
+          <tr><td style="padding:4px;color:#666;width:150px;">ชื่อผู้เข้าพัก</td><td style="padding:4px;font-weight:700;">${esc(b.guestName)}</td></tr>
+          <tr><td style="padding:4px;color:#666;">บริษัท/หน่วยงาน</td><td style="padding:4px;">${esc(b.company||'-')}</td></tr>
           <tr><td style="padding:4px;color:#666;">วันเข้าพัก</td><td style="padding:4px;font-weight:600;">${fmtDate(b.checkIn)}</td></tr>
           <tr><td style="padding:4px;color:#666;">วันออก</td><td style="padding:4px;font-weight:600;">${fmtDate(b.checkOut)}</td></tr>
           <tr><td style="padding:4px;color:#666;">จำนวนคืน</td><td style="padding:4px;">${n} คืน</td></tr>
@@ -3819,7 +3830,7 @@ function printBookingByRoom(id){
   });
   openPrint(`
     <h2 style="text-align:center;margin-bottom:14px;">ข้อมูลการจอง — แยกรายห้อง (เรียงลำดับหมายเลขห้อง)</h2>
-    ${sections}`, `ใบจอง แยกรายห้อง — ${b.guestName}`);
+    ${sections}`, `ใบจอง แยกรายห้อง — ${esc(b.guestName)}`);
 }
 
 function openPrint(body, docTitle){
@@ -3981,7 +3992,7 @@ function openPrint(body, docTitle){
 ════════════════════════════════════════ */
 function gv(id){const e=document.getElementById(id);return e?e.value:'';}
 function sval(v){return v===null||v===undefined?'':String(v);}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+// esc() defined above — handles &, <, >, ", '
 
 /* ── Folio Sequence: unique, stable per booking ── */
 let _folioMap={};
@@ -4887,7 +4898,7 @@ function renderEcList(){
     html+=`<tr>
       <td>${c.date||'-'}</td>
       <td>${EC_CAT_LABEL[c.cat]||c.cat}</td>
-      <td>${c.desc||'-'}</td>
+      <td>${esc(c.desc||'-')}</td>
       <td style="text-align:center;">${c.qty}</td>
       <td style="text-align:right;">${(parseFloat(c.price)||0).toLocaleString()}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${amt.toLocaleString()}</td>
