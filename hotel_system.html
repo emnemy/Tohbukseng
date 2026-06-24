@@ -258,7 +258,7 @@ tfoot td{border-top:1px solid var(--border);}
     </div>
     <div class="login-title">Toh Buk Seng Hotel</div>
     <div class="login-sub">ระบบจัดการโรงแรม</div>
-    <div class="error-box" id="login-error">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+    <div class="error-box" id="login-error"></div>
     <div class="form-group"><label class="form-label">ชื่อผู้ใช้</label>
       <input class="form-input" id="lg-user" type="text" placeholder="Username"></div>
     <div class="form-group"><label class="form-label">รหัสผ่าน</label>
@@ -1142,22 +1142,44 @@ function nights(a,b){
 ════════════════════════════════════════ */
 async function doLogin(){
   const u=gv('lg-user').trim(), p=gv('lg-pass');
-  document.getElementById('login-error').style.display='none';
+  const errEl=document.getElementById('login-error');
+  errEl.style.display='none';
+  errEl.textContent='';
+  if(!u||!p){ errEl.textContent='กรุณาใส่ชื่อผู้ใช้และรหัสผ่าน'; errEl.style.display='block'; return; }
   _showLoading('กำลังเข้าสู่ระบบ...');
   let found=null;
   try{
     // ตรวจ password ผ่าน Sheets (hash อัตโนมัติถ้ายังเป็น plain text)
     const res=await _gasCall('verifyLogin',{username:u,password:p});
-    if(res&&res.success) found=res.user;
-    else { _hideLoading(); document.getElementById('login-error').style.display='block'; return; }
+    if(res&&res.success){
+      found=res.user;
+    } else {
+      // GAS ส่ง error กลับมาใน res.error (ไม่ใช่ exception)
+      _hideLoading();
+      const msg=res&&res.error?res.error:'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+      errEl.textContent='❌ '+msg;
+      errEl.style.display='block';
+      return;
+    }
   }catch(e){
-    // ไม่อนุญาต login offline — ป้องกัน hardcoded credential bypass
     _hideLoading();
-    alert('❌ ไม่สามารถเชื่อมต่อระบบได้\nกรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
+    // แยก server error (รหัสผิด/ถูก lock) จาก network error
+    const isNetworkErr=(e instanceof TypeError)||
+      e.message.includes('Failed to fetch')||
+      e.message.includes('NetworkError')||
+      e.message.includes('หมดเวลาเชื่อมต่อ');
+    if(isNetworkErr){
+      // ไม่อนุญาต login offline — ป้องกัน hardcoded credential bypass
+      alert('❌ ไม่สามารถเชื่อมต่อระบบได้\nกรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
+    } else {
+      // server error: รหัสผิด, ถูก lock, ฯลฯ — แสดงข้อความจาก GAS ตรงๆ
+      errEl.textContent='❌ '+e.message;
+      errEl.style.display='block';
+    }
     return;
   }
   _hideLoading();
-  if(!found){document.getElementById('login-error').style.display='block';return;}
+  if(!found){const _e=document.getElementById('login-error');_e.textContent='❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';_e.style.display='block';return;}
   ST.currentUser=found;
   try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role}));}catch(e){}
   document.getElementById('login-page').style.display='none';
