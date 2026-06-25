@@ -1011,8 +1011,9 @@ window.addEventListener('online', ()=>{
 });
 
 /* ── API helper (direct — ไม่ผ่าน queue) ── */
-async function _gasCallDirect(action, body){
-  const url=`${GAS_URL}?action=${action}&key=${GAS_KEY}`;
+async function _gasCallDirect(action, body, params){
+  let url=`${GAS_URL}?action=${action}&key=${GAS_KEY}`;
+  if(params) Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
   const opts=body
     ?{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}
     :{method:'GET'};
@@ -1038,15 +1039,15 @@ async function _gasCallDirect(action, body){
 }
 
 /* ── API helper (เดิม — ถ้า network ตาย จะเก็บลง queue อัตโนมัติ) ── */
-async function _gasCall(action,body){
+async function _gasCall(action,body,params){
   // GET actions (read-only) ไม่ queue — ถ้าออฟไลน์ให้ throw ตามปกติ
   // READ_ACTIONS = ถ้าออฟไลน์จะ throw ตามปกติ (ไม่ queue เพราะอ่านข้อมูล)
   const READ_ACTIONS = ['getBookings','getUsers','getFolio','getCharges',
                         'getBackupLogs','getErrorLogs','verifyLogin'];
   // NEVER_QUEUE = write actions ที่ห้าม queue เพราะต้องการ response กลับมา (เช่น ID)
-  const NEVER_QUEUE = ['getNextBookingId','backup','archiveBookings','restoreBackup'];
+  const NEVER_QUEUE = ['getNextBookingId','getNextFolioNumber','backup','archiveBookings','restoreBackup'];
   try{
-    return await _gasCallDirect(action, body);
+    return await _gasCallDirect(action, body, params);
   } catch(e){
     // ถ้าเป็น network error (ไม่ใช่ server error) และเป็น write action → queue
     const isNetworkErr = (e instanceof TypeError) || e.message.includes('Failed to fetch') || e.message.includes('NetworkError');
@@ -3318,7 +3319,7 @@ function printArrival(){
     </table>`, `Guest Arrival — ${fmtDate(d)}`);
 }
 
-function printGuestFolio(id){
+async function printGuestFolio(id){
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
   const n=nights(b.checkIn,b.checkOut);
@@ -3327,8 +3328,19 @@ function printGuestFolio(id){
   const roomStr=showRoom?b.rooms.sort((a,x)=>a-x).join(', '):'-';
   const typeStr=showRoom?[...new Set(b.rooms.map(r=>roomTypeFull(r)))].join(', '):'-';
 
-  // folio number
-  const folioNum='GF-'+b.checkIn.slice(2,4)+b.checkIn.slice(5,7)+'-'+String(folioSeq(b.id)).padStart(5,'0');
+  // folio number — ดึงจาก GAS (atomic, ไม่ซ้ำ)
+  _showLoading('กำลังสร้างเลข Folio...');
+  let folioNum;
+  try{
+    const seq=await getFolioNumber(b.id);
+    folioNum='GF-'+b.checkIn.slice(2,4)+b.checkIn.slice(5,7)+'-'+seq;
+  }catch(e){
+    _hideLoading();
+    alert('❌ ไม่สามารถสร้างเลข Folio ได้
+'+e.message);
+    return;
+  }
+  _hideLoading();
 
   // paid rooms count
   let paidRooms=0;
@@ -4117,14 +4129,24 @@ function sval(v){return v===null||v===undefined?'':String(v);}
 
 /* ── Folio Sequence: unique, stable per booking ── */
 let _folioMap={};
-function folioSeq(bookingId){
-  if(!_folioMap[bookingId]){
-    const nextSeq=Object.keys(_folioMap).length+1;
-    _folioMap[bookingId]=String(nextSeq).padStart(5,'0');
-    _gasCall('saveFolio',{folioMap:_folioMap}).catch(e=>console.warn('folio sync:',e));
+
+// getFolioNumber — async, ใช้ GAS เป็น source of truth พร้อม LockService
+// local cache ใน _folioMap เพื่อไม่ต้องเรียกซ้ำสำหรับ booking เดิม
+async function getFolioNumber(bookingId){
+  // ถ้ามีใน cache แล้ว return ทันที
+  if(_folioMap[bookingId]){
+    return String(_folioMap[bookingId]).padStart(5,'0');
   }
-  // normalize เป็น 5 หลักเสมอ ไม่ว่าจะโหลดมาจากไหน
-  return String(_folioMap[bookingId]).padStart(5,'0');
+  // ขอเลขใหม่จาก GAS (atomic + LockService)
+  try{
+    const res=await _gasCall('getNextFolioNumber',null,{bookingId});
+    if(!res||res.error) throw new Error(res&&res.error?res.error:'ไม่ได้รับเลข Folio');
+    _folioMap[bookingId]=res.folioNumber;
+    return String(res.folioNumber).padStart(5,'0');
+  }catch(e){
+    console.error('[Folio] getNextFolioNumber failed:',e.message);
+    throw e;
+  }
 }
 function showModal(html){
   document.getElementById('modal-box').innerHTML=html;
