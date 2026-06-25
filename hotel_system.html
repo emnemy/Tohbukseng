@@ -2395,9 +2395,16 @@ async function saveReservation(){
     :ST.bookings[ST.bookings.length-1];
   if(!_bkToSave){_hideLoading?.();alert('❌ ไม่พบข้อมูลการจอง');return;}
   _showLoading('กำลังบันทึก...');
+  let _saveRes;
   try{
-    await _gasCall('saveBooking',_bkToSave);
+    _saveRes=await _gasCall('saveBooking',_bkToSave);
   }catch(e){_hideLoading();alert('❌ บันทึกไม่สำเร็จ: '+e.message);return;}
+  // ตรวจ room overlap จาก GAS
+  if(_saveRes&&_saveRes.error==='ROOM_OVERLAP'){
+    _hideLoading();
+    alert('❌ ห้องพักซ้ำกัน — ไม่สามารถบันทึกได้\n\n'+_saveRes.detail+'\n\nกรุณาเลือกห้องอื่น หรือตรวจสอบวันที่');
+    return;
+  }
   _hideLoading();
   closeModal();
   const active=document.querySelector('.page.active')?.id?.replace('page-','');
