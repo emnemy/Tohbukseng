@@ -3336,8 +3336,7 @@ async function printGuestFolio(id){
     folioNum='GF-'+b.checkIn.slice(2,4)+b.checkIn.slice(5,7)+'-'+seq;
   }catch(e){
     _hideLoading();
-    alert('❌ ไม่สามารถสร้างเลข Folio ได้
-'+e.message);
+    alert('❌ ไม่สามารถสร้างเลข Folio ได้\n'+e.message);
     return;
   }
   _hideLoading();
