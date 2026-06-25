@@ -1113,6 +1113,52 @@ async function load(){
   }
 }
 
+/* ── Auto-refresh ทุก 5 นาที (multi-user sync) ── */
+const _REFRESH_INTERVAL = 5 * 60 * 1000; // 5 นาที
+let _refreshTimer = null;
+let _lastRefreshAt = null;
+
+async function _autoRefresh(){
+  if(!ST.currentUser) return; // ยังไม่ login
+  if(_isSaving) return;       // กำลังบันทึกอยู่ — ข้ามรอบนี้
+  const modal = document.getElementById('modal-overlay');
+  if(modal && modal.style.display !== 'none') return; // มี modal เปิดอยู่ — ข้าม
+
+  console.log('[AutoRefresh] refreshing...');
+  _lastRefreshAt = new Date();
+
+  try{
+    const [bookings,charges]=await Promise.all([
+      _gasCall('getBookings'),
+      _gasCall('getCharges'),
+    ]);
+    if(Array.isArray(bookings)) ST.bookings=bookings.map(_migrateBk);
+    if(Array.isArray(charges)){
+      ST.charges={};
+      charges.forEach(c=>{
+        if(!ST.charges[c.bookingId]) ST.charges[c.bookingId]=[];
+        ST.charges[c.bookingId].push(c);
+      });
+    }
+    // re-render หน้าที่กำลังดูอยู่
+    const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
+    if(activePage && PAGE_RENDERS[activePage]) PAGE_RENDERS[activePage]();
+    console.log('[AutoRefresh] done —', activePage);
+  }catch(e){
+    console.warn('[AutoRefresh] failed:',e.message);
+    // ไม่ alert เพราะเป็น background refresh
+  }
+}
+
+function _startAutoRefresh(){
+  _stopAutoRefresh();
+  _refreshTimer=setInterval(_autoRefresh, _REFRESH_INTERVAL);
+  console.log('[AutoRefresh] started — every 5 min');
+}
+function _stopAutoRefresh(){
+  if(_refreshTimer){ clearInterval(_refreshTimer); _refreshTimer=null; }
+}
+
 /* ════════════════════════════════════════
    DATE HELPERS
 ════════════════════════════════════════ */
@@ -1217,13 +1263,15 @@ async function doLogin(){
   const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
   document.getElementById('sf-role').textContent=roleLabel;
   document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
-  _resetIdleTimer(); // เริ่มนับ idle หลัง login
+  _resetIdleTimer();    // เริ่มนับ idle หลัง login
+  _startAutoRefresh();  // เริ่ม auto-refresh
   await load();
   showPage('dashboard');
 }
 function doLogout(){
   ST.currentUser=null;
   clearTimeout(_idleTimer); // หยุดนับ idle
+  _stopAutoRefresh();       // หยุด auto-refresh
   try{sessionStorage.removeItem('hms_session');}catch(e){}
   document.getElementById('app').style.display='none';
   document.getElementById('login-page').style.display='flex';
@@ -5015,7 +5063,8 @@ async function doChangePassword(){
     const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
     document.getElementById('sf-role').textContent=roleLabel;
     document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
-    _resetIdleTimer(); // เริ่มนับ idle หลัง restore session
+    _resetIdleTimer();    // เริ่มนับ idle หลัง restore session
+    _startAutoRefresh();  // เริ่ม auto-refresh
     await load();
     showPage('dashboard');
   }catch(e){
