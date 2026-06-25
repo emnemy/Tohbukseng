@@ -671,7 +671,7 @@ tfoot td{border-top:1px solid var(--border);}
     </div>
     <div style="margin-bottom:12px;">
       <label class="form-label">รหัสผ่านใหม่</label>
-      <input type="password" class="form-input" id="chpw-new" placeholder="ใส่รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)">
+      <input type="password" class="form-input" id="chpw-new" placeholder="ใส่รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)">
     </div>
     <div style="margin-bottom:20px;">
       <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
@@ -1159,10 +1159,22 @@ async function _autoRefresh(){
   try{
     const bookings=await _gasCall('getBookings');
     if(Array.isArray(bookings)){
-      ST.bookings=bookings.map(_migrateBk);
-      // invalidate charges cache ของ booking ที่อาจเปลี่ยน
-      // จะโหลดใหม่เมื่อเปิด modal/folio
-      ST.charges={};
+      const newBookings=bookings.map(_migrateBk);
+      // invalidate เฉพาะ booking ที่ modifiedAt เปลี่ยน (ไม่ reset ทั้งหมด)
+      newBookings.forEach(nb=>{
+        const ob=ST.bookings.find(b=>b.id===nb.id);
+        if(!ob || ob.modifiedAt !== nb.modifiedAt){
+          // booking ใหม่หรือถูกแก้ไข — ล้าง cache charges
+          delete ST.charges[nb.id];
+        }
+      });
+      // booking ที่ถูกลบออกจาก server — ล้าง cache ด้วย
+      ST.bookings.forEach(ob=>{
+        if(!newBookings.find(nb=>nb.id===ob.id)){
+          delete ST.charges[ob.id];
+        }
+      });
+      ST.bookings=newBookings;
     }
     // re-render หน้าที่กำลังดูอยู่
     const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
@@ -1306,6 +1318,27 @@ document.getElementById('lg-pass').onkeypress=e=>{if(e.key==='Enter')doLogin();}
 document.getElementById('lg-user').onkeypress=e=>{if(e.key==='Enter')document.getElementById('lg-pass').focus();};
 // init queue badge (แสดงจำนวนที่ค้างตั้งแต่ตอน load)
 _queueBadgeUpdate();
+
+/* ── Global error boundary ── */
+window.addEventListener('unhandledrejection', e => {
+  // กรอง network error ปกติ และ AbortError (timeout) ออก — ไม่ต้อง log
+  const msg = e.reason?.message || String(e.reason) || 'Unknown error';
+  const isNetworkErr = (e.reason instanceof TypeError) ||
+    msg.includes('Failed to fetch') ||
+    msg.includes('NetworkError') ||
+    msg.includes('AbortError') ||
+    e.reason?.name === 'AbortError';
+  if(isNetworkErr) return;
+
+  console.error('[UnhandledRejection]', msg, e.reason);
+  // แจ้งเตือนเฉพาะถ้า user กำลัง login อยู่ เพื่อไม่รบกวนตอน init
+  if(ST.currentUser){
+    // ป้องกัน alert ซ้ำซ้อนถ้า _guardSave ค้างอยู่
+    if(_isSaving) _hideLoading();
+    alert('❌ เกิดข้อผิดพลาดที่ไม่คาดคิด\n' + msg +
+          '\n\nกรุณา refresh หน้าเว็บถ้าระบบทำงานผิดปกติ');
+  }
+});
 
 /* ════════════════════════════════════════
    NAVIGATION
@@ -5043,7 +5076,7 @@ async function doChangePassword(){
 
   if(!oldPw)              return showErr('กรุณาใส่รหัสผ่านปัจจุบัน');
   if(!newPw)              return showErr('กรุณาใส่รหัสผ่านใหม่');
-  if(newPw.length < 4)   return showErr('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัว');
+  if(newPw.length < 6)   return showErr('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัว');
   if(newPw !== confirm)  return showErr('รหัสผ่านใหม่ไม่ตรงกัน');
   if(oldPw === newPw)    return showErr('รหัสผ่านใหม่ต้องไม่เหมือนเดิม');
 
@@ -5253,6 +5286,8 @@ async function saveEcCharges(){
       // sync กลับ Sheets พร้อมกับ history ที่อัปเดต
       await _gasCall('updateStatus',_ecBk);
     }
+    // invalidate cache — ให้ดึงจาก server ใหม่ครั้งต่อไป
+    delete ST.charges[_ecBookingId];
     _hideLoading();
     alert('✅ บันทึก Extra Charges เรียบร้อย');
     closeEcModal();
