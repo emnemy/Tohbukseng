@@ -1089,22 +1089,15 @@ function save(){}
 async function load(){
   _showLoading('กำลังโหลดข้อมูลจาก Google Sheets...');
   try{
-    const [bookings,users,folio,charges]=await Promise.all([
+    const [bookings,users,folio]=await Promise.all([
       _gasCall('getBookings'),
       _gasCall('getUsers'),
       _gasCall('getFolio'),
-      _gasCall('getCharges'),
     ]);
     ST.bookings=Array.isArray(bookings)?bookings.map(_migrateBk):[];
     ST.users=Array.isArray(users)&&users.length?users:[];
     _folioMap=folio||{};
-    ST.charges={};
-    if(Array.isArray(charges)){
-      charges.forEach(c=>{
-        if(!ST.charges[c.bookingId]) ST.charges[c.bookingId]=[];
-        ST.charges[c.bookingId].push(c);
-      });
-    }
+    ST.charges={}; // reset cache — จะโหลด lazy เมื่อต้องการ
   }catch(err){
     console.error('load() failed:',err);
     alert('❌ โหลดข้อมูลไม่สำเร็จ\n'+err.message);
@@ -1128,17 +1121,12 @@ async function _autoRefresh(){
   _lastRefreshAt = new Date();
 
   try{
-    const [bookings,charges]=await Promise.all([
-      _gasCall('getBookings'),
-      _gasCall('getCharges'),
-    ]);
-    if(Array.isArray(bookings)) ST.bookings=bookings.map(_migrateBk);
-    if(Array.isArray(charges)){
+    const bookings=await _gasCall('getBookings');
+    if(Array.isArray(bookings)){
+      ST.bookings=bookings.map(_migrateBk);
+      // invalidate charges cache ของ booking ที่อาจเปลี่ยน
+      // จะโหลดใหม่เมื่อเปิด modal/folio
       ST.charges={};
-      charges.forEach(c=>{
-        if(!ST.charges[c.bookingId]) ST.charges[c.bookingId]=[];
-        ST.charges[c.bookingId].push(c);
-      });
     }
     // re-render หน้าที่กำลังดูอยู่
     const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
@@ -2462,9 +2450,11 @@ async function saveReservation(){
 /* ════════════════════════════════════════
    VIEW BOOKING
 ════════════════════════════════════════ */
-function viewBooking(id){
+async function viewBooking(id){
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
+  // lazy load charges ก่อนแสดง modal
+  await _loadCharges(id);
   const n=nights(b.checkIn,b.checkOut);
   const rT=calcRoomAmt(b), bT=calcBfAmt(b);
   showModal(`
@@ -3384,7 +3374,7 @@ async function printGuestFolio(id){
   const typeStr=showRoom?[...new Set(b.rooms.map(r=>roomTypeFull(r)))].join(', '):'-';
 
   // folio number — ดึงจาก GAS (atomic, ไม่ซ้ำ)
-  _showLoading('กำลังสร้างเลข Folio...');
+  _showLoading('กำลังเตรียม Guest Folio...');
   let folioNum;
   try{
     const seq=await getFolioNumber(b.id);
@@ -3394,6 +3384,8 @@ async function printGuestFolio(id){
     alert('❌ ไม่สามารถสร้างเลข Folio ได้\n'+e.message);
     return;
   }
+  // lazy load charges ก่อน render
+  await _loadCharges(id);
   _hideLoading();
 
   // paid rooms count
@@ -4295,12 +4287,16 @@ function genGroupId(){
   if(el) el.value = id;
 }
 
-function printGroupFolio(groupId){
+async function printGroupFolio(groupId){
   if(!groupId) return;
   const bookings = ST.bookings.filter(b =>
     b.groupId === groupId && b.status !== S_CANCEL
   ).sort((a,b) => a.checkIn.localeCompare(b.checkIn));
   if(!bookings.length){ alert('ไม่พบการจองในกรุ๊ป: ' + groupId); return; }
+  // lazy load charges ของทุก booking ในกลุ่มพร้อมกัน
+  _showLoading('กำลังโหลดข้อมูล Group Folio...');
+  await _loadChargesMulti(bookings.map(b=>b.id));
+  _hideLoading();
 
   const first = bookings[0];
   const ciAll = bookings.map(b=>b.checkIn).sort()[0];
@@ -5077,6 +5073,25 @@ async function doChangePassword(){
 ════════════════════════════════════════ */
 if(!ST.charges) ST.charges={};
 
+// ── Lazy charge loader — ดึงเฉพาะ booking ที่ต้องการ แล้ว cache ไว้ใน ST.charges ──
+async function _loadCharges(bookingId){
+  if(ST.charges[bookingId] !== undefined) return; // มีใน cache แล้ว (รวม [] ด้วย)
+  try{
+    const res=await _gasCall('getCharges',null,{bookingId});
+    ST.charges[bookingId]=Array.isArray(res)?res:[];
+  }catch(e){
+    console.warn('[Charges] load failed for',bookingId,e.message);
+    ST.charges[bookingId]=[]; // ใส่ค่าว่างเพื่อไม่ให้ fetch ซ้ำ
+  }
+}
+
+// โหลด charges หลาย bookingId พร้อมกัน (สำหรับ group folio)
+async function _loadChargesMulti(bookingIds){
+  const needed=bookingIds.filter(id=>ST.charges[id]===undefined);
+  if(!needed.length) return;
+  await Promise.all(needed.map(id=>_loadCharges(id)));
+}
+
 const EC_CAT_LABEL={
   food:'🍽️ อาหาร-เครื่องดื่ม',
   laundry:'👕 ซักรีด',
@@ -5088,10 +5103,14 @@ const EC_CAT_LABEL={
 
 let _ecBookingId=null;
 
-function openEcModal(bookingId){
+async function openEcModal(bookingId){
   _ecBookingId=bookingId;
   const b=ST.bookings.find(x=>x.id===bookingId);
   if(!b) return;
+  // lazy load charges ถ้ายังไม่มีใน cache
+  _showLoading('กำลังโหลด Extra Charges...');
+  await _loadCharges(bookingId);
+  _hideLoading();
   document.getElementById('ec-guest-name').textContent=
     b.guestName+' | ห้อง '+(b.rooms||[]).join(', ');
   document.getElementById('ec-date').value=today();
