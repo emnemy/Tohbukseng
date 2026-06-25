@@ -4087,12 +4087,22 @@ function printBookingByRoom(id){
 function openPrint(body, docTitle){
   const title = docTitle || 'Hotel Document';
   const safeTitle = title.replace(/[^a-zA-Z0-9ก-๙\s\-_]/g,'').trim() || 'document';
-  const w = window.open('', '_blank');
-  if(!w){
-    alert('กรุณาอนุญาต Popup สำหรับเว็บไซต์นี้ในเบราว์เซอร์ แล้วลองใหม่อีกครั้ง');
-    return;
+  // ใช้ Blob URL แทน document.write() — future-proof และรองรับ async
+  let _blobUrl = null;
+  function _openBlobDoc(htmlStr) {
+    const blob = new Blob([htmlStr], { type: 'text/html; charset=utf-8' });
+    _blobUrl = URL.createObjectURL(blob);
+    const w = window.open(_blobUrl, '_blank');
+    if(!w){
+      URL.revokeObjectURL(_blobUrl);
+      alert('กรุณาอนุญาต Popup สำหรับเว็บไซต์นี้ในเบราว์เซอร์ แล้วลองใหม่อีกครั้ง');
+      return false;
+    }
+    // คืน memory หลัง browser โหลดเสร็จ
+    setTimeout(() => { URL.revokeObjectURL(_blobUrl); _blobUrl = null; }, 10000);
+    return true;
   }
-  w.document.write(`<!DOCTYPE html>
+  const _docHtml = `<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -4234,8 +4244,8 @@ function openPrint(body, docTitle){
     }
   <\/script>
 </body>
-</html>`);
-  w.document.close();
+</html>`;
+  _openBlobDoc(_docHtml);
 }
 
 /* ════════════════════════════════════════
