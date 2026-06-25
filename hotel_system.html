@@ -987,19 +987,55 @@ async function _queueFlush(){
   const q = _queueGet();
   if(!q.length) return;
   console.log('[Queue] Flushing', q.length, 'items...');
+
+  const ACTION_LABEL = {
+    saveBooking:   'บันทึกการจอง',
+    updateStatus:  'อัปเดตสถานะการจอง',
+    saveCharges:   'บันทึก Extra Charges',
+    saveUser:      'บันทึกผู้ใช้งาน',
+    saveFolioMap:  'บันทึก Folio',
+  };
+
   const failed = [];
+  const errors = []; // เก็บ error ที่ไม่ใช่ network error
+
   for(const item of q){
     try{
-      await _gasCallDirect(item.action, item.body);
-      console.log('[Queue] Sent:', item.action);
+      const res = await _gasCallDirect(item.action, item.body);
+      // GAS ตอบ error (เช่น booking ถูกลบไปแล้ว)
+      if(res && res.error){
+        console.warn('[Queue] Server rejected:', item.action, res.error);
+        errors.push({
+          label: ACTION_LABEL[item.action] || item.action,
+          reason: res.error,
+          addedAt: item.addedAt,
+        });
+        // ไม่ใส่ใน failed — ทิ้งทิ้งออกจาก queue เพราะ retry ไปก็ error เหมือนเดิม
+      } else {
+        console.log('[Queue] Sent:', item.action);
+      }
     } catch(e){
+      // network error — ยังส่งไม่ได้ เก็บไว้ retry รอบหน้า
       console.warn('[Queue] Still failed:', item.action, e.message);
       failed.push(item);
     }
   }
+
   _queueSave(failed);
   _queueBadgeUpdate();
-  if(failed.length === 0 && q.length > 0){
+
+  // แจ้งเตือน error ที่ server reject (silent fail เดิม)
+  if(errors.length){
+    const detail = errors.map(e=>
+      '• '+ e.label +': '+ e.reason
+    ).join('\n');
+    alert(
+      '⚠️ ข้อมูลบางรายการส่งไม่สำเร็จ\n\n' + detail +
+      '\n\nรายการเหล่านี้ถูกนำออกจากคิวแล้ว กรุณาตรวจสอบและบันทึกใหม่'
+    );
+  }
+
+  if(failed.length === 0 && q.length > 0 && errors.length === 0){
     console.log('[Queue] All items sent successfully');
   }
 }
