@@ -2523,7 +2523,8 @@ async function viewBooking(id){
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
   // lazy load charges ก่อนแสดง modal
-  await _loadCharges(id);
+  try{ await _loadCharges(id); }
+  catch(e){ console.warn('[viewBooking] charges load failed:',e.message); }
   const n=nights(b.checkIn,b.checkOut);
   const rT=calcRoomAmt(b), bT=calcBfAmt(b);
   showModal(`
@@ -3260,7 +3261,7 @@ function openAddUserModal(){
     <div class="modal-body">
       <div class="form-group"><label class="form-label">ชื่อผู้ใช้</label><input class="form-input" id="nu-usr"></div>
       <div class="form-group"><label class="form-label">ชื่อ-นามสกุล</label><input class="form-input" id="nu-name"></div>
-      <div class="form-group"><label class="form-label">รหัสผ่าน</label><input class="form-input" type="password" id="nu-pass"></div>
+      <div class="form-group"><label class="form-label">รหัสผ่าน</label><input class="form-input" type="password" id="nu-pass" placeholder="อย่างน้อย 6 ตัว ประกอบด้วยตัวอักษรและตัวเลข"></div>
       <div class="form-group"><label class="form-label">บทบาท</label>
         <select class="form-input" id="nu-role"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
     </div>
@@ -3274,6 +3275,8 @@ async function saveUser(){
   if(!canManageUsers()){permDeny('จัดการผู้ใช้งาน');return;}
   const usr=gv('nu-usr').trim(),name=gv('nu-name').trim(),pass=gv('nu-pass'),role=gv('nu-role');
   if(!usr||!name||!pass){alert('กรุณากรอกข้อมูลให้ครบ');return;}
+  if(pass.length < 6){alert('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');return;}
+  if(!/[a-zA-Z]/.test(pass)||!/[0-9]/.test(pass)){alert('รหัสผ่านต้องประกอบด้วยตัวอักษรและตัวเลขอย่างละอย่างน้อย 1 ตัว');return;}
   if(ST.users.find(u=>u.username===usr)){alert('ชื่อผู้ใช้นี้มีอยู่แล้ว');return;}
   const newUser={id:'U'+Date.now(),username:usr,name,password:pass,role};
   ST.users.push(newUser);
@@ -4364,7 +4367,8 @@ async function printGroupFolio(groupId){
   if(!bookings.length){ alert('ไม่พบการจองในกรุ๊ป: ' + groupId); return; }
   // lazy load charges ของทุก booking ในกลุ่มพร้อมกัน
   _showLoading('กำลังโหลดข้อมูล Group Folio...');
-  await _loadChargesMulti(bookings.map(b=>b.id));
+  try{ await _loadChargesMulti(bookings.map(b=>b.id)); }
+  catch(e){ console.warn('[printGroupFolio] charges load failed:',e.message); }
   _hideLoading();
 
   const first = bookings[0];
@@ -5076,7 +5080,8 @@ async function doChangePassword(){
 
   if(!oldPw)              return showErr('กรุณาใส่รหัสผ่านปัจจุบัน');
   if(!newPw)              return showErr('กรุณาใส่รหัสผ่านใหม่');
-  if(newPw.length < 6)   return showErr('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัว');
+  if(newPw.length < 6)   return showErr('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร');
+  if(!/[a-zA-Z]/.test(newPw)||!/[0-9]/.test(newPw)) return showErr('รหัสผ่านใหม่ต้องประกอบด้วยตัวอักษรและตัวเลขอย่างละอย่างน้อย 1 ตัว');
   if(newPw !== confirm)  return showErr('รหัสผ่านใหม่ไม่ตรงกัน');
   if(oldPw === newPw)    return showErr('รหัสผ่านใหม่ต้องไม่เหมือนเดิม');
 
