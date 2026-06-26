@@ -1693,7 +1693,7 @@ function renderDashMonthly(){
 /* ════════════════════════════════════════
    DASHBOARD
 ════════════════════════════════════════ */
-function renderDashboard(){
+async function renderDashboard(){
   const d=today();
   const now=new Date(d);
   document.getElementById('dash-date').textContent='วันที่ '+fmtDate(d);
@@ -1721,8 +1721,9 @@ function renderDashboard(){
     }
   }
   renderDashMonthly();
-  // Revenue Phase 2
+  // Revenue Phase 2 — โหลด charges ก่อน render (lazy load)
   updateRevLabel();
+  await _loadDashboardCharges(_revYear, _revMonth);
   renderRevSummary(_revYear, _revMonth);
   let vac=0,res=0,occ=0;
   ALL_ROOMS.forEach(r=>{
@@ -4812,17 +4813,19 @@ function renderRevChart(days, year, month){
 }
 
 /** controls */
-function revShiftMonth(delta){
+async function revShiftMonth(delta){
   _revMonth += delta;
   if(_revMonth > 11){ _revMonth = 0; _revYear++; }
   if(_revMonth < 0) { _revMonth = 11; _revYear--; }
   updateRevLabel();
+  await _loadDashboardCharges(_revYear, _revMonth);
   renderRevSummary(_revYear, _revMonth);
 }
-function revGoToday(){
+async function revGoToday(){
   _revYear  = new Date().getFullYear();
   _revMonth = new Date().getMonth();
   updateRevLabel();
+  await _loadDashboardCharges(_revYear, _revMonth);
   renderRevSummary(_revYear, _revMonth);
 }
 function updateRevLabel(){
@@ -5181,6 +5184,20 @@ async function _loadChargesMulti(bookingIds){
   const needed=bookingIds.filter(id=>ST.charges[id]===undefined);
   if(!needed.length) return;
   await Promise.all(needed.map(id=>_loadCharges(id)));
+}
+
+// โหลด charges สำหรับ Dashboard — เฉพาะ booking ที่ active ในเดือนที่แสดง
+async function _loadDashboardCharges(year, month){
+  const pad = v => String(v).padStart(2,'0');
+  const monthStart = `${year}-${pad(month+1)}-01`;
+  const monthEnd   = `${year}-${pad(month+1)}-${new Date(year,month+1,0).getDate()}`;
+  // กรอง booking ที่ overlap กับเดือนนี้ และวันนี้ (สำหรับ today summary)
+  const todayStr = today();
+  const relevant = ST.bookings.filter(b =>
+    b.status !== S_CANCEL &&
+    b.checkIn <= monthEnd && b.checkOut > monthStart
+  );
+  await _loadChargesMulti(relevant.map(b => b.id));
 }
 
 const EC_CAT_LABEL={
