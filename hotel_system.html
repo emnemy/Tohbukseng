@@ -3553,7 +3553,8 @@ async function printGuestFolio(id){
     return;
   }
   // lazy load charges ก่อน render
-  await _loadCharges(id);
+  try{ await _loadCharges(id); }
+  catch(e){ console.warn('[printGuestFolio] charges load failed:',e.message); }
   _hideLoading();
 
   // paid rooms count
@@ -5305,7 +5306,8 @@ async function openEcModal(bookingId){
   if(!b) return;
   // lazy load charges ถ้ายังไม่มีใน cache
   _showLoading('กำลังโหลด Extra Charges...');
-  await _loadCharges(bookingId);
+  try{ await _loadCharges(bookingId); }
+  catch(e){ console.warn('[openEcModal] charges load failed:',e.message); }
   _hideLoading();
   document.getElementById('ec-guest-name').textContent=
     b.guestName+' | ห้อง '+(b.rooms||[]).join(', ');
