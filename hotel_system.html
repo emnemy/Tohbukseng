@@ -2140,9 +2140,7 @@ function openResModal(id){
   const d=today();
   const tom=new Date();tom.setDate(tom.getDate()+1);
   const tStr=ymdLocal(tom);
-  if(b&&b.rooms&&b.rooms.length) pickRooms=[...b.rooms];
-  // กำหนด mode: ถ้า booking เดิมไม่มีห้อง → noassign mode
-  const _initRoomMode = (b && (!b.rooms || !b.rooms.length)) ? 'noassign' : 'assign';
+  if(b&&b.rooms) pickRooms=[...b.rooms];
   const ciVal=b?b.checkIn:d;
   const coVal=b?b.checkOut:tStr;
 
@@ -2205,26 +2203,12 @@ function openResModal(id){
       <div id="f-nights" style="font-size:13px;color:var(--gold);font-weight:600;margin:-5px 0 10px;"></div>
 
       <div class="section-title" style="margin-top:4px;">ห้องพัก</div>
-      <div style="display:flex;gap:16px;margin-bottom:10px;padding:8px 14px;background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);">
-        <label class="form-check">
-          <input type="radio" name="f-room-mode" value="assign" ${pickRooms.length||!b?'checked':''} onchange="toggleRoomMode(this.value)">
-          🔢 ระบุหมายเลขห้อง
-        </label>
-        <label class="form-check">
-          <input type="radio" name="f-room-mode" value="noassign" ${b&&!b.rooms?.length?'checked':''} onchange="toggleRoomMode(this.value)">
-          📋 ระบุเฉพาะจำนวนห้อง (กำหนดห้องทีหลัง)
-        </label>
-      </div>
-      <div id="f-picker-wrap">
-        <div class="room-picker" id="f-picker">${floorsHtml(ciVal,true,pickRooms,ciVal,coVal,editingId)}</div>
-        <div id="f-sel-rooms" style="margin-top:6px;font-size:13px;color:var(--gold);min-height:18px;">
-          ${pickRooms.length
-            ?`ห้องที่เลือก: ${[...pickRooms].sort((a,x)=>a-x).join(', ')} (รวม ${pickRooms.length} ห้อง)`
-            :'ยังไม่ได้เลือกหมายเลขห้อง'}</div>
-      </div>
-      <div id="f-noassign-note" style="display:none;padding:10px 14px;background:rgba(212,120,50,.08);border:1px solid rgba(212,120,50,.3);border-radius:var(--radius);font-size:13px;color:var(--orange);">
-        📋 จำนวนห้องจะดึงจากช่องราคาด้านล่าง — สามารถกำหนดหมายเลขห้องได้ตอนเช็คอิน
-      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">เลือกหมายเลขห้องจากผังด้านล่าง หรือระบุแค่จำนวนในช่องราคาก็ได้</div>
+      <div class="room-picker" id="f-picker">${floorsHtml(ciVal,true,pickRooms,ciVal,coVal,editingId)}</div>
+      <div id="f-sel-rooms" style="margin-top:6px;font-size:13px;color:var(--gold);min-height:18px;">
+        ${pickRooms.length
+          ?`ห้องที่เลือก: ${[...pickRooms].sort((a,x)=>a-x).join(', ')} (รวม ${pickRooms.length} ห้อง)`
+          :'ยังไม่ได้เลือกหมายเลขห้อง'}</div>
 
       <div class="section-title" style="margin-top:14px;">ราคาห้องพัก (บาท)/ห้อง/คืน</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">ราคานี้ใช้คำนวณยอดรวมทั้งหมด — สามารถเพิ่มแถวได้หากมีหลายประเภทห้อง</div>
@@ -2332,8 +2316,6 @@ function renderRateRows(){
   });
   syncRoomCount();
   calcDisplay();
-  // ตั้งค่า room mode หลัง modal render
-  setTimeout(()=>toggleRoomMode(_initRoomMode), 0);
 }
 function addRateRow(){
   formRates.push({price:0,count:1,rooms:''});
@@ -2343,19 +2325,6 @@ function removeRateRow(i){
   formRates.splice(i,1);
   renderRateRows();
 }
-function toggleRoomMode(mode){
-  const pickerWrap=document.getElementById('f-picker-wrap');
-  const noassignNote=document.getElementById('f-noassign-note');
-  if(mode==='noassign'){
-    if(pickerWrap) pickerWrap.style.display='none';
-    if(noassignNote) noassignNote.style.display='block';
-    pickRooms=[];
-  } else {
-    if(pickerWrap) pickerWrap.style.display='block';
-    if(noassignNote) noassignNote.style.display='none';
-  }
-}
-
 function syncRoomCount(){
   const total=formRates.reduce((s,r)=>s+(parseInt(r.count)||1),0);
   if(!pickRooms.length){
@@ -2923,24 +2892,6 @@ function countVacantRooms(dateStr){
   });
   return ALL_ROOMS.length-occ;
 }
-
-// นับ booking ที่ไม่ได้ระบุหมายเลขห้อง (rooms ว่าง) และ overlap กับวันที่ที่ระบุ
-function countUnassignedBookings(dateStr){
-  return ST.bookings.filter(b=>
-    b.status!==S_CO && b.status!==S_CANCEL &&
-    (!b.rooms || b.rooms.length===0) &&
-    b.checkIn<=dateStr && b.checkOut>dateStr
-  ).length;
-}
-
-// ดึง list booking ที่ไม่ระบุห้อง overlap กับวันที่ระบุ
-function getUnassignedBookings(dateStr){
-  return ST.bookings.filter(b=>
-    b.status!==S_CO && b.status!==S_CANCEL &&
-    (!b.rooms || b.rooms.length===0) &&
-    b.checkIn<=dateStr && b.checkOut>dateStr
-  );
-}
 function buildRaCalendar(){
   const TOTAL=ALL_ROOMS.length;
   const thNames=['อา','จ','อ','พ','พฤ','ศ','ส'];
@@ -2972,32 +2923,23 @@ function buildRaCalendar(){
     const pct=vac/TOTAL;
     const isToday=dateStr===todayStr;
     const isPast=dateStr<todayStr;
-    const unassigned=countUnassignedBookings(dateStr);
 
-    if(isPast && !isToday){
-      // วันที่ผ่านมาแล้ว — ไม่แสดงตัวเลขห้องว่าง
-      html+=`<div class="ra-day past" onclick="raShowDayDetail('${dateStr}')" style="cursor:pointer;opacity:.55;">
-        <div class="ra-day-num">${d}</div>
-        <div style="height:5px;margin-bottom:6px;"></div>
-        <div class="ra-avail-text" style="color:var(--text2);font-size:11px;">—</div>
-        <div class="ra-total-text">${unassigned>0?`<span style="color:var(--orange);">⚠️${unassigned}</span>`:''}</div>
-      </div>`;
-    } else {
-      // color by availability
-      let barColor,textColor;
-      if(pct>=0.5){barColor='#4ec48a';textColor='var(--green)';}
-      else if(pct>=0.2){barColor='#d47832';textColor='var(--orange)';}
-      else{barColor='#df5858';textColor='var(--red)';}
-      const pctW=Math.round(pct*100);
-      html+=`<div class="ra-day${isToday?' today':''}" onclick="raShowDayDetail('${dateStr}')" style="cursor:pointer;">
-        <div class="ra-day-num">${d}</div>
-        <div style="background:rgba(255,255,255,.07);border-radius:3px;height:5px;margin-bottom:6px;">
-          <div class="ra-avail-bar" style="background:${barColor};width:${pctW}%;"></div>
-        </div>
-        <div class="ra-avail-text" style="color:${textColor};">ว่าง ${vac}</div>
-        <div class="ra-total-text">${unassigned>0?`<span style="color:var(--orange);font-size:10px;">⚠️ไม่ระบุห้อง ${unassigned}</span>`:`จาก ${TOTAL} ห้อง`}</div>
-      </div>`;
-    }
+    // color by availability
+    let barColor,textColor;
+    if(pct>=0.5){barColor='#4ec48a';textColor='var(--green)';}
+    else if(pct>=0.2){barColor='#d47832';textColor='var(--orange)';}
+    else{barColor='#df5858';textColor='var(--red)';}
+
+    const pctW=Math.round(pct*100);
+    html+=`<div class="ra-day${isToday?' today':''}${isPast?' past':''}"
+      onclick="raShowDayDetail('${dateStr}')" style="cursor:pointer;">
+      <div class="ra-day-num">${d}</div>
+      <div style="background:rgba(255,255,255,.07);border-radius:3px;height:5px;margin-bottom:6px;">
+        <div class="ra-avail-bar" style="background:${barColor};width:${pctW}%;"></div>
+      </div>
+      <div class="ra-avail-text" style="color:${textColor};">ว่าง ${vac}</div>
+      <div class="ra-total-text">จาก ${TOTAL} ห้อง</div>
+    </div>`;
   }
 
   // blank cells after month end
@@ -3018,19 +2960,6 @@ function raShowDayDetail(dateStr){
     else occList.push({r,s,b});
   });
   occList.sort((a,x)=>a.r-x.r);
-
-  // แสดง unassigned bookings ใน modal
-  const unassignedList=getUnassignedBookings(dateStr);
-  const unassignedHtml=unassignedList.length?`
-    <div style="margin-bottom:12px;padding:10px 12px;background:rgba(212,120,50,.1);border:1px solid rgba(212,120,50,.3);border-radius:8px;">
-      <div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:6px;">⚠️ การจองที่ยังไม่ได้ระบุหมายเลขห้อง (${unassignedList.length} รายการ)</div>
-      ${unassignedList.map(b=>`<div style="font-size:12px;color:var(--text);padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);">
-        <span style="color:var(--gold);font-weight:600;">${esc(b.guestName)}</span>
-        <span style="color:var(--text2);margin-left:8px;">${b.roomCount||formRates?.[0]?.count||1} ห้อง</span>
-        <span style="color:var(--text2);margin-left:8px;">${fmtDate(b.checkIn)}→${fmtDate(b.checkOut)}</span>
-        <button class="btn btn-xs" style="margin-left:8px;background:rgba(55,138,221,.2);color:#7ab8f5;" onclick="closeModal();openResModal('${b.id}')">แก้ไข</button>
-      </div>`).join('')}
-    </div>`:'';
 
   const statusLabel={res:'จองแล้ว',occ:'มีผู้พัก',co:'เช็คเอาท์วันนี้'};
   let occRows=occList.map(({r,s,b})=>`<tr>
@@ -3059,7 +2988,6 @@ function raShowDayDetail(dateStr){
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-      ${unassignedHtml}
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
         <div class="chip">ว่าง <span>${vacRooms.length}</span></div>
         <div class="chip">มีผู้พัก <span>${occList.length}</span></div>
