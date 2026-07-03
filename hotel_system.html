@@ -2444,6 +2444,23 @@ async function saveReservation(){
   for(const r of pickRooms){
     if(!roomAvail(r,ci,co,editingId)){alert(`ห้อง ${r} ถูกจองในช่วงวันนั้นแล้ว`);return;}
   }
+
+  // ตรวจ: ราคา 0 (Comp.) ต้องระบุหมายเลขห้องครบตามจำนวน
+  const _compErrors=[];
+  formRates.forEach((r,i)=>{
+    if((parseFloat(r.price)||0)===0){
+      const need=parseInt(r.count)||1;
+      const listed=(r.rooms||'').split(',').map(x=>x.trim()).filter(x=>x);
+      if(listed.length!==need){
+        _compErrors.push(`แถวราคาที่ ${i+1} (Comp.) กำหนดจำนวน ${need} ห้อง แต่ระบุหมายเลขห้องไว้ ${listed.length} ห้อง`);
+      }
+    }
+  });
+  if(_compErrors.length){
+    alert('❌ กรุณาระบุหมายเลขห้องพักให้ครบ\n\n' + _compErrors.join('\n') + '\n\nระบุหมายเลขห้องในช่อง "ระบุห้อง" ของแถวราคา 0 บาท เช่น 503,504');
+    return;
+  }
+
   const bf=document.getElementById('f-bf')?.checked;
   const noBf=document.getElementById('f-nobf')?.checked;
   const totalRm=formRates.reduce((s,r)=>s+(parseInt(r.count)||1),0);
