@@ -798,7 +798,7 @@ let ST={
   users:[],
   bookings:[], currentUser:null
 };
-let pickRooms=[], editingId=null, assignId=null;
+let pickRooms=[], editingId=null, assignId=null, _pendingRoomMode=null;
 
 /* ════════════════════════════════════════
    PERMISSION HELPERS
@@ -1166,6 +1166,8 @@ async function _autoRefresh(){
   if(_isSaving) return;       // กำลังบันทึกอยู่ — ข้ามรอบนี้
   const modal = document.getElementById('modal-overlay');
   if(modal && modal.style.display !== 'none') return; // มี modal เปิดอยู่ — ข้าม
+  const ecModal = document.getElementById('ec-overlay');
+  if(ecModal && ecModal.style.display !== 'none') return; // Extra Charges modal เปิดอยู่ — ข้าม
 
   console.log('[AutoRefresh] refreshing...');
   _lastRefreshAt = new Date();
@@ -1879,7 +1881,7 @@ function renderTimelineView(){
         }
 
         const onclick = b ? `onclick="viewBooking('${b.id}')"` : '';
-        tbody += `<td class="${cls}" ${onclick} title="${b?b.guestName+' ('+b.checkIn+'→'+b.checkOut+')':'ว่าง'}">
+        tbody += `<td class="${cls}" ${onclick} title="${b?esc(b.guestName)+' ('+b.checkIn+'→'+b.checkOut+')':'ว่าง'}">
           <div class="tl-cell-inner">${label}</div>
         </td>`;
       });
@@ -2142,7 +2144,7 @@ function openResModal(id){
   const tStr=ymdLocal(tom);
   if(b&&b.rooms&&b.rooms.length) pickRooms=[...b.rooms];
   // กำหนด mode: ถ้า booking เดิมไม่มีห้อง → noassign mode
-  const _initRoomMode = (b && (!b.rooms || !b.rooms.length)) ? 'noassign' : 'assign';
+  _pendingRoomMode = (b && (!b.rooms || !b.rooms.length)) ? 'noassign' : 'assign';
   const ciVal=b?b.checkIn:d;
   const coVal=b?b.checkOut:tStr;
 
@@ -2332,8 +2334,8 @@ function renderRateRows(){
   });
   syncRoomCount();
   calcDisplay();
-  // ตั้งค่า room mode หลัง modal render
-  setTimeout(()=>toggleRoomMode(_initRoomMode), 0);
+  // ตั้งค่า room mode หลัง render (ใช้ _pendingRoomMode ที่ set ใน openResModal)
+  if(_pendingRoomMode){ toggleRoomMode(_pendingRoomMode); _pendingRoomMode=null; }
 }
 function addRateRow(){
   formRates.push({price:0,count:1,rooms:''});
@@ -3070,7 +3072,7 @@ function raShowDayDetail(dateStr){
     <td><strong style="color:var(--gold);">${r}</strong></td>
     <td>${roomType(r)}</td>
     <td><span class="badge ${{res:'badge-purple',ci:'badge-blue',occ:'badge-red',co:'badge-orange'}[s]||'badge-gray'}">${statusLabel[s]||s}</span></td>
-    <td>${b?b.guestName:'-'}</td>
+    <td>${b?esc(b.guestName):'-'}</td>
     <td>${b?fmtDate(b.checkOut):'-'}</td>
   </tr>`).join('');
 
@@ -4673,11 +4675,11 @@ async function printGroupFolio(groupId){
 <!-- GUEST INFO -->
 <div style="color:#e07020;font-weight:700;font-size:12px;letter-spacing:1px;border-bottom:1.5px solid #e07020;padding-bottom:3px;margin-bottom:8px;">GUEST INFORMATION / ข้อมูลผู้เข้าพัก</div>
 <table width="100%" cellpadding="4" cellspacing="0" border="0" style="font-size:12px;margin-bottom:10px;">
-  <tr><td width="200" style="color:#888;">Guest Name (ชื่อ-นามสกุล)</td><td>:&nbsp;&nbsp;${first.guestName||'-'}</td></tr>
-  <tr><td style="color:#888;">Company Name (ชื่อบริษัท)</td><td>:&nbsp;&nbsp;${first.company||'-'}</td></tr>
-  <tr><td style="color:#888;">Address (ที่อยู่)</td><td>:&nbsp;&nbsp;${first.address||'-'}</td></tr>
-  <tr><td style="color:#888;">Telephone (โทรศัพท์)</td><td>:&nbsp;&nbsp;${first.phone||'-'}</td></tr>
-  <tr><td style="color:#888;">Tax ID / Passport No.</td><td>:&nbsp;&nbsp;${first.taxId||'-'}</td></tr>
+  <tr><td width="200" style="color:#888;">Guest Name (ชื่อ-นามสกุล)</td><td>:&nbsp;&nbsp;${esc(first.guestName)||'-'}</td></tr>
+  <tr><td style="color:#888;">Company Name (ชื่อบริษัท)</td><td>:&nbsp;&nbsp;${esc(first.company)||'-'}</td></tr>
+  <tr><td style="color:#888;">Address (ที่อยู่)</td><td>:&nbsp;&nbsp;${esc(first.address)||'-'}</td></tr>
+  <tr><td style="color:#888;">Telephone (โทรศัพท์)</td><td>:&nbsp;&nbsp;${esc(first.phone)||'-'}</td></tr>
+  <tr><td style="color:#888;">Tax ID / Passport No.</td><td>:&nbsp;&nbsp;${esc(first.taxId)||'-'}</td></tr>
 </table>
 
 <!-- CHARGES -->
