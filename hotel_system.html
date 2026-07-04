@@ -1725,7 +1725,8 @@ async function renderDashboard(){
   renderDashMonthly();
   // Revenue Phase 2 — โหลด charges ก่อน render (lazy load)
   updateRevLabel();
-  await _loadDashboardCharges(_revYear, _revMonth);
+  try{ await _loadDashboardCharges(_revYear, _revMonth); }
+  catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
   renderRevSummary(_revYear, _revMonth);
   let vac=0,res=0,occ=0;
   ALL_ROOMS.forEach(r=>{
@@ -2646,7 +2647,7 @@ async function viewBooking(id){
           const CL={food:'🍽️ อาหาร-เครื่องดื่ม',laundry:'👕 ซักรีด',transport:'🚗 ยานพาหนะ',phone:'📞 โทรศัพท์',minibar:'🍺 มินิบาร์',other:'📦 อื่นๆ'};
           let ecTotal=0;
           const rows=ec.map(c=>{const amt=(parseFloat(c.price)||0)*(parseInt(c.qty)||1);ecTotal+=amt;
-            return `<div class="pb-row"><span>${CL[c.cat]||c.cat}${c.desc?' – '+c.desc:''} (${c.date||''} × ${c.qty})</span><span>${amt.toLocaleString()} บาท</span></div>`;}).join('');
+            return `<div class="pb-row"><span>${CL[c.cat]||c.cat}${c.desc?' – '+esc(c.desc):''} (${c.date||''} × ${c.qty})</span><span>${amt.toLocaleString()} บาท</span></div>`;}).join('');
           return `<div style="border-top:1px dashed var(--border);padding-top:6px;margin-top:4px;">
             <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Extra Charges</div>
             ${rows}
@@ -4107,7 +4108,7 @@ function printBookingAll(id){
       let ecTotal=0;
       const rows=ec.map(c=>{const amt=(parseFloat(c.price)||0)*(parseInt(c.qty)||1);ecTotal+=amt;
         return `<tr><td style="padding:5px 6px;color:#555;">${c.date||'-'}</td>
-          <td style="padding:5px 6px;">${CL[c.cat]||c.cat}${c.desc?' – '+c.desc:''}</td>
+          <td style="padding:5px 6px;">${CL[c.cat]||c.cat}${c.desc?' – '+esc(c.desc):''}</td>
           <td style="padding:5px 6px;text-align:center;">${c.qty}</td>
           <td style="padding:5px 6px;text-align:right;">${(parseFloat(c.price)||0).toLocaleString()}</td>
           <td style="padding:5px 6px;text-align:right;font-weight:600;">${amt.toLocaleString()}</td></tr>`;}).join('');
@@ -4927,14 +4928,16 @@ async function revShiftMonth(delta){
   if(_revMonth > 11){ _revMonth = 0; _revYear++; }
   if(_revMonth < 0) { _revMonth = 11; _revYear--; }
   updateRevLabel();
-  await _loadDashboardCharges(_revYear, _revMonth);
+  try{ await _loadDashboardCharges(_revYear, _revMonth); }
+  catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
   renderRevSummary(_revYear, _revMonth);
 }
 async function revGoToday(){
   _revYear  = new Date().getFullYear();
   _revMonth = new Date().getMonth();
   updateRevLabel();
-  await _loadDashboardCharges(_revYear, _revMonth);
+  try{ await _loadDashboardCharges(_revYear, _revMonth); }
+  catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
   renderRevSummary(_revYear, _revMonth);
 }
 function updateRevLabel(){
