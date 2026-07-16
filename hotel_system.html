@@ -344,6 +344,7 @@ tfoot td{border-top:1px solid var(--border);}
     <div class="page" id="page-dashboard">
       <div class="page-title">Dashboard</div>
       <div class="page-sub" id="dash-date"></div>
+      <div id="_bd_close_wrap" style="margin-bottom:10px;"></div>
       <div class="stats-grid" id="dash-stats"></div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
@@ -556,6 +557,9 @@ tfoot td{border-top:1px solid var(--border);}
     <!-- ADMIN TOOLS -->
     <div class="page" id="page-admintools">
       <div class="page-title">🛠 Admin Tools</div>
+
+      <!-- ── Business Day ── -->
+      <div id="_admin_bd_section" style="max-width:760px;"></div>
 
       <!-- ── Restore Backup ── -->
       <div class="card" style="margin-bottom:14px;max-width:760px;overflow:hidden;">
@@ -1217,7 +1221,56 @@ function _stopAutoRefresh(){
 function ymdLocal(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function today(){return ymdLocal(new Date());}
+// ── Business Day System ──────────────────────────────────────
+const _BD_KEY = 'hms_business_day';
+let _businessDay = localStorage.getItem(_BD_KEY) || ymdLocal(new Date());
+
+function today(){ return _businessDay; }           // Business day (ใช้ทั่วระบบ)
+function realToday(){ return ymdLocal(new Date()); } // วันจริงเสมอ
+
+function _bdSave(d){
+  _businessDay = d;
+  localStorage.setItem(_BD_KEY, d);
+}
+function _bdReset(){
+  _bdSave(realToday());
+}
+function closeDay(){
+  const real = realToday();
+  if(_businessDay >= real){
+    alert('⚠️ Business Day ตรงกับวันจริงแล้ว ไม่สามารถปิดวันเพิ่มได้');
+    return;
+  }
+  const nd = new Date(_businessDay + 'T00:00:00'); nd.setDate(nd.getDate()+1);
+  const nextDay = ymdLocal(nd);
+  if(!confirm(`ยืนยันปิดวัน ${fmtDate(_businessDay)}\nและเปิดวันใหม่ ${fmtDate(nextDay)} ?`)) return;
+  _bdSave(nextDay);
+  renderDashboard();
+  _renderBdBanner();
+  alert('✅ เปิดวันใหม่ ' + fmtDate(nextDay) + ' เรียบร้อย');
+}
+function _renderBdBanner(){
+  const real = realToday();
+  let banner = document.getElementById('_bd_banner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = '_bd_banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:8000;text-align:center;padding:6px 12px;font-size:13px;font-weight:700;display:none;';
+    document.body.appendChild(banner);
+  }
+  if(_businessDay < real){
+    banner.style.display = 'block';
+    banner.style.background = 'rgba(212,120,50,.92)';
+    banner.style.color = '#fff';
+    banner.innerHTML = `⚠️ Business Day: <strong>${fmtDate(_businessDay)}</strong> &nbsp;|&nbsp; วันจริง: ${fmtDate(real)} &nbsp;
+      <button onclick="if(confirm('รีเซ็ต Business Day กลับวันจริง?')){_bdReset();renderDashboard();_renderBdBanner();}" 
+        style="margin-left:12px;padding:2px 10px;border-radius:6px;border:none;background:#fff;color:#d47832;font-weight:700;cursor:pointer;font-size:12px;">
+        รีเซ็ต
+      </button>`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
 function dateOnly(v){
   if(!v) return '';
   if(v instanceof Date&&!isNaN(v)) return ymdLocal(v);
@@ -1318,12 +1371,14 @@ async function doLogin(){
   _resetIdleTimer();    // เริ่มนับ idle หลัง login
   _startAutoRefresh();  // เริ่ม auto-refresh
   await load();
+  _renderBdBanner();    // แสดง banner ถ้า business day ≠ วันจริง
   showPage('dashboard');
 }
 function doLogout(){
   ST.currentUser=null;
   clearTimeout(_idleTimer); // หยุดนับ idle
   _stopAutoRefresh();       // หยุด auto-refresh
+  _renderBdBanner();        // ซ่อน banner
   try{sessionStorage.removeItem('hms_session');}catch(e){}
   document.getElementById('app').style.display='none';
   document.getElementById('login-page').style.display='flex';
@@ -1699,6 +1754,24 @@ async function renderDashboard(){
   const d=today();
   const now=new Date(d);
   document.getElementById('dash-date').textContent='วันที่ '+fmtDate(d);
+
+  // ── Close Day button ──
+  const real = realToday();
+  const canClose = _businessDay < real;
+  const ndObj = new Date(_businessDay + 'T00:00:00'); ndObj.setDate(ndObj.getDate()+1);
+  const nextBdStr = ymdLocal(ndObj);
+  const wrap = document.getElementById('_bd_close_wrap');
+  if(wrap){
+    if(canClose){
+      wrap.innerHTML = `<button onclick="closeDay()" class="btn btn-sm"
+        style="background:rgba(212,120,50,.15);border:1px solid rgba(212,120,50,.5);color:var(--orange);font-weight:700;">
+        🌙 Close Day → เปิดวัน ${fmtDate(nextBdStr)}
+      </button>`;
+    } else {
+      wrap.innerHTML = `<span style="font-size:12px;color:var(--green);font-weight:600;">✅ Business Day ปัจจุบัน</span>`;
+    }
+  }
+  _renderBdBanner();
 
   // Init month/year selectors
   const mSel=document.getElementById('dash-month');
@@ -2140,7 +2213,7 @@ function openResModal(id){
   pickRooms=[];
   editingId=id||null;
   const b=id?ST.bookings.find(x=>x.id===id):null;
-  const d=today();
+  const d=realToday();  // ใช้วันจริงเสมอสำหรับ default วันจอง
   const tom=new Date();tom.setDate(tom.getDate()+1);
   const tStr=ymdLocal(tom);
   if(b&&b.rooms&&b.rooms.length) pickRooms=[...b.rooms];
@@ -4950,7 +5023,27 @@ function updateRevLabel(){
 ════════════════════════════════════════ */
 let _restoreData = null;
 
-function renderAdminTools(){ initArchiveYears(); }
+function renderAdminTools(){
+  initArchiveYears();
+  // แสดง Business Day reset section
+  const real = realToday();
+  const bdEl = document.getElementById('_admin_bd_section');
+  if(bdEl){
+    bdEl.innerHTML = _businessDay < real
+      ? `<div style="padding:12px 16px;background:rgba(212,120,50,.1);border:1px solid rgba(212,120,50,.3);border-radius:8px;margin-bottom:12px;">
+          <div style="font-weight:700;color:var(--orange);margin-bottom:6px;">🌙 Business Day</div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:8px;">
+            ปัจจุบัน: <strong>${fmtDate(_businessDay)}</strong> &nbsp;|&nbsp; วันจริง: <strong>${fmtDate(real)}</strong>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="if(confirm('รีเซ็ต Business Day กลับวันจริง ${fmtDate(real)}?')){_bdReset();renderDashboard();_renderBdBanner();renderAdminTools();alert('✅ รีเซ็ตเรียบร้อย');}">
+            🔄 รีเซ็ต Business Day กลับวันจริง
+          </button>
+        </div>`
+      : `<div style="padding:10px 16px;background:rgba(74,196,138,.08);border:1px solid rgba(74,196,138,.2);border-radius:8px;margin-bottom:12px;font-size:13px;color:var(--green);">
+          ✅ Business Day ตรงกับวันจริง (${fmtDate(real)})
+        </div>`;
+  }
+}
 
 /* ── Restore ── */
 function onRestoreFileSelected(){
@@ -5268,6 +5361,7 @@ async function doChangePassword(){
     _resetIdleTimer();    // เริ่มนับ idle หลัง restore session
     _startAutoRefresh();  // เริ่ม auto-refresh
     await load();
+    _renderBdBanner();    // แสดง banner ถ้า business day ≠ วันจริง
     showPage('dashboard');
   }catch(e){
     try{sessionStorage.removeItem('hms_session');}catch(_){}
@@ -5334,7 +5428,7 @@ async function openEcModal(bookingId){
   _hideLoading();
   document.getElementById('ec-guest-name').textContent=
     b.guestName+' | ห้อง '+(b.rooms||[]).join(', ');
-  document.getElementById('ec-date').value=today();
+  document.getElementById('ec-date').value=realToday(); // วันที่เกิดค่าใช้จ่ายจริง
   document.getElementById('ec-qty').value=1;
   document.getElementById('ec-price').value='';
   document.getElementById('ec-desc').value='';
