@@ -18,7 +18,29 @@ body.theme-forest{--bg:#0b1a12;--bg2:#112218;--bg3:#162d1e;--card:#1a3424;}
 body.theme-navy{--bg:#040d1a;--bg2:#081224;--bg3:#0e1d35;--card:#122245;}
 body.theme-charcoal{--bg:#111111;--bg2:#1a1a1a;--bg3:#222222;--card:#2a2a2a;}
 body.theme-wine{--bg:#160b0e;--bg2:#200f14;--bg3:#2b151b;--card:#341c23;}
-body.theme-light{--bg:#f0f2f5;--bg2:#ffffff;--bg3:#f8f9fa;--card:#ffffff;--text:#1a1a2e;--text2:#6c757d;--border:rgba(200,168,74,.25);}
+body.theme-light{
+  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#f8f9fa;--card:#ffffff;
+  --text:#1a1a2e;--text2:#6b7280;
+  --gold:#b8860b;--gold2:#d4a017;
+  --red:#e53e3e;--green:#38a169;--blue:#3b82f6;--orange:#ed8936;--purple:#805ad5;
+  --border:rgba(0,0,0,.10);--radius:10px;
+}
+/* Light mode overrides */
+body.theme-light .sidebar{background:linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)!important;border-right:none!important;}
+body.theme-light .nav-item{color:#a0aec0!important;}
+body.theme-light .nav-item.active,body.theme-light .nav-item:hover{background:rgba(200,168,74,.18)!important;color:#e8cc7a!important;}
+body.theme-light .nav-section-label{color:#718096!important;}
+body.theme-light .login-card{box-shadow:0 8px 32px rgba(0,0,0,.12);}
+body.theme-light .form-input{border:1px solid #e2e8f0;background:#fff;color:#1a1a2e;}
+body.theme-light .form-input:focus{border-color:#b8860b;}
+body.theme-light .sidebar-footer{border-top:1px solid rgba(255,255,255,.08)!important;}
+body.theme-light .sf-name{color:#e2e8f0!important;}
+body.theme-light .sf-role{color:#c8a84a!important;}
+body.theme-light .page-title{color:#1a1a2e;}
+body.theme-light .card,body.theme-light [class*="card"]{box-shadow:0 2px 12px rgba(0,0,0,.08);}
+body.theme-light table thead tr{background:rgba(26,26,46,.06)!important;}
+body.theme-light .modal-box{box-shadow:0 16px 48px rgba(0,0,0,.18);}
+body.theme-light .btn-primary{background:linear-gradient(135deg,#b8860b,#d4a017)!important;}
 body.theme-ocean{--bg:#051520;--bg2:#081f2d;--bg3:#0d2b3e;--card:#10364f;}
 body.theme-purple{--bg:#0e0a1a;--bg2:#160f28;--bg3:#1e1535;--card:#261c42;}
 body.theme-teal{--bg:#061618;--bg2:#0a2024;--bg3:#0e2b30;--card:#12363c;}
@@ -304,6 +326,17 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="queue-badge" id="_queue_badge"></div>
       <!-- Theme Switcher -->
       <div style="margin-bottom:10px;">
+        <!-- Light/Dark toggle -->
+        <div style="display:flex;gap:4px;margin-bottom:8px;">
+          <button id="btn-dark-mode" onclick="setTheme('');document.getElementById('btn-dark-mode').style.opacity='1';document.getElementById('btn-light-mode').style.opacity='.45';"
+            style="flex:1;padding:5px 0;border-radius:6px;border:1px solid var(--border);background:rgba(14,14,28,.8);color:#e8cc7a;font-size:12px;font-weight:700;cursor:pointer;">
+            🌙 Dark
+          </button>
+          <button id="btn-light-mode" onclick="setTheme('light');document.getElementById('btn-light-mode').style.opacity='1';document.getElementById('btn-dark-mode').style.opacity='.45';"
+            style="flex:1;padding:5px 0;border-radius:6px;border:1px solid rgba(0,0,0,.15);background:#f0f2f5;color:#1a1a2e;font-size:12px;font-weight:700;cursor:pointer;opacity:.45;">
+            ☀️ Light
+          </button>
+        </div>
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">ธีมสี</div>
         <!-- Preset swatches -->
         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;">
@@ -4495,6 +4528,13 @@ function setTheme(name){
   document.querySelectorAll('[id^="th-"]').forEach(btn=>{btn.style.boxShadow='none';});
   const active=document.getElementById('th-'+(name||'default'));
   if(active) active.style.boxShadow='0 0 0 2px var(--gold),0 0 0 4px rgba(200,168,74,.3)';
+  // sync Light/Dark toggle buttons
+  const btnDark=document.getElementById('btn-dark-mode');
+  const btnLight=document.getElementById('btn-light-mode');
+  if(btnDark && btnLight){
+    btnDark.style.opacity = name==='light' ? '.45' : '1';
+    btnLight.style.opacity = name==='light' ? '1' : '.45';
+  }
 }
 function hexToRgb(hex){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
