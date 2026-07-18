@@ -27,9 +27,9 @@ body.theme-light{
 }
 /* Light mode overrides */
 body.theme-light .sidebar{background:linear-gradient(180deg,#2d3561 0%,#1e2a4a 100%)!important;border-right:none!important;}
-body.theme-light .nav-item{color:#a0aec0!important;}
+body.theme-light .nav-item{color:#c8d0e8!important;}
 body.theme-light .nav-item.active,body.theme-light .nav-item:hover{background:rgba(200,168,74,.18)!important;color:#e8cc7a!important;}
-body.theme-light .nav-section-label{color:#718096!important;}
+body.theme-light .nav-section-label{color:#8899bb!important;}
 body.theme-light .login-card{box-shadow:0 8px 32px rgba(0,0,0,.12);}
 body.theme-light .form-input{border:1px solid #e2e8f0;background:#fff;color:#1a1a2e;}
 body.theme-light .form-input:focus{border-color:#b8860b;}
@@ -328,12 +328,12 @@ tfoot td{border-top:1px solid var(--border);}
       <div style="margin-bottom:10px;">
         <!-- Light/Dark toggle -->
         <div style="display:flex;gap:4px;margin-bottom:8px;">
-          <button id="btn-dark-mode" onclick="setTheme('');document.getElementById('btn-dark-mode').style.opacity='1';document.getElementById('btn-light-mode').style.opacity='.45';"
-            style="flex:1;padding:5px 0;border-radius:6px;border:1px solid var(--border);background:rgba(14,14,28,.8);color:#e8cc7a;font-size:12px;font-weight:700;cursor:pointer;">
+          <button id="btn-dark-mode" onclick="setTheme('');document.getElementById('btn-dark-mode').style.opacity='1';document.getElementById('btn-light-mode').style.opacity='.5';"
+            style="flex:1;padding:6px 0;border-radius:6px;border:2px solid #c8a84a;background:#0e0e1c;color:#f0d060;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:.3px;">
             🌙 Dark
           </button>
-          <button id="btn-light-mode" onclick="setTheme('light');document.getElementById('btn-light-mode').style.opacity='1';document.getElementById('btn-dark-mode').style.opacity='.45';"
-            style="flex:1;padding:5px 0;border-radius:6px;border:1px solid rgba(0,0,0,.15);background:#f0f2f5;color:#1a1a2e;font-size:12px;font-weight:700;cursor:pointer;opacity:.45;">
+          <button id="btn-light-mode" onclick="setTheme('light');document.getElementById('btn-light-mode').style.opacity='1';document.getElementById('btn-dark-mode').style.opacity='.5';"
+            style="flex:1;padding:6px 0;border-radius:6px;border:2px solid #888;background:#e8eaf0;color:#1a1a2e;font-size:12px;font-weight:800;cursor:pointer;opacity:.5;letter-spacing:.3px;">
             ☀️ Light
           </button>
         </div>
@@ -1798,12 +1798,12 @@ async function renderDashboard(){
     // แสดงปุ่มเสมอ — disabled เมื่อ business day = วันจริง
     wrap.innerHTML = canClose
       ? `<button onclick="closeDay()" class="btn btn-sm"
-          style="background:rgba(212,120,50,.15);border:1px solid rgba(212,120,50,.5);color:var(--orange);font-weight:700;">
-          🌙 Close Day → เปิดวัน ${fmtDate(nextBdStr)}
+          style="background:rgba(212,120,50,.22);border:2px solid var(--orange);color:var(--orange);font-weight:800;font-size:13px;padding:7px 16px;letter-spacing:.3px;">
+          🌙 Close Day &nbsp;→&nbsp; เปิดวัน <strong>${fmtDate(nextBdStr)}</strong>
         </button>`
       : `<button class="btn btn-sm" disabled
-          style="opacity:.45;cursor:not-allowed;background:rgba(74,196,138,.1);border:1px solid rgba(74,196,138,.3);color:var(--green);font-weight:700;">
-          🌙 Close Day — Business Day ปัจจุบัน
+          style="opacity:.55;cursor:not-allowed;background:rgba(74,196,138,.12);border:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:7px 16px;">
+          ✅ Business Day ปัจจุบัน
         </button>`;
   }
   _renderBdBanner();
