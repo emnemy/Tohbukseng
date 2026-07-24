@@ -4,14 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hotel Management System</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0e0e1c;--bg2:#15152a;--bg3:#1c1c35;--card:#21213d;
   --gold:#c8a84a;--gold2:#e8cc7a;
   --red:#df5858;--green:#4ec48a;--blue:#5082d4;--orange:#d47832;--purple:#8855d4;
-  --text:#ede9e0;--text2:#8888aa;
-  --border:rgba(200,168,74,.14);--radius:8px;
+  --text:#ede9e0;--text2:#9d9dc2;--text3:#6b6b8a;
+  --border:rgba(200,168,74,.14);--border-strong:rgba(200,168,74,.24);--radius:10px;
+  --shadow-card:0 2px 10px rgba(0,0,0,.22);--shadow-lift:0 8px 24px rgba(0,0,0,.32);
 }
 body.theme-slate{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--card:#21262d;}
 body.theme-forest{--bg:#0b1a12;--bg2:#112218;--bg3:#162d1e;--card:#1a3424;}
@@ -20,10 +21,11 @@ body.theme-charcoal{--bg:#111111;--bg2:#1a1a1a;--bg3:#222222;--card:#2a2a2a;}
 body.theme-wine{--bg:#160b0e;--bg2:#200f14;--bg3:#2b151b;--card:#341c23;}
 body.theme-light{
   --bg:#f0f2f5;--bg2:#ffffff;--bg3:#f8f9fa;--card:#ffffff;
-  --text:#1a1a2e;--text2:#6b7280;
+  --text:#1a1a2e;--text2:#5b6172;--text3:#8a90a3;
   --gold:#b8860b;--gold2:#d4a017;
   --red:#e53e3e;--green:#38a169;--blue:#3b82f6;--orange:#ed8936;--purple:#805ad5;
-  --border:rgba(0,0,0,.10);--radius:10px;
+  --border:rgba(0,0,0,.10);--border-strong:rgba(0,0,0,.16);--radius:10px;
+  --shadow-card:0 1px 3px rgba(16,24,40,.06);--shadow-lift:0 8px 24px rgba(16,24,40,.10);
 }
 /* Light mode overrides */
 body.theme-light .sidebar{background:linear-gradient(180deg,#2d3561 0%,#1e2a4a 100%)!important;border-right:none!important;}
@@ -48,7 +50,7 @@ body.theme-amber{--bg:#160f04;--bg2:#211608;--bg3:#2d1f0c;--card:#382711;}
 body.theme-rose{--bg:#160810;--bg2:#200c18;--bg3:#2b1122;--card:#36152c;}
 body.theme-moss{--bg:#0f1408;--bg2:#171e0c;--bg3:#1f2a10;--card:#273514;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;}
 
 /* LOGIN */
 #login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;
@@ -60,7 +62,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 
 /* FORM */
 .form-group{margin-bottom:13px;}
-.form-label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px;}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;}
 .form-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
   padding:8px 12px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
 .form-input:focus{border-color:var(--gold);}
@@ -73,7 +75,7 @@ textarea.form-input{resize:vertical;}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 18px;border-radius:var(--radius);
-  border:none;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:600;transition:all .18s;white-space:nowrap;}
+  border:none;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:600;line-height:1.2;transition:all .18s;white-space:nowrap;}
 .btn-primary{background:var(--gold);color:#0e0e1c;} .btn-primary:hover{background:var(--gold2);}
 .btn-secondary{background:var(--bg3);border:1px solid var(--border);color:var(--text);} .btn-secondary:hover{border-color:var(--gold);}
 .btn-danger{background:rgba(223,88,88,.12);border:1px solid rgba(223,88,88,.28);color:var(--red);} .btn-danger:hover{background:rgba(223,88,88,.2);}
@@ -89,26 +91,34 @@ textarea.form-input{resize:vertical;}
 .sidebar-logo-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--gold);}
 .sidebar-logo-sub{font-size:10px;color:var(--text2);margin-top:2px;letter-spacing:1.2px;text-transform:uppercase;}
 .nav-section{padding:8px 0;border-bottom:1px solid var(--border);}
-.nav-section-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);padding:3px 18px 6px;}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;color:var(--text2);font-size:13.5px;
-  font-weight:500;transition:all .15s;border-left:3px solid transparent;}
+.nav-section-title{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3,var(--text2));padding:3px 18px 6px;font-weight:600;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 18px;cursor:pointer;color:var(--text2);font-size:14.5px;
+  font-weight:500;line-height:1.2;transition:all .15s;border-left:3px solid transparent;}
 .nav-item:hover{color:var(--text);background:rgba(200,168,74,.05);}
 .nav-item.active{color:var(--gold);background:rgba(200,168,74,.08);border-left-color:var(--gold);}
-.nav-icon{font-size:14px;width:17px;text-align:center;}
+.nav-icon{width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 .sidebar-footer{margin-top:auto;padding:13px 18px;border-top:1px solid var(--border);}
 .sf-name{font-size:14px;font-weight:600;} .sf-role{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
 .queue-badge{display:none;font-size:10px;padding:3px 8px;background:rgba(212,120,50,.18);color:var(--orange,#d47832);border:1px solid rgba(212,120,50,.35);border-radius:12px;margin-bottom:6px;text-align:center;}
 
 .main-content{margin-left:228px;padding:20px 24px;min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:-20px -24px 20px;padding:13px 24px;background:var(--bg2);border-bottom:1px solid var(--border);}
+.topbar-crumb{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;font-weight:500;}
+.topbar-crumb b{color:var(--text);font-weight:700;font-size:14.5px;font-family:'Playfair Display',serif;}
+.topbar-day{font-size:12.5px;color:var(--gold);background:rgba(200,168,74,.1);border:1px solid var(--border);
+  padding:5px 13px;border-radius:20px;font-weight:600;white-space:nowrap;}
 .page{display:none;} .page.active{display:block;}
 .page-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--text);font-weight:600;}
 .page-sub{font-size:13px;color:var(--text2);margin-top:2px;margin-bottom:18px;}
 
 /* CARDS */
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px;}
-.card-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow-card);}
+.card-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:11px;margin-bottom:16px;}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 15px;text-align:center;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 15px;text-align:center;box-shadow:var(--shadow-card);transition:transform .15s,box-shadow .15s;}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift);}
 .stat-val{font-size:28px;font-weight:700;font-family:'Playfair Display',serif;color:var(--gold);}
 .stat-lbl{font-size:12px;color:var(--text2);margin-top:2px;}
 /* Monthly stats */
@@ -123,17 +133,19 @@ textarea.form-input{resize:vertical;}
 .floor-hd{font-size:13px;font-weight:600;color:var(--gold);margin-bottom:8px;}
 .rooms-grid{display:flex;flex-wrap:wrap;gap:6px;}
 .room-cell{width:76px;height:56px;border-radius:8px;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;cursor:pointer;transition:all .15s;border:2px solid transparent;user-select:none;}
+  justify-content:center;cursor:pointer;transition:all .15s;border:2px solid transparent;user-select:none;line-height:1.15;}
 .room-num{font-size:14px;font-weight:700;}
 .room-type-lbl{font-size:7.5px;text-align:center;line-height:1.2;margin-top:2px;opacity:.85;}
-.room-vacant{background:rgba(78,196,138,.08);border-color:rgba(78,196,138,.25);color:var(--green);}
+.room-vacant{background:rgba(78,196,138,.08);border-color:rgba(78,196,138,.25);color:var(--green);border-style:solid;}
 .room-vacant:hover{border-color:var(--green);transform:translateY(-2px);}
-.room-occupied{background:rgba(223,88,88,.1);border-color:rgba(223,88,88,.28);color:var(--red);}
-.room-ci{background:rgba(80,130,212,.12);border-color:rgba(80,130,212,.32);color:var(--blue);}
-.room-co{background:rgba(212,120,50,.12);border-color:rgba(212,120,50,.32);color:var(--orange);}
-.room-reserved{background:rgba(136,85,212,.1);border-color:rgba(136,85,212,.28);color:var(--purple);}
-.room-overdue{background:rgba(220,60,60,.13);border-color:rgba(220,60,60,.4);color:#e05050;}
+.room-occupied{background:rgba(223,88,88,.1);border-color:rgba(223,88,88,.28);color:var(--red);border-style:solid;}
+.room-ci{background:rgba(80,130,212,.12);border-color:rgba(80,130,212,.32);color:var(--blue);border-style:double;}
+.room-co{background:rgba(212,120,50,.12);border-color:rgba(212,120,50,.32);color:var(--orange);border-style:dashed;}
+.room-reserved{background:rgba(136,85,212,.1);border-color:rgba(136,85,212,.28);color:var(--purple);border-style:dotted;}
+.room-overdue{background:rgba(220,60,60,.13);border-color:rgba(220,60,60,.4);color:#e05050;border-style:solid;box-shadow:inset 0 0 0 1px rgba(224,80,80,.35);}
 .room-overdue .room-num{color:#e05050;}
+.room-overdue::after{content:'!';position:absolute;top:2px;right:5px;font-size:10px;font-weight:800;color:#e05050;}
+.room-cell{position:relative;}
 .overdue-badge{background:rgba(220,60,60,.15);color:#e05050;border:1px solid rgba(220,60,60,.3);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:5px;}
 .room-sel{border-color:var(--gold)!important;box-shadow:0 0 0 2px rgba(200,168,74,.3);
   background:rgba(200,168,74,.1)!important;color:var(--gold)!important;}
@@ -150,15 +162,15 @@ textarea.form-input{resize:vertical;}
 
 /* TABLE */
 .tbl-wrap{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;font-size:13px;}
-th{text-align:left;padding:7px 10px;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);
+table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.35;}
+th{text-align:left;padding:8px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);
   border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;}
 td{padding:8px 10px;border-bottom:1px solid rgba(200,168,74,.05);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 tr:hover td{background:rgba(200,168,74,.02);}
 tfoot td{border-top:1px solid var(--border);}
 
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;line-height:1.3;}
 .badge-green{background:rgba(78,196,138,.14);color:var(--green);}
 .badge-red{background:rgba(223,88,88,.14);color:var(--red);}
 .badge-blue{background:rgba(80,130,212,.14);color:var(--blue);}
@@ -170,7 +182,7 @@ tfoot td{border-top:1px solid var(--border);}
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.74);z-index:1000;display:flex;
   align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
-.modal-box{background:var(--bg3);border:1px solid var(--border);border-radius:16px;width:100%;max-width:780px;
+.modal-box{background:var(--bg3);border:1px solid var(--border-strong);border-radius:16px;width:100%;max-width:780px;
   margin:auto;box-shadow:0 24px 72px rgba(0,0,0,.6);animation:mIn .17s ease;}
 @keyframes mIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:none;}}
 .modal-hd{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
@@ -304,21 +316,21 @@ tfoot td{border-top:1px solid var(--border);}
     </div>
     <div class="nav-section">
       <div class="nav-section-title">ภาพรวม</div>
-      <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">📊</span>Dashboard</div>
-      <div class="nav-item" onclick="showPage('roomchart')" id="nav-roomchart"><span class="nav-icon">🗓</span>Room Chart</div>
-      <div class="nav-item" onclick="showPage('roomavail')" id="nav-roomavail"><span class="nav-icon">📅</span>Room Available</div>
+      <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span>Dashboard</div>
+      <div class="nav-item" onclick="showPage('roomchart')" id="nav-roomchart"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>Room Chart</div>
+      <div class="nav-item" onclick="showPage('roomavail')" id="nav-roomavail"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><path d="M8 13l2.5 2.5L16 10"/></svg></span>Room Available</div>
     </div>
     <div class="nav-section">
       <div class="nav-section-title">การจอง</div>
-      <div class="nav-item" onclick="showPage('reservation')" id="nav-reservation"><span class="nav-icon">📝</span>Reservation</div>
-      <div class="nav-item" onclick="showPage('checkin')" id="nav-checkin"><span class="nav-icon">🛎️</span>Check-In</div>
-      <div class="nav-item" onclick="showPage('guests')" id="nav-guests"><span class="nav-icon">👥</span>Guest In House</div>
-      <div class="nav-item" onclick="showPage('checkout')" id="nav-checkout"><span class="nav-icon">🚪</span>Check-Out</div>
+      <div class="nav-item" onclick="showPage('reservation')" id="nav-reservation"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v4h4"/><line x1="8" y1="12" x2="15" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></span>Reservation</div>
+      <div class="nav-item" onclick="showPage('checkin')" id="nav-checkin"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M15 3h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-4"/><path d="M10 8l5 4-5 4"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span>Check-In</div>
+      <div class="nav-item" onclick="showPage('guests')" id="nav-guests"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M15.5 14.2c2.4.4 4.5 2.4 4.5 5.8"/></svg></span>Guest In House</div>
+      <div class="nav-item" onclick="showPage('checkout')" id="nav-checkout"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 3H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h4"/><path d="M14 8l-5 4 5 4"/><line x1="9" y1="12" x2="21" y2="12"/></svg></span>Check-Out</div>
     </div>
     <div class="nav-section" id="admin-nav">
       <div class="nav-section-title">ระบบ</div>
-      <div class="nav-item" onclick="showPage('users')" id="nav-users"><span class="nav-icon">⚙️</span>จัดการผู้ใช้</div>
-      <div class="nav-item" onclick="showPage('admintools')" id="nav-admintools"><span class="nav-icon">🛠</span>Admin Tools</div>
+      <div class="nav-item" onclick="showPage('users')" id="nav-users"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.3"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>จัดการผู้ใช้</div>
+      <div class="nav-item" onclick="showPage('admintools')" id="nav-admintools"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 1 5.4-5.4l-3-3-3 3z"/></svg></span>Admin Tools</div>
     </div>
     <div class="sidebar-footer">
       <div class="sf-name" id="sf-name">-</div>
@@ -372,6 +384,11 @@ tfoot td{border-top:1px solid var(--border);}
   </aside>
 
   <main class="main-content">
+
+    <div class="topbar" id="_topbar">
+      <div class="topbar-crumb" id="_topbar-crumb"><b>Dashboard</b></div>
+      <div class="topbar-day" id="_topbar-day"></div>
+    </div>
 
     <!-- DASHBOARD -->
     <div class="page" id="page-dashboard">
@@ -589,7 +606,7 @@ tfoot td{border-top:1px solid var(--border);}
 
     <!-- ADMIN TOOLS -->
     <div class="page" id="page-admintools">
-      <div class="page-title">🛠 Admin Tools</div>
+      <div class="page-title">Admin Tools</div>
 
       <!-- ── Business Day ── -->
       <div id="_admin_bd_section" style="max-width:760px;"></div>
@@ -1467,7 +1484,19 @@ function showPage(page){
   document.getElementById('page-'+page).classList.add('active');
   const nav=document.getElementById('nav-'+page);
   if(nav) nav.classList.add('active');
+  _syncTopbar(page, nav);
   PAGE_RENDERS[page]?.();
+}
+function _syncTopbar(page, nav){
+  const crumb=document.getElementById('_topbar-crumb');
+  if(crumb){
+    const label = nav ? nav.textContent.trim() : page;
+    crumb.innerHTML = '<b>'+label+'</b>';
+  }
+  const day=document.getElementById('_topbar-day');
+  if(day){
+    try{ day.textContent = 'Business Day: '+fmtDate(today()); }catch(e){ day.textContent=''; }
+  }
 }
 
 /* ════════════════════════════════════════
