@@ -345,11 +345,11 @@ tfoot td{border-top:1px solid var(--border);}
         <div style="display:flex;gap:4px;margin-bottom:8px;">
           <button id="btn-dark-mode" onclick="setTheme('');document.getElementById('btn-dark-mode').style.opacity='1';document.getElementById('btn-light-mode').style.opacity='.5';"
             style="flex:1;padding:6px 0;border-radius:6px;border:2px solid #c8a84a;background:#0e0e1c;color:#f0d060;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:.3px;">
-            🌙 Dark
+            <span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M20 14.5a8.5 8.5 0 1 1-9-9 7 7 0 0 0 9 9z"/></svg></span> Dark
           </button>
           <button id="btn-light-mode" onclick="setTheme('light');document.getElementById('btn-light-mode').style.opacity='1';document.getElementById('btn-dark-mode').style.opacity='.5';"
             style="flex:1;padding:6px 0;border-radius:6px;border:2px solid #888;background:#e8eaf0;color:#1a1a2e;font-size:12px;font-weight:800;cursor:pointer;opacity:.5;letter-spacing:.3px;">
-            ☀️ Light
+            <span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/></svg></span> Light
           </button>
         </div>
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">ธีมสี</div>
@@ -376,13 +376,13 @@ tfoot td{border-top:1px solid var(--border);}
             style="width:32px;height:22px;border:none;border-radius:4px;cursor:pointer;padding:1px;background:none;"
             oninput="applyCustomColor(this.value)">
           <span style="font-size:10px;color:var(--text2);" id="custom-color-hex">#0e0e1c</span>
-          <button onclick="resetCustomColor()" title="รีเซ็ต" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:0 2px;">↺</button>
+          <button onclick="resetCustomColor()" title="รีเซ็ต" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;padding:0 2px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg></span></button>
         </div>
       </div>
-      <button class="btn btn-secondary btn-full btn-sm" onclick="openChangePwModal()" style="margin-bottom:4px;">🔑 เปลี่ยนรหัสผ่าน</button>
+      <button class="btn btn-secondary btn-full btn-sm" onclick="openChangePwModal()" style="margin-bottom:4px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg></span> เปลี่ยนรหัสผ่าน</button>
       <button class="btn btn-secondary btn-full btn-sm" onclick="doLogout()">ออกจากระบบ</button>
       <button class="btn btn-secondary btn-full btn-sm" style="margin-top:4px;font-size:11px;opacity:.6;"
-        onclick="if(confirm('ล้างการตั้งค่า URL และ Key?\nต้องใส่ใหม่ในครั้งถัดไป')){localStorage.removeItem('hms_gas_url');localStorage.removeItem('hms_gas_key');doLogout();window.location.reload();}">⚙ รีเซ็ตการตั้งค่า</button>
+        onclick="if(confirm('ล้างการตั้งค่า URL และ Key?\nต้องใส่ใหม่ในครั้งถัดไป')){localStorage.removeItem('hms_gas_url');localStorage.removeItem('hms_gas_key');doLogout();window.location.reload();}"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span> รีเซ็ตการตั้งค่า</button>
     </div>
   </aside>
 
@@ -401,7 +401,7 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="stats-grid" id="dash-stats"></div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <div class="card-title" style="margin-bottom:0;">📈 สรุปรายได้ประจำเดือน</div>
+          <div class="card-title" style="margin-bottom:0;"><span class="txt-ico"><svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg></span> สรุปรายได้ประจำเดือน</div>
           <div style="display:flex;gap:6px;align-items:center;">
             <select id="dash-month" class="form-input" style="width:auto;" onchange="renderDashMonthly()"></select>
             <select id="dash-year" class="form-input" style="width:auto;" onchange="renderDashMonthly()"></select>
@@ -485,11 +485,11 @@ tfoot td{border-top:1px solid var(--border);}
       <!-- Guest Arrival -->
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-          <div class="section-title" style="margin-bottom:0;">✈️ Guest Arrival</div>
+          <div class="section-title" style="margin-bottom:0;"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></span> Guest Arrival</div>
           <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
             <div><label class="form-label">วันที่เข้าพัก</label>
               <input type="date" class="form-input" id="arr-date" style="width:180px;" oninput="renderArrival()"></div>
-            <button class="btn btn-secondary btn-sm" onclick="printArrival()">🖨 พิมพ์</button>
+            <button class="btn btn-secondary btn-sm" onclick="printArrival()"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><rect x="7" y="14" width="10" height="6"/></svg></span> พิมพ์</button>
           </div>
         </div>
         <div class="tbl-wrap" id="arr-table"></div>
@@ -497,7 +497,7 @@ tfoot td{border-top:1px solid var(--border);}
 
       <!-- ค้นหาการจอง -->
       <div class="card">
-        <div class="section-title" style="margin-bottom:12px;">🔍 ค้นหาการจอง</div>
+        <div class="section-title" style="margin-bottom:12px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span> ค้นหาการจอง</div>
         <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
           <div>
             <label class="form-label">วันที่เข้าพัก</label>
@@ -541,7 +541,7 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="action-bar">
         <div><label class="form-label">วันที่</label>
           <input type="date" class="form-input" id="gh-date" style="width:180px;" onchange="renderGuests()"></div>
-        <button class="btn btn-secondary btn-sm" onclick="printDailySummary()">🖨 พิมพ์สรุปประจำวัน</button>
+        <button class="btn btn-secondary btn-sm" onclick="printDailySummary()"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><rect x="7" y="14" width="10" height="6"/></svg></span> พิมพ์สรุปประจำวัน</button>
       </div>
       <div class="chips" id="gh-chips"></div>
       <div class="card"><div class="tbl-wrap" id="gh-table"></div></div>
@@ -573,7 +573,7 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="page-sub" id="co-sub"></div>
       <div class="action-bar">
         <div class="chips" id="co-chips" style="margin-bottom:0;"></div>
-        <button class="btn btn-secondary btn-sm" onclick="printDepartureList()">🖨 Guest Departure List</button>
+        <button class="btn btn-secondary btn-sm" onclick="printDepartureList()"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><rect x="7" y="14" width="10" height="6"/></svg></span> Guest Departure List</button>
       </div>
       <div class="card">
         <div class="card-title">ห้องที่เช็คเอาท์วันนี้</div>
@@ -581,7 +581,7 @@ tfoot td{border-top:1px solid var(--border);}
       </div>
       <!-- Check-Out History -->
       <div class="card">
-        <div class="section-title" style="margin-bottom:12px;">🔍 Check-Out History</div>
+        <div class="section-title" style="margin-bottom:12px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span> Check-Out History</div>
         <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
           <div>
             <label class="form-label">วันที่เช็คเอาท์</label>
@@ -616,11 +616,11 @@ tfoot td{border-top:1px solid var(--border);}
 
       <!-- ── Restore Backup ── -->
       <div class="card" style="margin-bottom:14px;max-width:760px;overflow:hidden;">
-        <div class="card-title">🔄 Restore จากไฟล์ Backup</div>
+        <div class="card-title"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span> Restore จากไฟล์ Backup</div>
 
         <!-- ขั้นตอน -->
         <div style="background:rgba(55,138,221,.08);border:1px solid rgba(55,138,221,.25);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;">
-          <div style="font-weight:700;color:#7ab8f5;margin-bottom:8px;">📋 ขั้นตอนการ Restore</div>
+          <div style="font-weight:700;color:#7ab8f5;margin-bottom:8px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> ขั้นตอนการ Restore</div>
           <div style="display:flex;flex-direction:column;gap:6px;color:var(--text2);">
             <div><span style="color:#7ab8f5;font-weight:700;">1.</span> เปิด Google Drive → โฟลเดอร์ <strong style="color:var(--text);">HotelBackups</strong> → ดาวน์โหลดไฟล์ <code>hotel_backup_YYYY-MM-DD.json</code> ที่ต้องการ</div>
             <div><span style="color:#7ab8f5;font-weight:700;">2.</span> คลิก <strong style="color:var(--text);">"เลือกไฟล์ Backup"</strong> ด้านล่าง → เลือกไฟล์ที่ดาวน์โหลดมา</div>
@@ -644,7 +644,7 @@ tfoot td{border-top:1px solid var(--border);}
         <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
           <button class="btn btn-danger btn-sm" id="restore-btn" onclick="doRestore()" disabled
             style="opacity:.5;" onmouseover="if(!this.disabled)this.style.opacity=1" onmouseout="if(!this.disabled)this.style.opacity=1">
-            🔄 Restore ข้อมูล
+            <span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span> Restore ข้อมูล
           </button>
           <button class="btn btn-secondary btn-sm" onclick="document.getElementById('restore-file').value='';document.getElementById('restore-preview').style.display='none';document.getElementById('restore-btn').disabled=true;document.getElementById('restore-btn').style.opacity='.5';document.getElementById('restore-result').innerHTML='';">
             ✕ ล้าง
@@ -657,26 +657,26 @@ tfoot td{border-top:1px solid var(--border);}
       <!-- ── Error Logs ── -->
       <div class="card" style="max-width:760px;overflow:hidden;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div class="card-title" style="margin-bottom:0;">📋 Error Logs</div>
+          <div class="card-title" style="margin-bottom:0;"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> Error Logs</div>
           <div style="display:flex;gap:8px;">
-            <button class="btn btn-secondary btn-sm" onclick="loadErrorLogs()">🔄 โหลดใหม่</button>
-            <button class="btn btn-danger btn-sm" onclick="clearErrLogs()">🗑 ล้าง Log</button>
+            <button class="btn btn-secondary btn-sm" onclick="loadErrorLogs()"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span> โหลดใหม่</button>
+            <button class="btn btn-danger btn-sm" onclick="clearErrLogs()"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> ล้าง Log</button>
           </div>
         </div>
         <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">
           บันทึก error ที่เกิดขึ้นใน Google Apps Script อัตโนมัติ — กด "โหลดใหม่" เพื่อดูข้อมูล
         </p>
         <div id="error-log-table">
-          <p style="font-size:13px;color:var(--text2);">กด <strong>"🔄 โหลดใหม่"</strong> เพื่อดู Error Logs</p>
+          <p style="font-size:13px;color:var(--text2);">กด <strong>"<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span> โหลดใหม่"</strong> เพื่อดู Error Logs</p>
         </div>
       </div>
 
       <!-- ── Archive ── -->
       <div class="card" style="max-width:760px;overflow:hidden;">
-        <div class="card-title">📦 Archive ข้อมูลเก่า</div>
+        <div class="card-title"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> Archive ข้อมูลเก่า</div>
 
         <div style="background:rgba(55,138,221,.08);border:1px solid rgba(55,138,221,.25);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;">
-          <div style="font-weight:700;color:#7ab8f5;margin-bottom:8px;">📋 วิธีการทำงาน</div>
+          <div style="font-weight:700;color:#7ab8f5;margin-bottom:8px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> วิธีการทำงาน</div>
           <div style="display:flex;flex-direction:column;gap:5px;color:var(--text2);">
             <div><span style="color:#7ab8f5;font-weight:700;">1.</span> เลือกปีที่ต้องการ Archive เช่น 2568</div>
             <div><span style="color:#7ab8f5;font-weight:700;">2.</span> ระบบจะย้าย booking ที่ checkOut ก่อน 1 ม.ค. ของปีถัดไปไปเก็บใน Sheet ใหม่ชื่อ <strong style="color:var(--text);">bookings_2568</strong></div>
@@ -702,7 +702,7 @@ tfoot td{border-top:1px solid var(--border);}
 
         <div style="display:flex;gap:8px;align-items:center;">
           <button class="btn btn-danger btn-sm" id="archive-btn" onclick="doArchive()" disabled style="opacity:.5;">
-            📦 Archive ข้อมูล
+            <span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> Archive ข้อมูล
           </button>
           <span id="archive-hint" style="font-size:12px;color:var(--text2);">← เลือกปีก่อน</span>
         </div>
@@ -718,7 +718,7 @@ tfoot td{border-top:1px solid var(--border);}
 <div id="chpw-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;align-items:center;justify-content:center;">
   <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:28px;width:min(420px,96vw);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <div style="font-size:16px;font-weight:700;color:var(--gold);">🔑 เปลี่ยนรหัสผ่าน</div>
+      <div style="font-size:16px;font-weight:700;color:var(--gold);"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg></span> เปลี่ยนรหัสผ่าน</div>
       <button onclick="closeChangePwModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">✕</button>
     </div>
     <div id="chpw-user-info" style="font-size:13px;color:var(--text2);margin-bottom:16px;padding:8px 12px;background:var(--bg2);border-radius:8px;"></div>
@@ -737,7 +737,7 @@ tfoot td{border-top:1px solid var(--border);}
     <div id="chpw-error" style="display:none;color:#ff6b6b;font-size:13px;margin-bottom:12px;padding:8px 12px;background:rgba(220,60,60,.1);border-radius:6px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="btn btn-secondary btn-sm" onclick="closeChangePwModal()">ยกเลิก</button>
-      <button class="btn btn-primary btn-sm" onclick="doChangePassword()">💾 บันทึก</button>
+      <button class="btn btn-primary btn-sm" onclick="doChangePassword()"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M7 4v6h9V4"/><rect x="7" y="14" width="10" height="6"/></svg></span> บันทึก</button>
     </div>
   </div>
 </div>
@@ -794,7 +794,7 @@ tfoot td{border-top:1px solid var(--border);}
       <div style="font-size:14px;color:var(--text2);">รวม Extra Charges: <span id="ec-grand-total" style="color:var(--gold);font-weight:700;font-size:16px;">0</span> บาท</div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-secondary btn-sm" onclick="closeEcModal()">ปิด</button>
-        <button class="btn btn-primary btn-sm" onclick="saveEcCharges()">💾 บันทึก</button>
+        <button class="btn btn-primary btn-sm" onclick="saveEcCharges()"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M7 4v6h9V4"/><rect x="7" y="14" width="10" height="6"/></svg></span> บันทึก</button>
       </div>
     </div>
   </div>
@@ -898,7 +898,7 @@ function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเ
       body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
         background:#0e0e1c;font-family:'Sarabun',sans-serif;padding:20px;">
         <div style="background:#1a1a2e;border:1px solid #c8a84a;border-radius:16px;padding:36px;max-width:520px;width:100%;text-align:center;">
-          <div style="font-size:32px;margin-bottom:8px;">🔑</div>
+          <div style="font-size:32px;margin-bottom:8px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg></span></div>
           <div style="color:#c8a84a;font-size:20px;font-weight:700;margin-bottom:6px;">Setup Required</div>
           <div style="color:#aaa;font-size:13px;margin-bottom:24px;">กรุณาเปิดระบบผ่าน URL ที่ถูกต้อง</div>
           <div style="background:#0e0e1c;border-radius:10px;padding:16px;text-align:left;margin-bottom:20px;">
@@ -950,7 +950,7 @@ function _showLoading(msg){
     el=document.createElement('div');
     el.id='_gas_loading';
     el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:\'Sarabun\',sans-serif;';
-    el.innerHTML='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:28px 40px;text-align:center;"><div style="font-size:26px;margin-bottom:10px;">⏳</div><div id="_gas_msg" style="color:var(--text);font-size:15px;"></div></div>';
+    el.innerHTML='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:28px 40px;text-align:center;"><div style="font-size:26px;margin-bottom:10px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="6" y1="3" x2="18" y2="3"/><line x1="6" y1="21" x2="18" y2="21"/><path d="M8 3c0 5 3.5 6 4 9-.5 3-4 4-4 9M16 3c0 5-3.5 6-4 9 .5 3 4 4 4 9"/></svg></span></div><div id="_gas_msg" style="color:var(--text);font-size:15px;"></div></div>';
     document.body.appendChild(el);
   }
   document.getElementById('_gas_msg').textContent=msg||'กำลังโหลด...';
@@ -1380,7 +1380,7 @@ async function doLogin(){
       if(res&&res.error==='LOCKED'){
         // ถูก lock แล้ว
         errEl.innerHTML=
-          '<strong>🔒 บัญชีถูกล็อคชั่วคราว</strong><br>'+
+          '<strong><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span> บัญชีถูกล็อคชั่วคราว</strong><br>'+
           'เนื่องจากใส่รหัสผ่านผิดครบ 5 ครั้ง<br>'+
           'กรุณาลองใหม่ใน <strong>'+(res.lockMinutes||15)+' นาที</strong>';
         errEl.style.display='block';
@@ -1390,13 +1390,13 @@ async function doLogin(){
         const max=res.maxAttempts||5;
         if(left<=0){
           errEl.innerHTML=
-            '<strong>🔒 บัญชีถูกล็อคชั่วคราว</strong><br>'+
+            '<strong><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span> บัญชีถูกล็อคชั่วคราว</strong><br>'+
             'เนื่องจากใส่รหัสผ่านผิดครบ '+max+' ครั้ง<br>'+
             'กรุณาลองใหม่ใน <strong>15 นาที</strong>';
         } else {
           const bar='█'.repeat(max-left)+'░'.repeat(left);
           errEl.innerHTML=
-            '❌ <strong>รหัสผ่านไม่ถูกต้อง</strong><br>'+
+            '<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></span> <strong>รหัสผ่านไม่ถูกต้อง</strong><br>'+
             'เหลือโอกาสอีก <strong style="color:#e57373;">'+left+' ครั้ง</strong> จาก '+max+' ครั้ง<br>'+
             '<span style="font-family:monospace;letter-spacing:2px;font-size:13px;">'+bar+'</span><br>'+
             '<small style="color:var(--text2);">หากผิดครบจะถูกล็อค 15 นาที</small>';
@@ -1607,9 +1607,9 @@ function totalRoomCount(b){
   return numRooms(b);
 }
 
-function payLabel(p){return{cash:'💵 CASH',card:'💳 CREDIT CARD',transfer:'🏦 BANK TRANSFER',pending:'⏳ CITY LEDGER',tbd:'🔲 PENDING'}[p]||p||'-';}
+function payLabel(p){return{cash:'<span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="1.5"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9" x2="6" y2="9.01"/><line x1="18" y1="15" x2="18" y2="15.01"/></svg></span> CASH',card:'<span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="9.5" x2="22" y2="9.5"/><line x1="5.5" y1="15" x2="9.5" y2="15"/></svg></span> CREDIT CARD',transfer:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="4" y1="10" x2="4" y2="19"/><line x1="9" y1="10" x2="9" y2="19"/><line x1="15" y1="10" x2="15" y2="19"/><line x1="20" y1="10" x2="20" y2="19"/><line x1="3" y1="21" x2="21" y2="21"/></svg></span> BANK TRANSFER',pending:'<span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="6" y1="3" x2="18" y2="3"/><line x1="6" y1="21" x2="18" y2="21"/><path d="M8 3c0 5 3.5 6 4 9-.5 3-4 4-4 9M16 3c0 5-3.5 6-4 9 .5 3 4 4 4 9"/></svg></span> CITY LEDGER',tbd:'<span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></span> PENDING'}[p]||p||'-';}
 function payText(p){return{cash:'CASH',card:'CREDIT CARD',transfer:'BANK TRANSFER',pending:'CITY LEDGER',tbd:'PENDING'}[p]||p||'-';}
-function guestTypeLabel(t){return{personal:'👤 ส่วนตัว',group:'👥 กรุ๊ป',company:'🏢 บริษัท'}[t]||'👤 ส่วนตัว';}
+function guestTypeLabel(t){return{personal:'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> ส่วนตัว',group:'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.3"/><path d="M15.3 13.3c2.2.5 3.7 2.3 3.7 5.7"/></svg></span> กรุ๊ป',company:'<span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><line x1="8" y1="7.5" x2="8.01" y2="7.5"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/><line x1="16" y1="7.5" x2="16.01" y2="7.5"/><line x1="8" y1="11.5" x2="8.01" y2="11.5"/><line x1="12" y1="11.5" x2="12.01" y2="11.5"/><line x1="16" y1="11.5" x2="16.01" y2="11.5"/><line x1="8" y1="15.5" x2="8.01" y2="15.5"/><line x1="12" y1="15.5" x2="12.01" y2="15.5"/><line x1="16" y1="15.5" x2="16.01" y2="15.5"/></svg></span> บริษัท'}[t]||'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> ส่วนตัว';}
 /* ── Rate lookup by room number ── */
 function getRateForRoom(b, rn){
   // rn = room number (string or int)
@@ -1845,11 +1845,11 @@ async function renderDashboard(){
     wrap.innerHTML = canClose
       ? `<button onclick="closeDay()" class="btn btn-sm"
           style="background:rgba(212,120,50,.22);border:2px solid var(--orange);color:var(--orange);font-weight:800;font-size:13px;padding:7px 16px;letter-spacing:.3px;">
-          🌙 Close Day &nbsp;→&nbsp; เปิดวัน <strong>${fmtDate(nextBdStr)}</strong>
+          <span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M20 14.5a8.5 8.5 0 1 1-9-9 7 7 0 0 0 9 9z"/></svg></span> Close Day &nbsp;→&nbsp; เปิดวัน <strong>${fmtDate(nextBdStr)}</strong>
         </button>`
       : `<button class="btn btn-sm" disabled
           style="opacity:.55;cursor:not-allowed;background:rgba(74,196,138,.12);border:2px solid var(--green);color:var(--green);font-weight:800;font-size:13px;padding:7px 16px;">
-          🌙 Close Day — Business Day ปัจจุบัน
+          <span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M20 14.5a8.5 8.5 0 1 1-9-9 7 7 0 0 0 9 9z"/></svg></span> Close Day — Business Day ปัจจุบัน
         </button>`;
   }
   _renderBdBanner();
@@ -2136,7 +2136,7 @@ function showOverdueModal(){
       </table></div>
     </div>
     <div class="modal-ft">
-      ${canCancelBooking()?`<button class="btn btn-danger" onclick="bulkCancelOverdue()">🗑 ยกเลิกที่เลือก</button>`:''}
+      ${canCancelBooking()?`<button class="btn btn-danger" onclick="bulkCancelOverdue()"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> ยกเลิกที่เลือก</button>`:''}
       <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
     </div>`);
 }
@@ -2206,7 +2206,7 @@ function searchBookings(){
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-secondary" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
         ${canCancelBooking()&&b.status===S_RES?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
-        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')">🔗 Group</button>`:''}
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M9 15l6-6"/><path d="M8 12l-2 2a3.5 3.5 0 0 0 5 5l2-2"/><path d="M16 12l2-2a3.5 3.5 0 0 0-5-5l-2 2"/></svg></span> Group</button>`:''}
         ${b.status===S_CI?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="doCheckout('${b.id}')">เช็คเอาท์</button>`:''}
       </td></tr>`;
   });
@@ -2251,7 +2251,7 @@ function renderArrival(){
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-secondary" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
         ${canCancelBooking()&&b.status===S_RES?`<button class="btn btn-xs btn-danger" style="margin-left:3px;" onclick="cancelRes('${b.id}')">ยกเลิก</button>`:''}
-        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')">🔗 Group</button>`:''}
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M9 15l6-6"/><path d="M8 12l-2 2a3.5 3.5 0 0 0 5 5l2-2"/><path d="M16 12l2-2a3.5 3.5 0 0 0-5-5l-2 2"/></svg></span> Group</button>`:''}
       </td>
     </tr>`;
   });
@@ -2317,7 +2317,7 @@ function openResModal(id){
 
   showModal(`
     <div class="modal-hd">
-      <div class="modal-title">${b?'✏️ แก้ไขการจอง':'📝 สร้างการจอง'}</div>
+      <div class="modal-title">${b?'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></span> แก้ไขการจอง':'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6z"/><path d="M15 2v4h4"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg></span> สร้างการจอง'}</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
@@ -2340,14 +2340,14 @@ function openResModal(id){
 
       <div class="section-title" style="margin-top:4px;">ประเภทการจอง</div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);">
-        <label class="form-check"><input type="radio" name="f-gtype" value="personal" ${!b||!b.guestType||b.guestType==='personal'?'checked':''}> 👤 ส่วนตัว</label>
-        <label class="form-check"><input type="radio" name="f-gtype" value="group" ${b&&b.guestType==='group'?'checked':''}> 👥 กรุ๊ป</label>
-        <label class="form-check"><input type="radio" name="f-gtype" value="company" ${b&&b.guestType==='company'?'checked':''}> 🏢 บริษัท</label>
+        <label class="form-check"><input type="radio" name="f-gtype" value="personal" ${!b||!b.guestType||b.guestType==='personal'?'checked':''}> <span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> ส่วนตัว</label>
+        <label class="form-check"><input type="radio" name="f-gtype" value="group" ${b&&b.guestType==='group'?'checked':''}> <span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.3"/><path d="M15.3 13.3c2.2.5 3.7 2.3 3.7 5.7"/></svg></span> กรุ๊ป</label>
+        <label class="form-check"><input type="radio" name="f-gtype" value="company" ${b&&b.guestType==='company'?'checked':''}> <span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><line x1="8" y1="7.5" x2="8.01" y2="7.5"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/><line x1="16" y1="7.5" x2="16.01" y2="7.5"/><line x1="8" y1="11.5" x2="8.01" y2="11.5"/><line x1="12" y1="11.5" x2="12.01" y2="11.5"/><line x1="16" y1="11.5" x2="16.01" y2="11.5"/><line x1="8" y1="15.5" x2="8.01" y2="15.5"/><line x1="12" y1="15.5" x2="12.01" y2="15.5"/><line x1="16" y1="15.5" x2="16.01" y2="15.5"/></svg></span> บริษัท</label>
       </div>
 
       <!-- Group ID -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px 14px;background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);">
-        <span style="font-size:13px;color:var(--text2);white-space:nowrap;">🔗 รหัสกรุ๊ป (Group ID)</span>
+        <span style="font-size:13px;color:var(--text2);white-space:nowrap;"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M9 15l6-6"/><path d="M8 12l-2 2a3.5 3.5 0 0 0 5 5l2-2"/><path d="M16 12l2-2a3.5 3.5 0 0 0-5-5l-2 2"/></svg></span> รหัสกรุ๊ป (Group ID)</span>
         <input class="form-input" id="f-groupid" value="${b?esc(b.groupId||''):''}" placeholder="เช่น GRP-001 (ไม่บังคับ)" style="flex:1;">
         <button type="button" class="btn btn-secondary btn-sm" onclick="genGroupId()" style="white-space:nowrap;">สร้าง ID</button>
       </div>
@@ -2365,11 +2365,11 @@ function openResModal(id){
       <div style="display:flex;gap:16px;margin-bottom:10px;padding:8px 14px;background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);">
         <label class="form-check">
           <input type="radio" name="f-room-mode" value="assign" ${pickRooms.length||!b?'checked':''} onchange="toggleRoomMode(this.value)">
-          🔢 ระบุหมายเลขห้อง
+          <span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="9" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="15" y2="20"/></svg></span> ระบุหมายเลขห้อง
         </label>
         <label class="form-check">
           <input type="radio" name="f-room-mode" value="noassign" ${b&&!b.rooms?.length?'checked':''} onchange="toggleRoomMode(this.value)">
-          📋 ระบุเฉพาะจำนวนห้อง (กำหนดห้องทีหลัง)
+          <span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> ระบุเฉพาะจำนวนห้อง (กำหนดห้องทีหลัง)
         </label>
       </div>
       <div id="f-picker-wrap">
@@ -2380,7 +2380,7 @@ function openResModal(id){
             :'ยังไม่ได้เลือกหมายเลขห้อง'}</div>
       </div>
       <div id="f-noassign-note" style="display:none;padding:10px 14px;background:rgba(212,120,50,.08);border:1px solid rgba(212,120,50,.3);border-radius:var(--radius);font-size:13px;color:var(--orange);">
-        📋 จำนวนห้องจะดึงจากช่องราคาด้านล่าง — สามารถกำหนดหมายเลขห้องได้ตอนเช็คอิน
+        <span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> จำนวนห้องจะดึงจากช่องราคาด้านล่าง — สามารถกำหนดหมายเลขห้องได้ตอนเช็คอิน
       </div>
 
       <div class="section-title" style="margin-top:14px;">ราคาห้องพัก (บาท)/ห้อง/คืน</div>
@@ -2390,7 +2390,7 @@ function openResModal(id){
 
       <!-- Price Breakdown (Info Only) -->
       <div style="background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;">
-        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;">📊 เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น — ต่อ 1 ห้อง)</div>
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น — ต่อ 1 ห้อง)</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;">
           <span style="font-size:12px;color:var(--text2);min-width:130px;">ค่าห้องพัก</span>
           <input type="number" class="form-input" id="f-bdrp" value="${b?b.bdRoomPrice||0:0}" min="0" style="width:110px;" placeholder="0">
@@ -2450,7 +2450,7 @@ function openResModal(id){
     </div>
     <div class="modal-ft">
       <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="saveReservation()">✅ บันทึกการจอง</button>
+      <button class="btn btn-primary" onclick="saveReservation()"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> บันทึกการจอง</button>
     </div>`);
   renderRateRows();
   onDateChange();
@@ -2747,7 +2747,7 @@ async function viewBooking(id){
   const rT=calcRoomAmt(b), bT=calcBfAmt(b);
   showModal(`
     <div class="modal-hd">
-      <div class="modal-title">🛎️ ข้อมูลการจอง</div>
+      <div class="modal-title"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 18a9 9 0 0 1 18 0z"/><line x1="2" y1="18" x2="22" y2="18"/><line x1="12" y1="4" x2="12" y2="2"/></svg></span> ข้อมูลการจอง</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
@@ -2777,13 +2777,13 @@ async function viewBooking(id){
           ${(b.roomRates&&b.roomRates.length?b.roomRates:([{price:b.roomPrice||0,count:numRooms(b)}]))
             .map(r=>`${(r.price||0).toLocaleString()} บาท × ${r.count} ห้อง`).join('<br>')}</div>
         <div><div class="form-label">อาหารเช้า</div>${b.includeBreakfast
-          ?'✅ รวมอาหารเช้า'
-          :(b.noBreakfast?'❌ ไม่รวมอาหารเช้า':'-')}</div>
-        <div><div class="form-label">เตียงเสริม</div>${b.extraBed?'✅ มี':'-'}</div>
+          ?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> รวมอาหารเช้า'
+          :(b.noBreakfast?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></span> ไม่รวมอาหารเช้า':'-')}</div>
+        <div><div class="form-label">เตียงเสริม</div>${b.extraBed?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> มี':'-'}</div>
         <div><div class="form-label">การชำระเงิน</div>${payLabel(b.payment)}</div>
       </div>
       <div style="background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-top:10px;">
-        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;">📊 เบรกดาวน์ราคา (อ้างอิง — ต่อ 1 ห้อง)</div>
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (อ้างอิง — ต่อ 1 ห้อง)</div>
         <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px;">
           <div><span style="color:var(--text2);">ค่าห้องพัก:</span> <strong>${(b.bdRoomPrice||0).toLocaleString()}</strong> บาท/ห้อง/คืน</div>
           <div><span style="color:var(--text2);">ค่าอาหารเช้า:</span> <strong>${(b.bdBfPrice||0).toLocaleString()}</strong> บาท/ท่าน/คืน
@@ -2798,7 +2798,7 @@ async function viewBooking(id){
         ${(()=>{
           const ec=ST.charges&&ST.charges[b.id]?ST.charges[b.id]:[];
           if(!ec.length) return '';
-          const CL={food:'🍽️ อาหาร-เครื่องดื่ม',laundry:'👕 ซักรีด',transport:'🚗 ยานพาหนะ',phone:'📞 โทรศัพท์',minibar:'🍺 มินิบาร์',other:'📦 อื่นๆ'};
+          const CL={food:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2v6a2 2 0 0 0 4 0V2M8 2v20"/><path d="M17 2v8c0 1.5-1 2.5-2 3v9"/></svg></span> อาหาร-เครื่องดื่ม',laundry:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M8 3 4 6v4h3v11h10V10h3V6l-4-3-3 2h-2z"/></svg></span> ซักรีด',transport:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="2.5" y="13" width="19" height="5" rx="1.5"/><circle cx="7" cy="18.5" r="1.5"/><circle cx="17" cy="18.5" r="1.5"/></svg></span> ยานพาหนะ',phone:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M5 4h4l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span> โทรศัพท์',minibar:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 8h9v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V8z"/><path d="M15 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><line x1="6" y1="4" x2="15" y2="4"/><line x1="9" y1="4" x2="9" y2="8"/></svg></span> มินิบาร์',other:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> อื่นๆ'};
           let ecTotal=0;
           const rows=ec.map(c=>{const amt=(parseFloat(c.price)||0)*(parseInt(c.qty)||1);ecTotal+=amt;
             return `<div class="pb-row"><span>${CL[c.cat]||c.cat}${c.desc?' – '+esc(c.desc):''} (${c.date||''} × ${c.qty})</span><span>${amt.toLocaleString()} บาท</span></div>`;}).join('');
@@ -2812,7 +2812,7 @@ async function viewBooking(id){
       </div>
       ${b.remarks?`<div style="margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:6px;font-size:13px;color:var(--text2);">หมายเหตุ: ${esc(b.remarks)}</div>`:''}
       <hr class="divider">
-      <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;">📋 ประวัติการดำเนินการ</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> ประวัติการดำเนินการ</div>
       <div style="display:flex;flex-direction:column;gap:4px;">
         ${(b.history&&b.history.length?[...b.history].reverse():
           [{by:b.createdBy,name:b.createdBy,at:b.createdAt,action:'สร้างการจอง'}])
@@ -2823,11 +2823,11 @@ async function viewBooking(id){
       </div>
     </div>
     <div class="modal-ft">
-      <button class="btn btn-secondary btn-sm" onclick="printGuestFolio('${b.id}')">🧾 Guest Folio</button>
-      <button class="btn btn-secondary btn-sm" onclick="printRoomingList('${b.id}')">📋 Rooming List</button>
-      <button class="btn btn-secondary btn-sm" onclick="printRoomingListGuest('${b.id}')">📋 Rooming List (ลูกค้า)</button>
-      <button class="btn btn-secondary btn-sm" onclick="printBookingAll('${b.id}')">🖨 พิมพ์ข้อมูล</button>
-      ${b.status===S_CI?`<button class="btn btn-danger btn-sm" onclick="closeModal();doCheckout('${b.id}')">🚪 เช็คเอาท์</button>`:''}
+      <button class="btn btn-secondary btn-sm" onclick="printGuestFolio('${b.id}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-2.5-1.5L13 22l-2.5-1.5L8 22l-2-1.5z"/><line x1="8.5" y1="7" x2="15.5" y2="7"/><line x1="8.5" y1="11" x2="15.5" y2="11"/><line x1="8.5" y1="15" x2="13" y2="15"/></svg></span> Guest Folio</button>
+      <button class="btn btn-secondary btn-sm" onclick="printRoomingList('${b.id}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> Rooming List</button>
+      <button class="btn btn-secondary btn-sm" onclick="printRoomingListGuest('${b.id}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> Rooming List (ลูกค้า)</button>
+      <button class="btn btn-secondary btn-sm" onclick="printBookingAll('${b.id}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><rect x="7" y="14" width="10" height="6"/></svg></span> พิมพ์ข้อมูล</button>
+      ${b.status===S_CI?`<button class="btn btn-danger btn-sm" onclick="closeModal();doCheckout('${b.id}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="12" height="20" rx="1"/><line x1="13" y1="12" x2="13" y2="12.01"/><path d="M17 6l3 1v14l-3-1"/></svg></span> เช็คเอาท์</button>`:''}
       <button class="btn btn-secondary" onclick="closeModal()">ปิด</button>
     </div>`);
 }
@@ -2860,7 +2860,7 @@ function renderCheckin(){
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดูข้อมูล</button>
-        <button class="btn btn-xs btn-success" style="margin-left:4px;" onclick="doCheckinAction('${b.id}')">✅ เช็คอิน</button>
+        <button class="btn btn-xs btn-success" style="margin-left:4px;" onclick="doCheckinAction('${b.id}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> เช็คอิน</button>
       </td></tr>`;
   });
   document.getElementById('ci-table').innerHTML=`<table>
@@ -2895,7 +2895,7 @@ function openAssignModal(id){
   const maxRooms=b.roomCount||1;
   showModal(`
     <div class="modal-hd">
-      <div class="modal-title">🏷️ กำหนดหมายเลขห้อง</div>
+      <div class="modal-title"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M12 2h7a1 1 0 0 1 1 1v7l-9.3 9.3a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L12 2z"/><circle cx="15.5" cy="7.5" r="1.3" fill="currentColor" stroke="none"/></svg></span> กำหนดหมายเลขห้อง</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
@@ -2912,7 +2912,7 @@ function openAssignModal(id){
     </div>
     <div class="modal-ft">
       <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
-      <button class="btn btn-success" onclick="confirmAssign()">✅ ยืนยันเช็คอิน</button>
+      <button class="btn btn-success" onclick="confirmAssign()"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> ยืนยันเช็คอิน</button>
     </div>`);
 }
 function toggleAssignRoom(rn){
@@ -3038,7 +3038,7 @@ function renderGuests(){
       <td>${guestTypeLabel(b.guestType)}</td>
       <td>${fmtDate(b.checkIn)}</td>
       <td style="${b.checkOut===d?'color:var(--orange);font-weight:700;':''}">
-        ${fmtDate(b.checkOut)}${b.checkOut===d?'&nbsp;🔔':''}
+        ${fmtDate(b.checkOut)}${b.checkOut===d?'&nbsp;<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></span>':''}
       </td>
       <td style="text-align:center;">${n}</td>
       <td style="text-align:center;">${guestCellHtml(b)}</td>
@@ -3049,8 +3049,8 @@ function renderGuests(){
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
         ${canEditBooking()?`<button class="btn btn-xs btn-warning" style="margin-left:3px;" onclick="openResModal('${b.id}')">แก้ไข</button>`:''}
-        <button class="btn btn-xs" style="margin-left:3px;background:rgba(200,168,74,.2);color:var(--gold);border:1px solid rgba(200,168,74,.5);" onclick="openEcModal('${b.id}')">💳 Charges</button>
-        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')">🔗 Group Folio</button>`:''}
+        <button class="btn btn-xs" style="margin-left:3px;background:rgba(200,168,74,.2);color:var(--gold);border:1px solid rgba(200,168,74,.5);" onclick="openEcModal('${b.id}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="9.5" x2="22" y2="9.5"/><line x1="5.5" y1="15" x2="9.5" y2="15"/></svg></span> Charges</button>
+        ${b.groupId?`<button class="btn btn-xs" style="margin-left:3px;background:rgba(55,138,221,.2);color:#7ab8f5;border:1px solid rgba(55,138,221,.4);" onclick="printGroupFolio('${esc(b.groupId)}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M9 15l6-6"/><path d="M8 12l-2 2a3.5 3.5 0 0 0 5 5l2-2"/><path d="M16 12l2-2a3.5 3.5 0 0 0-5-5l-2 2"/></svg></span> Group Folio</button>`:''}
       </td></tr>`;
   });
   document.getElementById('gh-table').innerHTML=`<table>
@@ -3245,7 +3245,7 @@ function raShowDayDetail(dateStr){
 
   showModal(`
     <div class="modal-hd">
-      <div class="modal-title">📅 ${fmtDate(dateStr)}</div>
+      <div class="modal-title"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span> ${fmtDate(dateStr)}</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
@@ -3369,7 +3369,7 @@ function printDepartureList(){
     const bdBfPr=b.bdBfPrice||0;
     const gCount=parseInt(b.guestCount)||0;
     const bfTotal=bfCellText(b,comp);
-    const statusTxt=b.status===S_CO?'✅ เช็คเอาท์แล้ว':'⏳ รอเช็คเอาท์';
+    const statusTxt=b.status===S_CO?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> เช็คเอาท์แล้ว':'<span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="6" y1="3" x2="18" y2="3"/><line x1="6" y1="21" x2="18" y2="21"/><path d="M8 3c0 5 3.5 6 4 9-.5 3-4 4-4 9M16 3c0 5-3.5 6-4 9 .5 3 4 4 4 9"/></svg></span> รอเช็คเอาท์';
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${esc(b.guestName)}</td><td>${esc(b.nationality||'-')}</td><td>${esc(b.company||'-')}</td>
@@ -3427,7 +3427,7 @@ function renderCheckout(){
       <td>${payLabel(b.payment)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-xs btn-secondary" onclick="viewBooking('${b.id}')">ดู</button>
-        <button class="btn btn-xs btn-danger" style="margin-left:4px;" onclick="doCheckout('${b.id}')">🚪 เช็คเอาท์</button>
+        <button class="btn btn-xs btn-danger" style="margin-left:4px;" onclick="doCheckout('${b.id}')"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="12" height="20" rx="1"/><line x1="13" y1="12" x2="13" y2="12.01"/><path d="M17 6l3 1v14l-3-1"/></svg></span> เช็คเอาท์</button>
       </td></tr>`;
   });
   document.getElementById('co-table').innerHTML=`<table>
@@ -3460,7 +3460,7 @@ function openGroupCOModal(){
       <td>${roomsDisplay(b)}</td><td>${esc(b.guestName)}</td><td>${fmtDate(b.checkOut)}</td></tr>`;
   });
   showModal(`
-    <div class="modal-hd"><div class="modal-title">🚪 Check-Out Group</div>
+    <div class="modal-hd"><div class="modal-title"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="12" height="20" rx="1"/><line x1="13" y1="12" x2="13" y2="12.01"/><path d="M17 6l3 1v14l-3-1"/></svg></span> Check-Out Group</div>
       <button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;">
@@ -3474,7 +3474,7 @@ function openGroupCOModal(){
     </div>
     <div class="modal-ft">
       <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
-      <button class="btn btn-danger" onclick="doGroupCO()">🚪 เช็คเอาท์ที่เลือก</button>
+      <button class="btn btn-danger" onclick="doGroupCO()"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="12" height="20" rx="1"/><line x1="13" y1="12" x2="13" y2="12.01"/><path d="M17 6l3 1v14l-3-1"/></svg></span> เช็คเอาท์ที่เลือก</button>
     </div>`);
 }
 function selAll(cb){document.querySelectorAll('.grp-co').forEach(c=>c.checked=cb.checked);}
@@ -3776,7 +3776,7 @@ async function printGuestFolio(id){
   chargeGroups.sort((a,b)=> a.price===0?1:b.price===0?-1:0);
 
   // รวม room charges และ extra charges เป็น array เดียว แล้ว sort ตามวันที่
-  const CL={food:'🍽️ อาหาร-เครื่องดื่ม',laundry:'👕 ซักรีด',transport:'🚗 ยานพาหนะ',phone:'📞 โทรศัพท์',minibar:'🍺 มินิบาร์',other:'📦 อื่นๆ'};
+  const CL={food:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2v6a2 2 0 0 0 4 0V2M8 2v20"/><path d="M17 2v8c0 1.5-1 2.5-2 3v9"/></svg></span> อาหาร-เครื่องดื่ม',laundry:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M8 3 4 6v4h3v11h10V10h3V6l-4-3-3 2h-2z"/></svg></span> ซักรีด',transport:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="2.5" y="13" width="19" height="5" rx="1.5"/><circle cx="7" cy="18.5" r="1.5"/><circle cx="17" cy="18.5" r="1.5"/></svg></span> ยานพาหนะ',phone:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M5 4h4l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span> โทรศัพท์',minibar:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 8h9v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V8z"/><path d="M15 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><line x1="6" y1="4" x2="15" y2="4"/><line x1="9" y1="4" x2="9" y2="8"/></svg></span> มินิบาร์',other:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> อื่นๆ'};
   const allRows=[]; // [{dateKey, dateLabel, type:'room'|'extra', ...}]
 
   // เพิ่ม room charges
@@ -4217,7 +4217,7 @@ function printBookingAll(id){
         (b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:nRooms}])
         .map(r=>`${(r.price||0).toLocaleString()} บาท/คืน × ${r.count} ห้อง`).join('<br>')
       }</td></tr>
-      <tr><td style="padding:6px;color:#666;">อาหารเช้า</td><td style="padding:6px;">${b.includeBreakfast?'✅ รวมอาหารเช้า':(b.noBreakfast?'❌ ไม่รวมอาหารเช้า':'-')}</td></tr>
+      <tr><td style="padding:6px;color:#666;">อาหารเช้า</td><td style="padding:6px;">${b.includeBreakfast?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> รวมอาหารเช้า':(b.noBreakfast?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></span> ไม่รวมอาหารเช้า':'-')}</td></tr>
       <tr><td style="padding:6px;color:#666;">จำนวนผู้พัก</td><td style="padding:6px;">${guestStr}</td></tr>
       <tr><td style="padding:6px;color:#666;">เตียงเสริม</td><td style="padding:6px;">${b.extraBed?'มี':'-'}</td></tr>
       <tr><td style="padding:6px;color:#666;">การชำระเงิน</td><td style="padding:6px;">${payText(b.payment)}</td></tr>
@@ -4236,7 +4236,7 @@ function printBookingAll(id){
     ${(bdRoomPr>0||bdBfPr>0||bdBfChildPr>0)?`
     <div style="border:1px solid #ddd;border-radius:8px;padding:12px 16px;background:#f9f9f9;margin-top:4px;">
       <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
-        📊 เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น)
+        <span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น)
       </div>
       ${bdRoomPr>0&&paidRooms>0?`
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
@@ -4442,15 +4442,15 @@ function openPrint(body, docTitle){
 
   <div class="pdf-bar">
     <div class="pdf-bar-left">
-      <div class="pdf-bar-icon">📄</div>
+      <div class="pdf-bar-icon"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6z"/><path d="M15 2v4h4"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg></span></div>
       <div>
         <div class="pdf-bar-title">${title}</div>
-        <div class="pdf-bar-hint">🖨 กดปุ่ม ปริ้น เพื่อเชื่อมต่อเครื่องพิมพ์</div>
+        <div class="pdf-bar-hint"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><rect x="7" y="14" width="10" height="6"/></svg></span> กดปุ่ม ปริ้น เพื่อเชื่อมต่อเครื่องพิมพ์</div>
       </div>
     </div>
     <div class="btn-group">
       <button class="print-btn" onclick="window.print()">
-        🖨 ปริ้น
+        <span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><rect x="7" y="14" width="10" height="6"/></svg></span> ปริ้น
       </button>
     </div>
   </div>
@@ -4459,7 +4459,7 @@ function openPrint(body, docTitle){
     ${body}
   </div>
 
-  <div id="toast">⏳ กำลังสร้างไฟล์ PDF...</div>
+  <div id="toast"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="6" y1="3" x2="18" y2="3"/><line x1="6" y1="21" x2="18" y2="21"/><path d="M8 3c0 5 3.5 6 4 9-.5 3-4 4-4 9M16 3c0 5-3.5 6-4 9 .5 3 4 4 4 9"/></svg></span> กำลังสร้างไฟล์ PDF...</div>
 
   <script>
     const DOC_TITLE = ${JSON.stringify(safeTitle)};
@@ -4505,13 +4505,13 @@ function openPrint(body, docTitle){
         .then(()=>{
           showToast('✅ บันทึก PDF สำเร็จ!', 2500);
           btn.disabled=false;
-          btn.innerHTML='💾 บันทึก PDF';
+          btn.innerHTML='<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M7 4v6h9V4"/><rect x="7" y="14" width="10" height="6"/></svg></span> บันทึก PDF';
         })
         .catch(err=>{
           console.error(err);
           showToast('❌ เกิดข้อผิดพลาด กรุณาลองใหม่', 3000);
           btn.disabled=false;
-          btn.innerHTML='💾 บันทึก PDF';
+          btn.innerHTML='<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M7 4v6h9V4"/><rect x="7" y="14" width="10" height="6"/></svg></span> บันทึก PDF';
         });
     }
   <\/script>
@@ -4665,11 +4665,11 @@ async function printGroupFolio(groupId){
   const coAll = bookings.map(b=>b.checkOut).sort().reverse()[0];
   const allRooms = [...new Set(bookings.flatMap(b=>b.rooms||[]))].sort((a,x)=>a-x);
   const totalRooms = bookings.reduce((s,b)=>s+(b.roomCount||1),0);
-  const CL={food:'🍽️ อาหาร-เครื่องดื่ม',laundry:'👕 ซักรีด',transport:'🚗 ยานพาหนะ',phone:'📞 โทรศัพท์',minibar:'🍺 มินิบาร์',other:'📦 อื่นๆ'};
+  const CL={food:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2v6a2 2 0 0 0 4 0V2M8 2v20"/><path d="M17 2v8c0 1.5-1 2.5-2 3v9"/></svg></span> อาหาร-เครื่องดื่ม',laundry:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M8 3 4 6v4h3v11h10V10h3V6l-4-3-3 2h-2z"/></svg></span> ซักรีด',transport:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="2.5" y="13" width="19" height="5" rx="1.5"/><circle cx="7" cy="18.5" r="1.5"/><circle cx="17" cy="18.5" r="1.5"/></svg></span> ยานพาหนะ',phone:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M5 4h4l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span> โทรศัพท์',minibar:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 8h9v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V8z"/><path d="M15 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><line x1="6" y1="4" x2="15" y2="4"/><line x1="9" y1="4" x2="9" y2="8"/></svg></span> มินิบาร์',other:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> อื่นๆ'};
 
   // ── สร้าง chargeRows จากทุก Booking เรียงตามวันที่ ──
   let grandTotal = 0;
-  const CL2={food:'🍽️ อาหาร-เครื่องดื่ม',laundry:'👕 ซักรีด',transport:'🚗 ยานพาหนะ',phone:'📞 โทรศัพท์',minibar:'🍺 มินิบาร์',other:'📦 อื่นๆ'};
+  const CL2={food:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2v6a2 2 0 0 0 4 0V2M8 2v20"/><path d="M17 2v8c0 1.5-1 2.5-2 3v9"/></svg></span> อาหาร-เครื่องดื่ม',laundry:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M8 3 4 6v4h3v11h10V10h3V6l-4-3-3 2h-2z"/></svg></span> ซักรีด',transport:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="2.5" y="13" width="19" height="5" rx="1.5"/><circle cx="7" cy="18.5" r="1.5"/><circle cx="17" cy="18.5" r="1.5"/></svg></span> ยานพาหนะ',phone:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M5 4h4l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span> โทรศัพท์',minibar:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 8h9v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V8z"/><path d="M15 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><line x1="6" y1="4" x2="15" y2="4"/><line x1="9" y1="4" x2="9" y2="8"/></svg></span> มินิบาร์',other:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> อื่นๆ'};
 
   function _safeDate2(s){
     if(!s||s==='-') return null;
@@ -4930,12 +4930,12 @@ let _revYear  = new Date().getFullYear();
 let _revMonth = new Date().getMonth(); // 0-indexed
 
 const EC_CATS = {
-  food:'🍽️ อาหาร-เครื่องดื่ม',
-  laundry:'👕 ซักรีด',
-  transport:'🚗 ยานพาหนะ',
-  phone:'📞 โทรศัพท์',
-  minibar:'🍺 มินิบาร์',
-  other:'📦 อื่นๆ',
+  food:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2v6a2 2 0 0 0 4 0V2M8 2v20"/><path d="M17 2v8c0 1.5-1 2.5-2 3v9"/></svg></span> อาหาร-เครื่องดื่ม',
+  laundry:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M8 3 4 6v4h3v11h10V10h3V6l-4-3-3 2h-2z"/></svg></span> ซักรีด',
+  transport:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="2.5" y="13" width="19" height="5" rx="1.5"/><circle cx="7" cy="18.5" r="1.5"/><circle cx="17" cy="18.5" r="1.5"/></svg></span> ยานพาหนะ',
+  phone:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M5 4h4l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span> โทรศัพท์',
+  minibar:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 8h9v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V8z"/><path d="M15 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><line x1="6" y1="4" x2="15" y2="4"/><line x1="9" y1="4" x2="9" y2="8"/></svg></span> มินิบาร์',
+  other:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> อื่นๆ',
 };
 
 const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
@@ -5119,16 +5119,16 @@ function renderAdminTools(){
   if(bdEl){
     bdEl.innerHTML = _businessDay < real
       ? `<div style="padding:12px 16px;background:rgba(212,120,50,.1);border:1px solid rgba(212,120,50,.3);border-radius:8px;margin-bottom:12px;">
-          <div style="font-weight:700;color:var(--orange);margin-bottom:6px;">🌙 Business Day</div>
+          <div style="font-weight:700;color:var(--orange);margin-bottom:6px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M20 14.5a8.5 8.5 0 1 1-9-9 7 7 0 0 0 9 9z"/></svg></span> Business Day</div>
           <div style="font-size:13px;color:var(--text);margin-bottom:8px;">
             ปัจจุบัน: <strong>${fmtDate(_businessDay)}</strong> &nbsp;|&nbsp; วันจริง: <strong>${fmtDate(real)}</strong>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="if(confirm('รีเซ็ต Business Day กลับวันจริง ${fmtDate(real)}?')){_bdReset();renderDashboard();_renderBdBanner();renderAdminTools();alert('✅ รีเซ็ตเรียบร้อย');}">
-            🔄 รีเซ็ต Business Day กลับวันจริง
+            <span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span> รีเซ็ต Business Day กลับวันจริง
           </button>
         </div>`
       : `<div style="padding:10px 16px;background:rgba(74,196,138,.08);border:1px solid rgba(74,196,138,.2);border-radius:8px;margin-bottom:12px;font-size:13px;color:var(--green);">
-          ✅ Business Day ตรงกับวันจริง (${fmtDate(real)})
+          <span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> Business Day ตรงกับวันจริง (${fmtDate(real)})
         </div>`;
   }
 }
@@ -5148,12 +5148,12 @@ function onRestoreFileSelected(){
       document.getElementById('restore-preview').style.display = '';
       document.getElementById('restore-preview').innerHTML = `
         <div style="background:rgba(239,159,39,.1);border:1px solid rgba(239,159,39,.3);border-radius:8px;padding:12px;">
-          <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:6px;">📦 ข้อมูลในไฟล์ Backup</div>
+          <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:6px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> ข้อมูลในไฟล์ Backup</div>
           <div style="font-size:12px;color:var(--text2);display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-            <span>📅 Timestamp:</span><span>${ts}</span>
-            <span>📋 Bookings:</span><span>${bk} รายการ</span>
-            <span>👤 Users:</span><span>${usr} คน</span>
-            <span>💳 Charges:</span><span>${ch} รายการ</span>
+            <span><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span> Timestamp:</span><span>${ts}</span>
+            <span><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> Bookings:</span><span>${bk} รายการ</span>
+            <span><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> Users:</span><span>${usr} คน</span>
+            <span><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="9.5" x2="22" y2="9.5"/><line x1="5.5" y1="15" x2="9.5" y2="15"/></svg></span> Charges:</span><span>${ch} รายการ</span>
           </div>
           <div style="margin-top:8px;padding:8px;background:rgba(220,60,60,.15);border-radius:6px;font-size:12px;color:#ff6b6b;">
             ⚠️ การ Restore จะ<strong>ลบข้อมูลปัจจุบันทั้งหมด</strong>และแทนที่ด้วยข้อมูลในไฟล์ backup
@@ -5180,7 +5180,7 @@ async function doRestore(){
     if(res.error){ alert('❌ Restore ล้มเหลว: '+res.error); return; }
     document.getElementById('restore-result').innerHTML = `
       <div style="background:rgba(78,196,138,.1);border:1px solid rgba(78,196,138,.3);border-radius:8px;padding:12px;font-size:13px;">
-        ✅ <strong>Restore สำเร็จ</strong><br>
+        <span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> <strong>Restore สำเร็จ</strong><br>
         Bookings: ${res.bookings} | Users: ${res.users} | Charges: ${res.charges}
         ${res.errors&&res.errors.length?'<br>⚠️ Errors: '+res.errors.join(', '):''}
       </div>`;
@@ -5201,7 +5201,7 @@ async function loadErrorLogs(){
     _hideLoading();
     const el = document.getElementById('error-log-table');
     if(!Array.isArray(logs)||!logs.length){
-      el.innerHTML='<p style="font-size:13px;color:var(--text2);">✅ ไม่มี Error Log</p>';
+      el.innerHTML='<p style="font-size:13px;color:var(--text2);"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> ไม่มี Error Log</p>';
       return;
     }
     let html='<div class="tbl-wrap"><table><thead><tr><th>เวลา</th><th>Action</th><th>Error</th><th>Detail</th></tr></thead><tbody>';
@@ -5228,7 +5228,7 @@ async function clearErrLogs(){
     const res = await _gasCall('clearErrorLogs');
     _hideLoading();
     alert('✅ ล้างแล้ว '+res.cleared+' รายการ');
-    document.getElementById('error-log-table').innerHTML='<p style="font-size:13px;color:var(--text2);">✅ ไม่มี Error Log</p>';
+    document.getElementById('error-log-table').innerHTML='<p style="font-size:13px;color:var(--text2);"><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> ไม่มี Error Log</p>';
   }catch(e){ _hideLoading(); alert('❌ '+e.message); }
 }
 
@@ -5295,7 +5295,7 @@ function previewArchive(){
   preview.style.display = '';
   preview.innerHTML = `
     <div style="background:rgba(200,168,74,.07);border:1px solid rgba(200,168,74,.2);border-radius:8px;padding:12px 14px;font-size:13px;">
-      <div style="font-weight:600;color:var(--gold);margin-bottom:8px;">📋 สรุปที่จะถูก Archive ไปไว้ใน <code>bookings_${yearBE}</code></div>
+      <div style="font-weight:600;color:var(--gold);margin-bottom:8px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> สรุปที่จะถูก Archive ไปไว้ใน <code>bookings_${yearBE}</code></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
         <div style="color:var(--text2);">จำนวนทั้งหมด: <strong style="color:var(--text);">${toArchive.length} รายการ</strong></div>
         <div style="color:var(--text2);">checkOut ก่อน: <strong style="color:var(--text);">1 ม.ค. ${yearBE+1}</strong></div>
@@ -5338,7 +5338,7 @@ async function doArchive(){
 
     document.getElementById('archive-result').innerHTML = `
       <div style="background:rgba(78,196,138,.1);border:1px solid rgba(78,196,138,.3);border-radius:8px;padding:12px;font-size:13px;">
-        ✅ <strong>Archive สำเร็จ</strong><br>
+        <span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> <strong>Archive สำเร็จ</strong><br>
         ย้าย <strong>${res.archived}</strong> รายการ ไปที่ Sheet <code>bookings_${yearBE}</code><br>
         <span style="color:var(--text2);font-size:12px;">Sheet หลักเหลือ ${ST.bookings.length} รายการ</span>
       </div>`;
@@ -5495,12 +5495,12 @@ async function _loadDashboardCharges(year, month){
 }
 
 const EC_CAT_LABEL={
-  food:'🍽️ อาหาร-เครื่องดื่ม',
-  laundry:'👕 ซักรีด',
-  transport:'🚗 ยานพาหนะ',
-  phone:'📞 โทรศัพท์',
-  minibar:'🍺 มินิบาร์',
-  other:'📦 อื่นๆ',
+  food:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 2v6a2 2 0 0 0 4 0V2M8 2v20"/><path d="M17 2v8c0 1.5-1 2.5-2 3v9"/></svg></span> อาหาร-เครื่องดื่ม',
+  laundry:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M8 3 4 6v4h3v11h10V10h3V6l-4-3-3 2h-2z"/></svg></span> ซักรีด',
+  transport:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="2.5" y="13" width="19" height="5" rx="1.5"/><circle cx="7" cy="18.5" r="1.5"/><circle cx="17" cy="18.5" r="1.5"/></svg></span> ยานพาหนะ',
+  phone:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M5 4h4l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span> โทรศัพท์',
+  minibar:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 8h9v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V8z"/><path d="M15 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><line x1="6" y1="4" x2="15" y2="4"/><line x1="9" y1="4" x2="9" y2="8"/></svg></span> มินิบาร์',
+  other:'<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> อื่นๆ',
 };
 
 let _ecBookingId=null;
