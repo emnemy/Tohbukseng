@@ -202,7 +202,9 @@ tfoot td{border-top:1px solid var(--border);}
 
 /* PRICE BOX */
 .price-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 15px;margin:8px 0;}
-.pb-row{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:5px;}
+.pb-row{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--text2);margin-bottom:5px;}
+.pb-row span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pb-row span:last-child{flex-shrink:0;white-space:nowrap;}
 
 /* ── EXTRA CHARGES ── */
 .ec-table{width:100%;border-collapse:collapse;font-size:13px;}
@@ -232,11 +234,15 @@ tfoot td{border-top:1px solid var(--border);}
 /* ── REVENUE DASHBOARD ── */
 .rev-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
 .rev-title{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.rev-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.rev-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .rev-row:last-child{border-bottom:none;}
 .rev-row.total{font-weight:700;font-size:15px;color:var(--gold);border-top:2px solid var(--border);border-bottom:none;margin-top:4px;padding-top:8px;}
-.rev-sub{padding:3px 0 3px 16px;font-size:12px;color:var(--text2);display:flex;justify-content:space-between;}
+.rev-row>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rev-sub{padding:3px 0 3px 16px;font-size:12px;color:var(--text2);display:flex;justify-content:space-between;gap:8px;}
+.rev-sub span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rev-sub span:last-child{flex-shrink:0;white-space:nowrap;}
 .rev-val{font-weight:600;color:var(--text);}
+.rev-row>span:last-child{flex-shrink:0;white-space:nowrap;}
 .rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
 .chart-bar-wrap{display:flex;align-items:flex-end;gap:3px;height:120px;overflow-x:auto;padding-bottom:4px;}
