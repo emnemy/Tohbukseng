@@ -1157,9 +1157,10 @@ async function _gasCall(action,body,params){
   // GET actions (read-only) ไม่ queue — ถ้าออฟไลน์ให้ throw ตามปกติ
   // READ_ACTIONS = ถ้าออฟไลน์จะ throw ตามปกติ (ไม่ queue เพราะอ่านข้อมูล)
   const READ_ACTIONS = ['getBookings','getUsers','getFolio','getCharges',
-                        'getBackupLogs','getErrorLogs','verifyLogin'];
+                        'getBackupLogs','getErrorLogs','verifyLogin','getBusinessDay'];
   // NEVER_QUEUE = write actions ที่ห้าม queue เพราะต้องการ response กลับมา (เช่น ID)
-  const NEVER_QUEUE = ['getNextBookingId','getNextFolioNumber','backup','archiveBookings','restoreBackup'];
+  // setBusinessDay ต้องรู้ผลทันที — ถ้า queue แบบเงียบๆ จะกลับไปเป็นปัญหาเดิม (แต่ละเครื่องเห็นค่าไม่ตรงกัน)
+  const NEVER_QUEUE = ['getNextBookingId','getNextFolioNumber','backup','archiveBookings','restoreBackup','setBusinessDay'];
   try{
     return await _gasCallDirect(action, body, params);
   } catch(e){
@@ -1212,6 +1213,7 @@ async function load(){
     ST.users=Array.isArray(users)&&users.length?users:[];
     _folioMap=folio||{};
     ST.charges={}; // reset cache — จะโหลด lazy เมื่อต้องการ
+    await _syncBusinessDayFromServer(); // ดึง Business Day กลาง (ใช้ร่วมกันทุกเครื่อง)
   }catch(err){
     console.error('load() failed:',err);
     alert('❌ โหลดข้อมูลไม่สำเร็จ\n'+err.message);
@@ -1237,6 +1239,9 @@ async function _autoRefresh(){
   _lastRefreshAt = new Date();
 
   try{
+    const bdChanged = await _syncBusinessDayFromServer();
+    if(bdChanged) _renderBdBanner();
+
     const bookings=await _gasCall('getBookings');
     if(Array.isArray(bookings)){
       const newBookings=bookings.map(_migrateBk);
@@ -1301,10 +1306,36 @@ function _bdSave(d){
   _businessDay = d;
   localStorage.setItem(_BD_KEY, d);
 }
-function _bdReset(){
-  _bdSave(realToday());
+// ── Sync Business Day จาก server (ค่ากลาง ใช้ร่วมกันทุกเครื่อง) ──
+// ถ้าออฟไลน์/เชื่อมต่อไม่ได้ จะเงียบๆ ใช้ค่า cache เดิมต่อไป (ไม่ throw ออกไปรบกวนหน้าจอหลัก)
+async function _syncBusinessDayFromServer(){
+  try{
+    const res = await _gasCall('getBusinessDay');
+    if(res && res.businessDay && res.businessDay !== _businessDay){
+      _bdSave(res.businessDay);
+      return true; // ค่าเปลี่ยนจากที่ cache ไว้
+    }
+  }catch(e){
+    console.warn('[BusinessDay] sync จาก server ไม่สำเร็จ ใช้ค่า cache เดิม:', e.message);
+  }
+  return false;
 }
-function closeDay(){
+
+async function _bdReset(){
+  const real = realToday();
+  try{
+    await _gasCall('setBusinessDay', {businessDay: real});
+  }catch(e){
+    alert('❌ รีเซ็ต Business Day ไม่สำเร็จ — ไม่สามารถบันทึกไปยัง server ได้\n'+e.message);
+    return;
+  }
+  _bdSave(real);
+  renderDashboard();
+  _renderBdBanner();
+  renderAdminTools();
+  alert('✅ รีเซ็ตเรียบร้อย');
+}
+async function closeDay(){
   const real = realToday();
   if(_businessDay >= real){
     alert('⚠️ Business Day ตรงกับวันจริงแล้ว ไม่สามารถปิดวันเพิ่มได้');
@@ -1313,10 +1344,16 @@ function closeDay(){
   const nd = new Date(_businessDay + 'T00:00:00'); nd.setDate(nd.getDate()+1);
   const nextDay = ymdLocal(nd);
   if(!confirm(`ยืนยันปิดวัน ${fmtDate(_businessDay)}\nและเปิดวันใหม่ ${fmtDate(nextDay)} ?`)) return;
+  try{
+    await _gasCall('setBusinessDay', {businessDay: nextDay});
+  }catch(e){
+    alert('❌ ปิดวันไม่สำเร็จ — ไม่สามารถบันทึกไปยัง server ได้\n'+e.message+'\n\nBusiness Day ยังไม่เปลี่ยน กรุณาลองใหม่เมื่อเชื่อมต่ออินเทอร์เน็ตได้');
+    return;
+  }
   _bdSave(nextDay);
   renderDashboard();
   _renderBdBanner();
-  alert('✅ เปิดวันใหม่ ' + fmtDate(nextDay) + ' เรียบร้อย');
+  alert('✅ เปิดวันใหม่ ' + fmtDate(nextDay) + ' เรียบร้อย (บันทึกไปยัง server แล้ว เครื่องอื่นจะเห็นค่านี้ภายใน 5 นาที)');
 }
 function _renderBdBanner(){
   const real = realToday();
@@ -1334,7 +1371,7 @@ function _renderBdBanner(){
     document.body.classList.add('_bd-active');
     // ปุ่มรีเซ็ตแสดงเฉพาะ Admin และ Manager เท่านั้น
     const resetBtn = canManageUsers()
-      ? `<button onclick="if(confirm('รีเซ็ต Business Day กลับวันจริง?')){_bdReset();renderDashboard();_renderBdBanner();}"
+      ? `<button onclick="if(confirm('รีเซ็ต Business Day กลับวันจริง?')){_bdReset();}"
           style="margin-left:12px;padding:2px 10px;border-radius:6px;border:none;background:#fff;color:#d47832;font-weight:700;cursor:pointer;font-size:12px;">
           รีเซ็ต
         </button>`
@@ -5132,7 +5169,7 @@ function renderAdminTools(){
           <div style="font-size:13px;color:var(--text);margin-bottom:8px;">
             ปัจจุบัน: <strong>${fmtDate(_businessDay)}</strong> &nbsp;|&nbsp; วันจริง: <strong>${fmtDate(real)}</strong>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="if(confirm('รีเซ็ต Business Day กลับวันจริง ${fmtDate(real)}?')){_bdReset();renderDashboard();_renderBdBanner();renderAdminTools();alert('✅ รีเซ็ตเรียบร้อย');}">
+          <button class="btn btn-secondary btn-sm" onclick="if(confirm('รีเซ็ต Business Day กลับวันจริง ${fmtDate(real)}?')){_bdReset();}">
             <span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span> รีเซ็ต Business Day กลับวันจริง
           </button>
         </div>`
