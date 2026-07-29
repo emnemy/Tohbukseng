@@ -1204,6 +1204,7 @@ function save(){}
 /* ── load(): โหลดจาก Google Sheets ── */
 async function load(){
   _showLoading('กำลังโหลดข้อมูลจาก Google Sheets...');
+  const syncMark = new Date().toISOString(); // จับเวลาก่อนยิง request (กันพลาดช่วง in-flight)
   try{
     const [bookings,users,folio]=await Promise.all([
       _gasCall('getBookings'),
@@ -1214,6 +1215,7 @@ async function load(){
     ST.users=Array.isArray(users)&&users.length?users:[];
     _folioMap=folio||{};
     ST.charges={}; // reset cache — จะโหลด lazy เมื่อต้องการ
+    _lastBookingSyncAt = syncMark; // ให้ auto-refresh รอบแรกใช้โหมด delta ได้เลย
     await _syncBusinessDayFromServer(); // ดึง Business Day กลาง (ใช้ร่วมกันทุกเครื่อง)
   }catch(err){
     console.error('load() failed:',err);
@@ -1226,6 +1228,7 @@ async function load(){
 /* ── Auto-refresh ทุก 5 นาที (multi-user sync) ── */
 const _REFRESH_INTERVAL = 5 * 60 * 1000; // 5 นาที
 let _refreshTimer = null;
+let _lastBookingSyncAt = null; // ใช้ทำ delta fetch — ขอเฉพาะ booking ที่เปลี่ยนหลังจากเวลานี้
 let _lastRefreshAt = null;
 
 async function _autoRefresh(){
@@ -1243,25 +1246,47 @@ async function _autoRefresh(){
     const bdChanged = await _syncBusinessDayFromServer();
     if(bdChanged) _renderBdBanner();
 
-    const bookings=await _gasCall('getBookings');
-    if(Array.isArray(bookings)){
-      const newBookings=bookings.map(_migrateBk);
-      // invalidate เฉพาะ booking ที่ modifiedAt เปลี่ยน (ไม่ reset ทั้งหมด)
-      newBookings.forEach(nb=>{
-        const ob=ST.bookings.find(b=>b.id===nb.id);
-        if(!ob || ob.modifiedAt !== nb.modifiedAt){
-          // booking ใหม่หรือถูกแก้ไข — ล้าง cache charges
-          delete ST.charges[nb.id];
-        }
-      });
-      // booking ที่ถูกลบออกจาก server — ล้าง cache ด้วย
-      ST.bookings.forEach(ob=>{
-        if(!newBookings.find(nb=>nb.id===ob.id)){
-          delete ST.charges[ob.id];
-        }
-      });
-      ST.bookings=newBookings;
+    const syncMark = new Date().toISOString(); // จับเวลาก่อนยิง request กันพลาดช่วง in-flight
+
+    if(_lastBookingSyncAt){
+      // โหมด delta — ขอเฉพาะ booking ที่เปลี่ยนแปลงตั้งแต่ครั้งล่าสุด (เบากว่าโหลดทั้งหมดทุกรอบ)
+      const res = await _gasCall('getBookings', {since: _lastBookingSyncAt});
+      if(res && Array.isArray(res.changed) && Array.isArray(res.allIds)){
+        res.changed.map(_migrateBk).forEach(nb=>{
+          const idx = ST.bookings.findIndex(b=>b.id===nb.id);
+          if(idx>-1){
+            if(ST.bookings[idx].modifiedAt !== nb.modifiedAt) delete ST.charges[nb.id];
+            ST.bookings[idx]=nb;
+          }else{
+            ST.bookings.push(nb); // booking ใหม่
+            delete ST.charges[nb.id];
+          }
+        });
+        // ตัด booking ที่ไม่มีใน allIds แล้ว (ถูกลบ/Archive ไปจาก server)
+        const idSet = new Set(res.allIds);
+        ST.bookings = ST.bookings.filter(b=>{
+          if(idSet.has(b.id)) return true;
+          delete ST.charges[b.id];
+          return false;
+        });
+      }
+    }else{
+      // ยังไม่มี baseline sync (ไม่ควรเกิดถ้า login ผ่าน load() มาก่อนแล้ว) — โหลดเต็มไว้ก่อนเพื่อความปลอดภัย
+      const bookings=await _gasCall('getBookings');
+      if(Array.isArray(bookings)){
+        const newBookings=bookings.map(_migrateBk);
+        newBookings.forEach(nb=>{
+          const ob=ST.bookings.find(b=>b.id===nb.id);
+          if(!ob || ob.modifiedAt !== nb.modifiedAt) delete ST.charges[nb.id];
+        });
+        ST.bookings.forEach(ob=>{
+          if(!newBookings.find(nb=>nb.id===ob.id)) delete ST.charges[ob.id];
+        });
+        ST.bookings=newBookings;
+      }
     }
+    _lastBookingSyncAt = syncMark;
+
     // re-render หน้าที่กำลังดูอยู่
     const activePage=document.querySelector('.page.active')?.id?.replace('page-','');
     if(activePage && PAGE_RENDERS[activePage]) PAGE_RENDERS[activePage]();
