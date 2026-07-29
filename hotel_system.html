@@ -1157,7 +1157,8 @@ async function _gasCall(action,body,params){
   // GET actions (read-only) ไม่ queue — ถ้าออฟไลน์ให้ throw ตามปกติ
   // READ_ACTIONS = ถ้าออฟไลน์จะ throw ตามปกติ (ไม่ queue เพราะอ่านข้อมูล)
   const READ_ACTIONS = ['getBookings','getUsers','getFolio','getCharges',
-                        'getBackupLogs','getErrorLogs','verifyLogin','getBusinessDay'];
+                        'getBackupLogs','getErrorLogs','verifyLogin','getBusinessDay',
+                        'getMonthRoomRevenue','getChargesByDateRange'];
   // NEVER_QUEUE = write actions ที่ห้าม queue เพราะต้องการ response กลับมา (เช่น ID)
   // setBusinessDay ต้องรู้ผลทันที — ถ้า queue แบบเงียบๆ จะกลับไปเป็นปัญหาเดิม (แต่ละเครื่องเห็นค่าไม่ตรงกัน)
   const NEVER_QUEUE = ['getNextBookingId','getNextFolioNumber','backup','archiveBookings','restoreBackup','setBusinessDay'];
@@ -1925,7 +1926,7 @@ async function renderDashboard(){
   updateRevLabel();
   try{ await _loadDashboardCharges(_revYear, _revMonth); }
   catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
-  renderRevSummary(_revYear, _revMonth);
+  await renderRevSummary(_revYear, _revMonth);
   let vac=0,res=0,occ=0;
   ALL_ROOMS.forEach(r=>{
     const{s}=roomStatusAt(r,d);
@@ -5017,7 +5018,7 @@ function calcEcForDate(dateStr){
 }
 
 /** คำนวณรายได้รายวันทั้งเดือน */
-function calcMonthRevenue(year, month){
+async function calcMonthRevenue(year, month){
   const pad = v => String(v).padStart(2,'0');
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const days = [];
@@ -5027,15 +5028,35 @@ function calcMonthRevenue(year, month){
     const ec   = calcEcForDate(dateStr);
     days.push({ dateStr, room, ec: ec.total, total: room + ec.total, bycat: ec.bycat });
   }
+
+  // เดือนย้อนหลังที่รายได้ค่าห้องรวมจากข้อมูลในเครื่องเป็น 0 → เช็คกับ server อีกที
+  // กันเคสข้อมูลถูก Archive ไปแล้ว จึงไม่เหลือใน ST.bookings ที่โหลดในเครื่อง
+  const now = new Date();
+  const isPastMonth = (year < now.getFullYear()) || (year === now.getFullYear() && month < now.getMonth());
+  const localRoomTotal = days.reduce((s,d) => s + d.room, 0);
+
+  if(isPastMonth && localRoomTotal === 0){
+    try{
+      const res = await _gasCall('getMonthRoomRevenue', {yearBE: year + 543, month});
+      if(res && res.revenue){
+        days.forEach(d => {
+          const serverAmt = res.revenue[d.dateStr];
+          if(serverAmt > 0){ d.room = serverAmt; d.total = d.room + d.ec; }
+        });
+      }
+    }catch(e){
+      console.warn('[Dashboard] ดึงรายได้ค่าห้องย้อนหลังจาก server ไม่สำเร็จ:', e.message);
+    }
+  }
   return days;
 }
 
 /** สรุปรายได้วันนี้ + เดือน */
-function renderRevSummary(year, month){
+async function renderRevSummary(year, month){
   const todayStr = today();
   const todayRoom = calcRoomRevenueForDate(todayStr);
   const todayEc   = calcEcForDate(todayStr);
-  const days      = calcMonthRevenue(year, month);
+  const days      = await calcMonthRevenue(year, month);
 
   const monthRoom  = days.reduce((s,d) => s + d.room, 0);
   const monthEc    = days.reduce((s,d) => s + d.ec, 0);
@@ -5137,7 +5158,7 @@ async function revShiftMonth(delta){
   updateRevLabel();
   try{ await _loadDashboardCharges(_revYear, _revMonth); }
   catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
-  renderRevSummary(_revYear, _revMonth);
+  await renderRevSummary(_revYear, _revMonth);
 }
 async function revGoToday(){
   _revYear  = new Date().getFullYear();
@@ -5145,7 +5166,7 @@ async function revGoToday(){
   updateRevLabel();
   try{ await _loadDashboardCharges(_revYear, _revMonth); }
   catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
-  renderRevSummary(_revYear, _revMonth);
+  await renderRevSummary(_revYear, _revMonth);
 }
 function updateRevLabel(){
   const el = document.getElementById('rev-month-label');
@@ -5538,6 +5559,23 @@ async function _loadDashboardCharges(year, month){
     b.checkIn <= monthEnd && b.checkOut > monthStart
   );
   await _loadChargesMulti(relevant.map(b => b.id));
+
+  // เดือนย้อนหลัง (ไม่ใช่เดือนปัจจุบัน) — เผื่อมี booking ที่ถูก Archive ไปแล้ว
+  // จึงไม่โผล่ใน ST.bookings เลย ดึง charges ตามช่วงวันที่ตรงจาก server มา merge เพิ่ม
+  const now = new Date();
+  const isPastMonth = (year < now.getFullYear()) || (year === now.getFullYear() && month < now.getMonth());
+  if(isPastMonth){
+    try{
+      const res = await _gasCall('getChargesByDateRange', {from: monthStart, to: monthEnd});
+      if(res && res.charges){
+        Object.keys(res.charges).forEach(bid => {
+          if(ST.charges[bid] === undefined) ST.charges[bid] = res.charges[bid];
+        });
+      }
+    }catch(e){
+      console.warn('[Dashboard] ดึง Extra Charges ย้อนหลังจาก server ไม่สำเร็จ:', e.message);
+    }
+  }
 }
 
 const EC_CAT_LABEL={
