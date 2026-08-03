@@ -1481,9 +1481,10 @@ async function doLogin(){
   if(!u||!p){ errEl.textContent='กรุณาใส่ชื่อผู้ใช้และรหัสผ่าน'; errEl.style.display='block'; return; }
   _showLoading('กำลังเข้าสู่ระบบ...');
   let found=null;
+  let res=null;
   try{
     // ตรวจ password ผ่าน Sheets (hash อัตโนมัติถ้ายังเป็น plain text)
-    const res=await _gasCall('verifyLogin',{username:u,password:p});
+    res=await _gasCall('verifyLogin',{username:u,password:p});
     if(res&&res.success){
       found=res.user;
     } else {
