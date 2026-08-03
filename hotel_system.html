@@ -71,6 +71,15 @@ select.form-input{cursor:pointer;}
 textarea.form-input{resize:vertical;}
 .form-check{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;white-space:nowrap;}
 .form-check input{accent-color:var(--gold);width:15px;height:15px;}
+/* PASSWORD SHOW/HIDE TOGGLE */
+.pw-field-wrap{position:relative;}
+.pw-field-wrap .form-input{padding-right:38px;}
+.pw-toggle-btn{position:absolute;right:3px;top:50%;transform:translateY(-50%);
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  background:none;border:none;cursor:pointer;color:var(--text2);border-radius:6px;padding:0;}
+.pw-toggle-btn:hover{color:var(--gold);}
+.pw-toggle-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;}
 .error-box{background:rgba(223,88,88,.1);border:1px solid rgba(223,88,88,.3);border-radius:var(--radius);
   padding:10px 13px;color:var(--red);font-size:13px;margin-bottom:14px;display:none;line-height:1.6;}
 
@@ -306,7 +315,11 @@ tfoot td{border-top:1px solid var(--border);}
     <div class="form-group"><label class="form-label">ชื่อผู้ใช้</label>
       <input class="form-input" id="lg-user" type="text" placeholder="Username"></div>
     <div class="form-group"><label class="form-label">รหัสผ่าน</label>
-      <input class="form-input" id="lg-pass" type="password" placeholder="Password"></div>
+      <div class="pw-field-wrap">
+        <input class="form-input" id="lg-pass" type="password" placeholder="Password">
+        <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('lg-pass', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+    </div>
     <button class="btn btn-primary btn-full" style="margin-top:6px;" onclick="doLogin()">เข้าสู่ระบบ</button>
 
   </div>
@@ -731,15 +744,24 @@ tfoot td{border-top:1px solid var(--border);}
     <div id="chpw-user-info" style="font-size:13px;color:var(--text2);margin-bottom:16px;padding:8px 12px;background:var(--bg2);border-radius:8px;"></div>
     <div style="margin-bottom:12px;">
       <label class="form-label">รหัสผ่านปัจจุบัน</label>
-      <input type="password" class="form-input" id="chpw-old" placeholder="ใส่รหัสผ่านปัจจุบัน">
+      <div class="pw-field-wrap">
+        <input type="password" class="form-input" id="chpw-old" placeholder="ใส่รหัสผ่านปัจจุบัน">
+        <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('chpw-old', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
     </div>
     <div style="margin-bottom:12px;">
       <label class="form-label">รหัสผ่านใหม่</label>
-      <input type="password" class="form-input" id="chpw-new" placeholder="ใส่รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)">
+      <div class="pw-field-wrap">
+        <input type="password" class="form-input" id="chpw-new" placeholder="ใส่รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)">
+        <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('chpw-new', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
     </div>
     <div style="margin-bottom:20px;">
       <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
-      <input type="password" class="form-input" id="chpw-confirm" placeholder="ใส่รหัสผ่านใหม่อีกครั้ง">
+      <div class="pw-field-wrap">
+        <input type="password" class="form-input" id="chpw-confirm" placeholder="ใส่รหัสผ่านใหม่อีกครั้ง">
+        <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('chpw-confirm', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
     </div>
     <div id="chpw-error" style="display:none;color:#ff6b6b;font-size:13px;margin-bottom:12px;padding:8px 12px;background:rgba(220,60,60,.1);border-radius:6px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
@@ -860,7 +882,7 @@ const S_RES='reserved', S_CI='checkedin', S_CO='checkedout', S_CANCEL='cancelled
 ════════════════════════════════════════ */
 let ST={
   users:[],
-  bookings:[], currentUser:null
+  bookings:[], currentUser:null, sessionToken:null
 };
 let pickRooms=[], editingId=null, assignId=null, _pendingRoomMode=null;
 
@@ -878,6 +900,20 @@ function canCheckin(){ return true; }
 function canCheckout(){ return true; }
 function canCreateBooking(){ return true; }  // ทุก role ทำได้
 function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเนินการ: ${action}\nกรุณาติดต่อ Admin`); }
+
+/* ── สลับแสดง/ซ่อนรหัสผ่าน (ปุ่มไอคอนดวงตาในช่องรหัสผ่านทุกอัน) ── */
+const PW_EYE_SVG =
+  '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const PW_EYE_OFF_SVG =
+  '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+function togglePwVisibility(id, btn){
+  const inp = document.getElementById(id);
+  if(!inp) return;
+  const willShow = inp.type === 'password';
+  inp.type = willShow ? 'text' : 'password';
+  btn.innerHTML = willShow ? PW_EYE_OFF_SVG : PW_EYE_SVG;
+  btn.setAttribute('aria-label', willShow ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน');
+}
 
 /* ════════════════════════════════════════
    GOOGLE SHEETS CONFIG
@@ -922,8 +958,11 @@ function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเ
             </div>
             <div style="margin-bottom:20px;text-align:left;">
               <label style="color:#aaa;font-size:12px;display:block;margin-bottom:4px;">Secret Key</label>
-              <input id="setup-key" type="password" placeholder="ใส่ Secret Key"
-                style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0e0e1c;color:#fff;font-size:12px;box-sizing:border-box;">
+              <div class="pw-field-wrap">
+                <input id="setup-key" type="password" placeholder="ใส่ Secret Key"
+                  style="width:100%;padding:10px 38px 10px 10px;border-radius:8px;border:1px solid #333;background:#0e0e1c;color:#fff;font-size:12px;box-sizing:border-box;">
+                <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('setup-key', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
             </div>
             <button onclick="(function(){
               const u=document.getElementById('setup-url').value.trim();
@@ -1127,6 +1166,9 @@ window.addEventListener('online', ()=>{
 /* ── API helper (direct — ไม่ผ่าน queue) ── */
 async function _gasCallDirect(action, body, params){
   let url=`${GAS_URL}?action=${action}&key=${GAS_KEY}`;
+  // แนบ session token (ถ้ามี) เพื่อให้ backend รู้ตัวตน/role จริงของผู้เรียก
+  // แทนที่จะพึ่ง key ที่ใช้ร่วมกันทุกคนเพียงอย่างเดียว
+  if(ST.sessionToken) url+=`&token=${encodeURIComponent(ST.sessionToken)}`;
   if(params) Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
   const opts=body
     ?{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}
@@ -1498,7 +1540,8 @@ async function doLogin(){
   _hideLoading();
   if(!found){const _e=document.getElementById('login-error');_e.textContent='❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';_e.style.display='block';return;}
   ST.currentUser=found;
-  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role}));}catch(e){}
+  ST.sessionToken=res.token||null;
+  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role,token:ST.sessionToken}));}catch(e){}
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sf-name').textContent=found.name;
@@ -1513,6 +1556,7 @@ async function doLogin(){
 }
 function doLogout(){
   ST.currentUser=null;
+  ST.sessionToken=null;
   clearTimeout(_idleTimer); // หยุดนับ idle
   _stopAutoRefresh();       // หยุด auto-refresh
   _renderBdBanner();        // ซ่อน banner
@@ -3601,7 +3645,12 @@ function openAddUserModal(){
     <div class="modal-body">
       <div class="form-group"><label class="form-label">ชื่อผู้ใช้</label><input class="form-input" id="nu-usr"></div>
       <div class="form-group"><label class="form-label">ชื่อ-นามสกุล</label><input class="form-input" id="nu-name"></div>
-      <div class="form-group"><label class="form-label">รหัสผ่าน</label><input class="form-input" type="password" id="nu-pass" placeholder="อย่างน้อย 6 ตัว ประกอบด้วยตัวอักษรและตัวเลข"></div>
+      <div class="form-group"><label class="form-label">รหัสผ่าน</label>
+        <div class="pw-field-wrap">
+          <input class="form-input" type="password" id="nu-pass" placeholder="อย่างน้อย 6 ตัว ประกอบด้วยตัวอักษรและตัวเลข">
+          <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('nu-pass', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
       <div class="form-group"><label class="form-label">บทบาท</label>
         <select class="form-input" id="nu-role"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
     </div>
@@ -5532,6 +5581,7 @@ async function doChangePassword(){
     const found=JSON.parse(raw);
     if(!found||!found.username) return;
     ST.currentUser=found;
+    ST.sessionToken=found.token||null;
     document.getElementById('login-page').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('sf-name').textContent=found.name;
