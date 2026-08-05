@@ -1179,7 +1179,7 @@ async function _gasCall(action,body,params){
   // READ_ACTIONS = ถ้าออฟไลน์จะ throw ตามปกติ (ไม่ queue เพราะอ่านข้อมูล)
   const READ_ACTIONS = ['getBookings','getUsers','getFolio','getCharges',
                         'getBackupLogs','getErrorLogs','verifyLogin','getBusinessDay',
-                        'getMonthRoomRevenue','getChargesByDateRange'];
+                        'getMonthRoomRevenue','getChargesByDateRange','getChargesForBookings'];
   // NEVER_QUEUE = write actions ที่ห้าม queue เพราะต้องการ response กลับมา (เช่น ID)
   // setBusinessDay ต้องรู้ผลทันที — ถ้า queue แบบเงียบๆ จะกลับไปเป็นปัญหาเดิม (แต่ละเครื่องเห็นค่าไม่ตรงกัน)
   const NEVER_QUEUE = ['getNextBookingId','getNextFolioNumber','backup','archiveBookings','restoreBackup','setBusinessDay'];
@@ -5605,11 +5605,18 @@ async function _loadCharges(bookingId){
   }
 }
 
-// โหลด charges หลาย bookingId พร้อมกัน (สำหรับ group folio)
+// โหลด charges หลาย bookingId พร้อมกัน (สำหรับ group folio) — ดึงทีเดียว 1 request แทนยิงพร้อมกันทีละตัว
 async function _loadChargesMulti(bookingIds){
   const needed=bookingIds.filter(id=>ST.charges[id]===undefined);
   if(!needed.length) return;
-  await Promise.all(needed.map(id=>_loadCharges(id)));
+  try{
+    const res = await _gasCall('getChargesForBookings', {bookingIds: needed});
+    const grouped = (res && res.charges) ? res.charges : {};
+    needed.forEach(id => { ST.charges[id] = Array.isArray(grouped[id]) ? grouped[id] : []; });
+  }catch(e){
+    console.warn('[ChargesMulti] load failed:', e.message);
+    needed.forEach(id => { if(ST.charges[id] === undefined) ST.charges[id] = []; });
+  }
 }
 
 // โหลด charges สำหรับ Dashboard — ดึงทั้งเดือนในทีเดียว (1 request) แทนการยิงทีละ booking พร้อมกันหลายสิบตัว
