@@ -69,17 +69,14 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 .form-input:focus{border-color:var(--gold);}
 select.form-input{cursor:pointer;}
 textarea.form-input{resize:vertical;}
+.pw-wrap{position:relative;}
+.pw-wrap input{padding-right:38px;}
+.pw-toggle{position:absolute;top:0;right:0;bottom:0;width:36px;background:none;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:var(--text2);padding:0;}
+.pw-toggle:hover{color:var(--text);}
+.pw-toggle svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 .form-check{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;white-space:nowrap;}
 .form-check input{accent-color:var(--gold);width:15px;height:15px;}
-/* PASSWORD SHOW/HIDE TOGGLE */
-.pw-field-wrap{position:relative;}
-.pw-field-wrap .form-input{padding-right:38px;}
-.pw-toggle-btn{position:absolute;right:3px;top:50%;transform:translateY(-50%);
-  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-  background:none;border:none;cursor:pointer;color:var(--text2);border-radius:6px;padding:0;}
-.pw-toggle-btn:hover{color:var(--gold);}
-.pw-toggle-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;
-  stroke-linecap:round;stroke-linejoin:round;}
 .error-box{background:rgba(223,88,88,.1);border:1px solid rgba(223,88,88,.3);border-radius:var(--radius);
   padding:10px 13px;color:var(--red);font-size:13px;margin-bottom:14px;display:none;line-height:1.6;}
 
@@ -315,11 +312,10 @@ tfoot td{border-top:1px solid var(--border);}
     <div class="form-group"><label class="form-label">ชื่อผู้ใช้</label>
       <input class="form-input" id="lg-user" type="text" placeholder="Username"></div>
     <div class="form-group"><label class="form-label">รหัสผ่าน</label>
-      <div class="pw-field-wrap">
+      <div class="pw-wrap">
         <input class="form-input" id="lg-pass" type="password" placeholder="Password">
-        <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('lg-pass', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-      </div>
-    </div>
+        <button type="button" class="pw-toggle" tabindex="-1" onclick="pwToggle(this)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div></div>
     <button class="btn btn-primary btn-full" style="margin-top:6px;" onclick="doLogin()">เข้าสู่ระบบ</button>
 
   </div>
@@ -421,7 +417,7 @@ tfoot td{border-top:1px solid var(--border);}
       <div class="stats-grid" id="dash-stats"></div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <div class="card-title" style="margin-bottom:0;"><span class="txt-ico"><svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg></span> สรุปรายได้ประจำเดือน</div>
+          <div class="card-title" style="margin-bottom:0;"><span class="txt-ico"><svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg></span> สรุปรายได้ห้องพักและอาหารเช้าประจำเดือน</div>
           <div style="display:flex;gap:6px;align-items:center;">
             <select id="dash-month" class="form-input" style="width:auto;" onchange="renderDashMonthly()"></select>
             <select id="dash-year" class="form-input" style="width:auto;" onchange="renderDashMonthly()"></select>
@@ -744,23 +740,23 @@ tfoot td{border-top:1px solid var(--border);}
     <div id="chpw-user-info" style="font-size:13px;color:var(--text2);margin-bottom:16px;padding:8px 12px;background:var(--bg2);border-radius:8px;"></div>
     <div style="margin-bottom:12px;">
       <label class="form-label">รหัสผ่านปัจจุบัน</label>
-      <div class="pw-field-wrap">
+      <div class="pw-wrap">
         <input type="password" class="form-input" id="chpw-old" placeholder="ใส่รหัสผ่านปัจจุบัน">
-        <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('chpw-old', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button type="button" class="pw-toggle" tabindex="-1" onclick="pwToggle(this)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
     </div>
     <div style="margin-bottom:12px;">
       <label class="form-label">รหัสผ่านใหม่</label>
-      <div class="pw-field-wrap">
+      <div class="pw-wrap">
         <input type="password" class="form-input" id="chpw-new" placeholder="ใส่รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)">
-        <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('chpw-new', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button type="button" class="pw-toggle" tabindex="-1" onclick="pwToggle(this)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
     </div>
     <div style="margin-bottom:20px;">
       <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
-      <div class="pw-field-wrap">
+      <div class="pw-wrap">
         <input type="password" class="form-input" id="chpw-confirm" placeholder="ใส่รหัสผ่านใหม่อีกครั้ง">
-        <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('chpw-confirm', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button type="button" class="pw-toggle" tabindex="-1" onclick="pwToggle(this)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
     </div>
     <div id="chpw-error" style="display:none;color:#ff6b6b;font-size:13px;margin-bottom:12px;padding:8px 12px;background:rgba(220,60,60,.1);border-radius:6px;"></div>
@@ -882,7 +878,7 @@ const S_RES='reserved', S_CI='checkedin', S_CO='checkedout', S_CANCEL='cancelled
 ════════════════════════════════════════ */
 let ST={
   users:[],
-  bookings:[], currentUser:null, sessionToken:null
+  bookings:[], currentUser:null
 };
 let pickRooms=[], editingId=null, assignId=null, _pendingRoomMode=null;
 
@@ -900,20 +896,6 @@ function canCheckin(){ return true; }
 function canCheckout(){ return true; }
 function canCreateBooking(){ return true; }  // ทุก role ทำได้
 function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเนินการ: ${action}\nกรุณาติดต่อ Admin`); }
-
-/* ── สลับแสดง/ซ่อนรหัสผ่าน (ปุ่มไอคอนดวงตาในช่องรหัสผ่านทุกอัน) ── */
-const PW_EYE_SVG =
-  '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-const PW_EYE_OFF_SVG =
-  '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-function togglePwVisibility(id, btn){
-  const inp = document.getElementById(id);
-  if(!inp) return;
-  const willShow = inp.type === 'password';
-  inp.type = willShow ? 'text' : 'password';
-  btn.innerHTML = willShow ? PW_EYE_OFF_SVG : PW_EYE_SVG;
-  btn.setAttribute('aria-label', willShow ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน');
-}
 
 /* ════════════════════════════════════════
    GOOGLE SHEETS CONFIG
@@ -958,10 +940,10 @@ function togglePwVisibility(id, btn){
             </div>
             <div style="margin-bottom:20px;text-align:left;">
               <label style="color:#aaa;font-size:12px;display:block;margin-bottom:4px;">Secret Key</label>
-              <div class="pw-field-wrap">
+              <div class="pw-wrap">
                 <input id="setup-key" type="password" placeholder="ใส่ Secret Key"
-                  style="width:100%;padding:10px 38px 10px 10px;border-radius:8px;border:1px solid #333;background:#0e0e1c;color:#fff;font-size:12px;box-sizing:border-box;">
-                <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('setup-key', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                  style="width:100%;padding:10px;padding-right:38px;border-radius:8px;border:1px solid #333;background:#0e0e1c;color:#fff;font-size:12px;box-sizing:border-box;">
+                <button type="button" class="pw-toggle" tabindex="-1" onclick="pwToggle(this)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
               </div>
             </div>
             <button onclick="(function(){
@@ -1166,9 +1148,6 @@ window.addEventListener('online', ()=>{
 /* ── API helper (direct — ไม่ผ่าน queue) ── */
 async function _gasCallDirect(action, body, params){
   let url=`${GAS_URL}?action=${action}&key=${GAS_KEY}`;
-  // แนบ session token (ถ้ามี) เพื่อให้ backend รู้ตัวตน/role จริงของผู้เรียก
-  // แทนที่จะพึ่ง key ที่ใช้ร่วมกันทุกคนเพียงอย่างเดียว
-  if(ST.sessionToken) url+=`&token=${encodeURIComponent(ST.sessionToken)}`;
   if(params) Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
   const opts=body
     ?{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}
@@ -1368,6 +1347,17 @@ let _businessDay = (function(){
 })();
 
 function today(){ return _businessDay; }           // Business day (ใช้ทั่วระบบ)
+
+// ปุ่มไอคอนดวงตา เปิด/ปิดการมองเห็นรหัสผ่านในช่องกรอก
+const PW_EYE_OPEN  = '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const PW_EYE_CLOSED= '<svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 4.2 4.2"/><path d="M9.9 4.2A10.6 10.6 0 0 1 12 4c6.5 0 10 7 10 7a17.9 17.9 0 0 1-3.1 4.1M6.2 6.3A18 18 0 0 0 2 11s3.5 7 10 7a10.4 10.4 0 0 0 3.9-.7"/></svg>';
+function pwToggle(btn){
+  const input = btn.previousElementSibling;
+  if(!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.innerHTML = show ? PW_EYE_CLOSED : PW_EYE_OPEN;
+}
 function realToday(){ return ymdLocal(new Date()); } // วันจริงเสมอ
 
 function _bdSave(d){
@@ -1481,10 +1471,9 @@ async function doLogin(){
   if(!u||!p){ errEl.textContent='กรุณาใส่ชื่อผู้ใช้และรหัสผ่าน'; errEl.style.display='block'; return; }
   _showLoading('กำลังเข้าสู่ระบบ...');
   let found=null;
-  let res=null;
   try{
     // ตรวจ password ผ่าน Sheets (hash อัตโนมัติถ้ายังเป็น plain text)
-    res=await _gasCall('verifyLogin',{username:u,password:p});
+    const res=await _gasCall('verifyLogin',{username:u,password:p});
     if(res&&res.success){
       found=res.user;
     } else {
@@ -1541,8 +1530,7 @@ async function doLogin(){
   _hideLoading();
   if(!found){const _e=document.getElementById('login-error');_e.textContent='❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';_e.style.display='block';return;}
   ST.currentUser=found;
-  ST.sessionToken=res.token||null;
-  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role,token:ST.sessionToken}));}catch(e){}
+  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role}));}catch(e){}
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sf-name').textContent=found.name;
@@ -1557,7 +1545,6 @@ async function doLogin(){
 }
 function doLogout(){
   ST.currentUser=null;
-  ST.sessionToken=null;
   clearTimeout(_idleTimer); // หยุดนับ idle
   _stopAutoRefresh();       // หยุด auto-refresh
   _renderBdBanner();        // ซ่อน banner
@@ -2146,7 +2133,7 @@ function renderTimelineView(){
         if(b){
           // แสดงชื่อเฉพาะวันแรกที่เจอ (checkIn) เพื่อไม่ให้รกทุกช่อง
           if(dt === b.checkIn || dt === _rcTlStart){
-            label = esc(b.guestName);
+            label = b.guestName;
           }
         }
 
@@ -3647,11 +3634,10 @@ function openAddUserModal(){
       <div class="form-group"><label class="form-label">ชื่อผู้ใช้</label><input class="form-input" id="nu-usr"></div>
       <div class="form-group"><label class="form-label">ชื่อ-นามสกุล</label><input class="form-input" id="nu-name"></div>
       <div class="form-group"><label class="form-label">รหัสผ่าน</label>
-        <div class="pw-field-wrap">
+        <div class="pw-wrap">
           <input class="form-input" type="password" id="nu-pass" placeholder="อย่างน้อย 6 ตัว ประกอบด้วยตัวอักษรและตัวเลข">
-          <button type="button" class="pw-toggle-btn" tabindex="-1" aria-label="แสดงรหัสผ่าน" onclick="togglePwVisibility('nu-pass', this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-        </div>
-      </div>
+          <button type="button" class="pw-toggle" tabindex="-1" onclick="pwToggle(this)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div></div>
       <div class="form-group"><label class="form-label">บทบาท</label>
         <select class="form-input" id="nu-role"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
     </div>
@@ -4136,7 +4122,7 @@ async function printGuestFolio(id){
           - This rate is inclusive of 7% VAT.<br>
           - Please check all charges before settlement.<br>
           - Late check-out after 12:00 PM may be subject to additional charge.
-          ${b.remarks?'<br>- '+esc(b.remarks):''}
+          ${b.remarks?'<br>- '+b.remarks:''}
         </td></tr>
       </table>
     </td>
@@ -5096,8 +5082,12 @@ function calcEcForDate(dateStr){
 async function calcMonthRevenue(year, month){
   const pad = v => String(v).padStart(2,'0');
   const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayStr = today();
+  // เดือนปัจจุบัน → แสดงถึงวันนี้เท่านั้น (ไม่รวมคืนอนาคตที่ยังไม่เกิด) เดือนอื่นแสดงเต็มเดือนเหมือนเดิม
+  const isCurrent = (year===parseInt(todayStr.slice(0,4)) && month===parseInt(todayStr.slice(5,7))-1);
+  const lastDay = isCurrent ? parseInt(todayStr.slice(8,10)) : daysInMonth;
   const days = [];
-  for(let d = 1; d <= daysInMonth; d++){
+  for(let d = 1; d <= lastDay; d++){
     const dateStr = `${year}-${pad(month+1)}-${pad(d)}`;
     const room = calcRoomRevenueForDate(dateStr);
     const ec   = calcEcForDate(dateStr);
@@ -5292,7 +5282,7 @@ function onRestoreFileSelected(){
         <div style="background:rgba(239,159,39,.1);border:1px solid rgba(239,159,39,.3);border-radius:8px;padding:12px;">
           <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:6px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> ข้อมูลในไฟล์ Backup</div>
           <div style="font-size:12px;color:var(--text2);display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-            <span><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span> Timestamp:</span><span>${esc(ts)}</span>
+            <span><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span> Timestamp:</span><span>${ts}</span>
             <span><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> Bookings:</span><span>${bk} รายการ</span>
             <span><span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span> Users:</span><span>${usr} คน</span>
             <span><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="9.5" x2="22" y2="9.5"/><line x1="5.5" y1="15" x2="9.5" y2="15"/></svg></span> Charges:</span><span>${ch} รายการ</span>
@@ -5582,7 +5572,6 @@ async function doChangePassword(){
     const found=JSON.parse(raw);
     if(!found||!found.username) return;
     ST.currentUser=found;
-    ST.sessionToken=found.token||null;
     document.getElementById('login-page').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('sf-name').textContent=found.name;
@@ -5623,35 +5612,28 @@ async function _loadChargesMulti(bookingIds){
   await Promise.all(needed.map(id=>_loadCharges(id)));
 }
 
-// โหลด charges สำหรับ Dashboard — เฉพาะ booking ที่ active ในเดือนที่แสดง
+// โหลด charges สำหรับ Dashboard — ดึงทั้งเดือนในทีเดียว (1 request) แทนการยิงทีละ booking พร้อมกันหลายสิบตัว
+// (เดิมใช้ _loadChargesMulti → Promise.all ยิง getCharges พร้อมกันทุก booking ทำให้ Apps Script/บราวเซอร์คอขวด จน timeout)
 async function _loadDashboardCharges(year, month){
   const pad = v => String(v).padStart(2,'0');
   const monthStart = `${year}-${pad(month+1)}-01`;
   const monthEnd   = `${year}-${pad(month+1)}-${new Date(year,month+1,0).getDate()}`;
-  // กรอง booking ที่ overlap กับเดือนนี้ และวันนี้ (สำหรับ today summary)
-  const todayStr = today();
+
+  try{
+    const res = await _gasCall('getChargesByDateRange', {from: monthStart, to: monthEnd});
+    if(res && res.charges){
+      Object.keys(res.charges).forEach(bid => { ST.charges[bid] = res.charges[bid]; });
+    }
+  }catch(e){
+    console.warn('[Dashboard] ดึง Extra Charges ไม่สำเร็จ:', e.message);
+  }
+
+  // booking ที่ overlap เดือนนี้แต่ไม่มี charge เลย → mark ว่าโหลดแล้ว กัน fetch ซ้ำภายหลัง (เช่นตอนเปิด modal)
   const relevant = ST.bookings.filter(b =>
     b.status !== S_CANCEL &&
     b.checkIn <= monthEnd && b.checkOut > monthStart
   );
-  await _loadChargesMulti(relevant.map(b => b.id));
-
-  // เดือนย้อนหลัง (ไม่ใช่เดือนปัจจุบัน) — เผื่อมี booking ที่ถูก Archive ไปแล้ว
-  // จึงไม่โผล่ใน ST.bookings เลย ดึง charges ตามช่วงวันที่ตรงจาก server มา merge เพิ่ม
-  const now = new Date();
-  const isPastMonth = (year < now.getFullYear()) || (year === now.getFullYear() && month < now.getMonth());
-  if(isPastMonth){
-    try{
-      const res = await _gasCall('getChargesByDateRange', {from: monthStart, to: monthEnd});
-      if(res && res.charges){
-        Object.keys(res.charges).forEach(bid => {
-          if(ST.charges[bid] === undefined) ST.charges[bid] = res.charges[bid];
-        });
-      }
-    }catch(e){
-      console.warn('[Dashboard] ดึง Extra Charges ย้อนหลังจาก server ไม่สำเร็จ:', e.message);
-    }
-  }
+  relevant.forEach(b => { if(ST.charges[b.id] === undefined) ST.charges[b.id] = []; });
 }
 
 const EC_CAT_LABEL={
