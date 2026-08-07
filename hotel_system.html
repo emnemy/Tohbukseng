@@ -890,12 +890,25 @@ let pickRooms=[], editingId=null, assignId=null, _pendingRoomMode=null;
 ════════════════════════════════════════ */
 function getRole(){ return ST.currentUser?.role||'staff'; }
 function canManageUsers(){ return getRole()==='admin'||getRole()==='manager'; }
+function canUseAdminTools(){ return getRole()==='admin'; }
+function canResetBusinessDay(){ return getRole()==='admin'; }
 function canEditBooking(){ return true; }    // ทุก role ทำได้
 function canCancelBooking(){ return true; }  // ทุก role ทำได้
 function canCheckin(){ return true; }
 function canCheckout(){ return true; }
 function canCreateBooking(){ return true; }  // ทุก role ทำได้
 function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเนินการ: ${action}\nกรุณาติดต่อ Admin`); }
+
+// ปรับเมนู "ระบบ" ให้ตรงกับสิทธิ์จริงของแต่ละ role — เรียกทั้งตอน login และตอน restore session
+function _applyRoleUI(role){
+  const showUsers = role==='admin' || role==='manager';
+  const showAdminTools = role==='admin';
+  document.getElementById('admin-nav').style.display = (showUsers||showAdminTools) ? 'block' : 'none';
+  const navUsers = document.getElementById('nav-users');
+  if(navUsers) navUsers.style.display = showUsers ? '' : 'none';
+  const navAdminTools = document.getElementById('nav-admintools');
+  if(navAdminTools) navAdminTools.style.display = showAdminTools ? '' : 'none';
+}
 
 /* ════════════════════════════════════════
    GOOGLE SHEETS CONFIG
@@ -966,6 +979,7 @@ function permDeny(action){ alert(`⛔ ไม่มีสิทธิ์ดำเ
 })();
 const GAS_URL = window._GAS_URL;
 const GAS_KEY = window._GAS_KEY;
+let SESSION_TOKEN = ''; // ได้จาก verifyLogin ตอน login สำเร็จ แนบไปกับทุก request เพื่อยืนยันตัวตน/สิทธิ์
 // ⚠️  หมายเหตุ: แก้ Code.gs → ลบโค้ดส่วน "ลบ backup เก่าเกิน 30 วัน" ออก (บรรทัดประมาณ 347-354)
 
 /* ── Loading overlay ── */
@@ -1147,7 +1161,7 @@ window.addEventListener('online', ()=>{
 
 /* ── API helper (direct — ไม่ผ่าน queue) ── */
 async function _gasCallDirect(action, body, params){
-  let url=`${GAS_URL}?action=${action}&key=${GAS_KEY}`;
+  let url=`${GAS_URL}?action=${action}&key=${GAS_KEY}&token=${encodeURIComponent(SESSION_TOKEN||'')}`;
   if(params) Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
   const opts=body
     ?{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}
@@ -1169,7 +1183,7 @@ async function _gasCallDirect(action, body, params){
   try{data=JSON.parse(text);}catch(e){throw new Error('Parse error: '+text.slice(0,200));}
   // verifyLogin: คืน response ดิบ ให้ caller จัดการ error เอง (เพื่อส่ง attemptsLeft, locked ได้)
   if(action==='verifyLogin') return data;
-  if(data&&data.error) throw new Error(data.error);
+  if(data&&data.error) throw new Error(data.message || data.error);
   return data;
 }
 
@@ -1179,7 +1193,7 @@ async function _gasCall(action,body,params){
   // READ_ACTIONS = ถ้าออฟไลน์จะ throw ตามปกติ (ไม่ queue เพราะอ่านข้อมูล)
   const READ_ACTIONS = ['getBookings','getUsers','getFolio','getCharges',
                         'getBackupLogs','getErrorLogs','verifyLogin','getBusinessDay',
-                        'getMonthRoomRevenue','getChargesByDateRange','getChargesForBookings'];
+                        'getMonthRoomRevenue','getChargesByDateRange','getChargesForBookings','logout'];
   // NEVER_QUEUE = write actions ที่ห้าม queue เพราะต้องการ response กลับมา (เช่น ID)
   // setBusinessDay ต้องรู้ผลทันที — ถ้า queue แบบเงียบๆ จะกลับไปเป็นปัญหาเดิม (แต่ละเครื่องเห็นค่าไม่ตรงกัน)
   const NEVER_QUEUE = ['getNextBookingId','getNextFolioNumber','backup','archiveBookings','restoreBackup','setBusinessDay'];
@@ -1445,8 +1459,8 @@ function _renderBdBanner(){
     banner.style.background = 'rgba(212,120,50,.92)';
     banner.style.color = '#fff';
     document.body.classList.add('_bd-active');
-    // ปุ่มรีเซ็ตแสดงเฉพาะ Admin และ Manager เท่านั้น
-    const resetBtn = canManageUsers()
+    // ปุ่มรีเซ็ตแสดงเฉพาะ Admin เท่านั้น
+    const resetBtn = canResetBusinessDay()
       ? `<button onclick="if(confirm('รีเซ็ต Business Day กลับวันจริง?')){_bdReset();}"
           style="margin-left:12px;padding:2px 10px;border-radius:6px;border:none;background:#fff;color:#d47832;font-weight:700;cursor:pointer;font-size:12px;">
           รีเซ็ต
@@ -1489,11 +1503,13 @@ async function doLogin(){
   if(!u||!p){ errEl.textContent='กรุณาใส่ชื่อผู้ใช้และรหัสผ่าน'; errEl.style.display='block'; return; }
   _showLoading('กำลังเข้าสู่ระบบ...');
   let found=null;
+  let loginToken=null;
   try{
     // ตรวจ password ผ่าน Sheets (hash อัตโนมัติถ้ายังเป็น plain text)
     const res=await _gasCall('verifyLogin',{username:u,password:p});
     if(res&&res.success){
       found=res.user;
+      loginToken=res.token;
     } else {
       _hideLoading();
       // แยกประเภท error จาก GAS
@@ -1548,13 +1564,14 @@ async function doLogin(){
   _hideLoading();
   if(!found){const _e=document.getElementById('login-error');_e.textContent='❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';_e.style.display='block';return;}
   ST.currentUser=found;
-  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role}));}catch(e){}
+  SESSION_TOKEN = loginToken || '';
+  try{sessionStorage.setItem('hms_session',JSON.stringify({id:found.id,username:found.username,name:found.name,role:found.role,token:SESSION_TOKEN}));}catch(e){}
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sf-name').textContent=found.name;
   const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
   document.getElementById('sf-role').textContent=roleLabel;
-  document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+  _applyRoleUI(found.role);
   _resetIdleTimer();    // เริ่มนับ idle หลัง login
   _startAutoRefresh();  // เริ่ม auto-refresh
   await load();
@@ -1562,6 +1579,8 @@ async function doLogin(){
   showPage('dashboard');
 }
 function doLogout(){
+  if(SESSION_TOKEN) _gasCall('logout').catch(()=>{}); // best-effort ยกเลิก token ฝั่ง server ไม่ต้องรอผล
+  SESSION_TOKEN='';
   ST.currentUser=null;
   clearTimeout(_idleTimer); // หยุดนับ idle
   _stopAutoRefresh();       // หยุด auto-refresh
@@ -1604,6 +1623,8 @@ window.addEventListener('unhandledrejection', e => {
 const PAGE_RENDERS={dashboard:renderDashboard,roomchart:renderRoomChart,roomavail:renderRoomAvail,reservation:renderReservation,
   checkin:renderCheckin,guests:renderGuests,checkout:renderCheckout,users:renderUsers,admintools:renderAdminTools};
 function showPage(page){
+  if(page==='users' && !canManageUsers()){ permDeny('User Management'); return; }
+  if(page==='admintools' && !canUseAdminTools()){ permDeny('Admin Tools'); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -5599,12 +5620,13 @@ async function doChangePassword(){
     const found=JSON.parse(raw);
     if(!found||!found.username) return;
     ST.currentUser=found;
+    SESSION_TOKEN = found.token || '';
     document.getElementById('login-page').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('sf-name').textContent=found.name;
     const roleLabel={admin:'Admin',manager:'Manager',staff:'Staff'}[found.role]||'Staff';
     document.getElementById('sf-role').textContent=roleLabel;
-    document.getElementById('admin-nav').style.display=found.role==='admin'?'block':'none';
+    _applyRoleUI(found.role);
     _resetIdleTimer();    // เริ่มนับ idle หลัง restore session
     _startAutoRefresh();  // เริ่ม auto-refresh
     await load();
