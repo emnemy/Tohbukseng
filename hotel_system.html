@@ -1399,6 +1399,24 @@ async function closeDay(){
     alert('⚠️ Business Day ตรงกับวันจริงแล้ว ไม่สามารถปิดวันเพิ่มได้');
     return;
   }
+
+  // เช็ครายการค้าง — ยังไม่เช็คอิน/เช็คเอาท์ของวันที่กำลังจะปิด
+  const pendingCheckin  = ST.bookings.filter(b => b.checkIn  === _businessDay && b.status === S_RES);
+  const pendingCheckout = ST.bookings.filter(b => b.checkOut === _businessDay && b.status === S_CI);
+  if(pendingCheckin.length || pendingCheckout.length){
+    const listOf = arr => arr.map(b => `- ห้อง ${(b.rooms||[]).join(',')} ${b.guestName||''}`).join('\n');
+    let msg = `⚠️ ไม่สามารถปิดวัน ${fmtDate(_businessDay)} ได้ เนื่องจากมีรายการค้างอยู่:\n`;
+    if(pendingCheckin.length){
+      msg += `\nยังไม่เช็คอิน (${pendingCheckin.length} รายการ):\n` + listOf(pendingCheckin);
+    }
+    if(pendingCheckout.length){
+      msg += `\nยังไม่เช็คเอาท์ (${pendingCheckout.length} รายการ):\n` + listOf(pendingCheckout);
+    }
+    msg += `\n\nกรุณาจัดการให้เสร็จก่อนปิดวัน`;
+    alert(msg);
+    return;
+  }
+
   const nd = new Date(_businessDay + 'T00:00:00'); nd.setDate(nd.getDate()+1);
   const nextDay = ymdLocal(nd);
   if(!confirm(`ยืนยันปิดวัน ${fmtDate(_businessDay)}\nและเปิดวันใหม่ ${fmtDate(nextDay)} ?`)) return;
@@ -5401,15 +5419,19 @@ function previewArchive(){
   const cutoffStr = `${cutoffCE}-12-31`;
 
   // นับ bookings ที่ checkOut <= cutoffStr และยังอยู่ใน ST.bookings
-  const toArchive = ST.bookings.filter(b =>
-    b.checkOut && b.checkOut <= cutoffStr &&
-    b.status !== 'reserved' // archive เฉพาะที่ไม่ใช่ reserved ที่ยังไม่เข้าพัก
-  );
-  const totalAll = ST.bookings.filter(b => b.checkOut && b.checkOut <= cutoffStr);
+  // ห้าม archive ที่ยังไม่เช็คอิน (reserved) หรือยังพักอยู่จริง (checkedin) — ต้องตรงกับเงื่อนไขฝั่ง backend เป๊ะ
+  const ARCHIVE_EXCLUDE_STATUS = ['reserved','checkedin'];
+  const totalAll  = ST.bookings.filter(b => b.checkOut && b.checkOut <= cutoffStr);
+  const toArchive = totalAll.filter(b => !ARCHIVE_EXCLUDE_STATUS.includes(b.status));
+  const skipped   = totalAll.filter(b => ARCHIVE_EXCLUDE_STATUS.includes(b.status));
 
   countEl.innerHTML = toArchive.length
     ? `<span style="color:var(--gold);font-weight:600;">พบ ${toArchive.length} รายการ</span> ที่จะถูก Archive`
     : `<span style="color:var(--text2);">ไม่พบข้อมูลที่จะ Archive สำหรับปี ${yearBE}</span>`;
+  if(skipped.length){
+    countEl.innerHTML += `<div style="margin-top:4px;color:var(--red);font-size:12px;">
+      ⚠️ อีก ${skipped.length} รายการ checkOut ผ่านมาแล้วแต่ยังไม่ archive เพราะสถานะยังเป็น reserved/checkedin ค้างอยู่ — กรุณาตรวจสอบก่อน</div>`;
+  }
 
   if(!toArchive.length){
     btn.disabled = true; btn.style.opacity = '.5';
@@ -5461,11 +5483,16 @@ async function doArchive(){
     _hideLoading();
     if(res.error){ alert('❌ Archive ล้มเหลว: ' + res.error); return; }
 
-    // ลบ bookings ที่ archive ออกจาก ST.bookings
+    // ลบ bookings ที่ archive ออกจาก ST.bookings — เงื่อนไขต้องตรงกับฝั่ง backend เป๊ะ (archiveBookings ใน Code.gs)
     const cutoffCE = yearBE - 543;
     const cutoffStr = `${cutoffCE}-12-31`;
+    const ARCHIVE_EXCLUDE_STATUS = ['reserved','checkedin'];
     const before = ST.bookings.length;
-    ST.bookings = ST.bookings.filter(b => !b.checkOut || b.checkOut > cutoffStr);
+    const archivedIds = ST.bookings
+      .filter(b => b.checkOut && b.checkOut <= cutoffStr && !ARCHIVE_EXCLUDE_STATUS.includes(b.status))
+      .map(b => b.id);
+    ST.bookings = ST.bookings.filter(b => !archivedIds.includes(b.id));
+    archivedIds.forEach(id => { delete ST.charges[id]; }); // เคลียร์ cache charges ของ booking ที่ถูก archive ไปด้วย
     const removed = before - ST.bookings.length;
 
     document.getElementById('archive-result').innerHTML = `
