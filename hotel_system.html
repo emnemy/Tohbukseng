@@ -2531,7 +2531,7 @@ function openResModal(id){
 
       <!-- Price Breakdown (Info Only) -->
       <div style="background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;">
-        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (บังคับกรอก — ต้องตรงกับยอดรวมค่าห้อง — ต่อ 1 ห้อง)</div>
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (บังคับกรอก — ค่าห้อง+อาหารเช้ารวมกันต้องตรงกับยอดรวมค่าห้อง — ต่อ 1 ห้อง)</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;">
           <span style="font-size:12px;color:var(--text2);min-width:130px;">ค่าห้องพัก</span>
           <input type="number" class="form-input" id="f-bdrp" value="${b?b.bdRoomPrice||0:0}" min="0" style="width:110px;" placeholder="0">
@@ -2806,7 +2806,7 @@ async function saveReservation(){
     createdAt:new Date().toISOString()
   };
 
-  // ตรวจ "เบรกดาวน์ค่าห้อง" ต้องกรอกและตรงกับยอดรวมจริงจากราคาห้อง ก่อนส่งไป server
+  // ตรวจ "เบรกดาวน์ค่าห้อง + อาหารเช้า" ต้องกรอกและตรงกับยอดรวมจริงจากราคาห้อง ก่อนส่งไป server
   // (เช็คซ้ำอีกทีฝั่ง server เป็นตัวจริง — เช็คตรงนี้แค่ให้ feedback ทันทีไม่ต้องรอ round-trip)
   if(obj.status!==S_CANCEL){
     const _n=nights(obj.checkIn,obj.checkOut);
@@ -2817,10 +2817,12 @@ async function saveReservation(){
         alert('❌ กรุณากรอก "เบรกดาวน์ค่าห้อง" ก่อนบันทึก (ห้ามเว้นว่างหรือเป็น 0)');
         return;
       }
-      const _declaredTotal=obj.bdRoomPrice*_paidRooms*_n;
+      // เบรกดาวน์อาหารเช้า (สูตรเดียวกับ calcBfTotal — ไม่คูณจำนวนคืน/ห้อง เป็นยอดรวมทั้ง booking)
+      const _bfTotal=(obj.bdBfPrice||0)*(obj.guestCount||0)+(obj.bdBfChildPrice||0)*(obj.childCount||0);
+      const _declaredTotal=(obj.bdRoomPrice*_paidRooms*_n)+_bfTotal;
       const _tolerance=Math.max(1,_paidRooms);
       if(Math.abs(_declaredTotal-_actualTotal)>_tolerance){
-        alert(`❌ เบรกดาวน์ค่าห้อง (${_declaredTotal.toLocaleString()} บาท) ไม่ตรงกับยอดรวมจริงจากราคาห้อง (${_actualTotal.toLocaleString()} บาท)\n\nกรุณาแก้ไขให้ตรงกันก่อนบันทึก`);
+        alert(`❌ เบรกดาวน์ค่าห้อง+อาหารเช้ารวมกัน (${_declaredTotal.toLocaleString()} บาท) ไม่ตรงกับยอดรวมค่าห้องจริง (${_actualTotal.toLocaleString()} บาท)\n\nกรุณาแก้ไขให้ตรงกันก่อนบันทึก`);
         return;
       }
     }
