@@ -2839,7 +2839,8 @@ async function saveReservation(){
         return;
       }
       // เบรกดาวน์อาหารเช้า (สูตรเดียวกับ calcBfTotal — ไม่คูณจำนวนคืน/ห้อง เป็นยอดรวมทั้ง booking)
-      const _bfTotal=(obj.bdBfPrice||0)*(obj.guestCount||0)+(obj.bdBfChildPrice||0)*(obj.childCount||0);
+      // เบรกดาวน์อาหารเช้า: guestCount/childCount เป็นจำนวนต่อ 1 ห้อง ต้องคูณด้วยจำนวนห้องที่จ่ายจริง (สูตรเดียวกับ preview calcBdBf)
+      const _bfTotal=((obj.bdBfPrice||0)*(obj.guestCount||0)+(obj.bdBfChildPrice||0)*(obj.childCount||0))*_paidRooms;
       const _declaredTotal=(obj.bdRoomPrice*_paidRooms*_n)+_bfTotal;
       const _tolerance=Math.max(1,_paidRooms);
       if(Math.abs(_declaredTotal-_actualTotal)>_tolerance){
