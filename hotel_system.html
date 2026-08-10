@@ -2452,6 +2452,7 @@ function openResModal(id){
   } else {
     formRates=[{price:0, count:1, rooms:''}];
   }
+  syncRateCountsFromRooms(); // แก้ไขชั่วคราว: sync count ให้ตรงกับห้องที่เลือกจริงทันทีที่เปิดฟอร์ม กันข้อมูลเก่าที่ค้างผิด
 
   const bfChecked=b&&b.includeBreakfast;
   const noBfChecked=b&&b.noBreakfast;
@@ -2661,6 +2662,25 @@ function syncRoomCount(){
     if(el) el.textContent=`ยังไม่ได้เลือกหมายเลขห้อง (จำนวน ${total} ห้อง จากช่องราคา)`;
   }
 }
+// แก้ไขชั่วคราว: sync count ของแต่ละแถวราคาให้ตรงกับจำนวนห้องที่เลือกจริงในตาราง (pickRooms) เสมอ
+// กันปัญหา roomRates[].count ค้างเป็นค่าเดิม (เช่น 1) ทั้งที่เลือกห้องจริงไว้หลายห้อง
+// — แถวที่ระบุ "รหัสห้อง" ไว้ชัดเจน นับจากจำนวนห้องที่ระบุจริง, แถว default (ไม่ระบุห้อง) รับห้องที่เหลือทั้งหมด
+function syncRateCountsFromRooms(){
+  if(!pickRooms.length || !formRates.length) return;
+  const explicitRows=formRates.filter(r=>r.rooms&&r.rooms.trim());
+  const explicitRoomNums=new Set();
+  explicitRows.forEach(r=>{
+    r.rooms.split(',').map(x=>x.trim()).filter(Boolean).forEach(rn=>explicitRoomNums.add(rn));
+    const listed=r.rooms.split(',').map(x=>x.trim()).filter(Boolean);
+    if(listed.length) r.count=listed.length;
+  });
+  const defaultRows=formRates.filter(r=>!r.rooms||!r.rooms.trim());
+  if(defaultRows.length){
+    const remaining=pickRooms.filter(rn=>!explicitRoomNums.has(String(rn))).length;
+    defaultRows[0].count=Math.max(1, remaining-(defaultRows.length-1));
+    for(let i=1;i<defaultRows.length;i++) defaultRows[i].count=defaultRows[i].count||1;
+  }
+}
 
 function onBfChange(){
   const on=document.getElementById('f-bf')?.checked;
@@ -2695,7 +2715,8 @@ function toggleRoom(rn){
       sel.textContent='ยังไม่ได้เลือกหมายเลขห้อง';
     }
   }
-  calcDisplay();
+  syncRateCountsFromRooms();
+  renderRateRows();
 }
 function calcBdBf(){
   const bfPr=parseFloat(document.getElementById('f-bdbfp')?.value)||0;
