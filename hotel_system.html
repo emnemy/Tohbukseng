@@ -2728,8 +2728,8 @@ function calcBdBf(){
   const el=document.getElementById('bd-bf-result');
   if(!el) return;
   const parts=[];
-  if(bfPr>0&&guests>0) parts.push(`${bfPr.toLocaleString()} × ${guests} ท่าน × ${paidRooms} ห้อง = ${(bfPr*guests*paidRooms).toLocaleString()} บาท`);
-  if(bfChildPr>0&&children>0) parts.push(`เด็ก ${bfChildPr.toLocaleString()} × ${children} ท่าน × ${paidRooms} ห้อง = ${(bfChildPr*children*paidRooms).toLocaleString()} บาท`);
+  if(bfPr>0&&guests>0) parts.push(`${bfPr.toLocaleString()} × ${guests} ท่าน × ${paidRooms} ห้อง × ${n} คืน = ${(bfPr*guests*paidRooms*n).toLocaleString()} บาท`);
+  if(bfChildPr>0&&children>0) parts.push(`เด็ก ${bfChildPr.toLocaleString()} × ${children} ท่าน × ${paidRooms} ห้อง × ${n} คืน = ${(bfChildPr*children*paidRooms*n).toLocaleString()} บาท`);
   el.textContent=parts.length?'= '+parts.join(' | '):'';
 }
 function calcDisplay(){
@@ -2840,7 +2840,8 @@ async function saveReservation(){
       }
       // เบรกดาวน์อาหารเช้า (สูตรเดียวกับ calcBfTotal — ไม่คูณจำนวนคืน/ห้อง เป็นยอดรวมทั้ง booking)
       // เบรกดาวน์อาหารเช้า: guestCount/childCount เป็นจำนวนต่อ 1 ห้อง ต้องคูณด้วยจำนวนห้องที่จ่ายจริง (สูตรเดียวกับ preview calcBdBf)
-      const _bfTotal=((obj.bdBfPrice||0)*(obj.guestCount||0)+(obj.bdBfChildPrice||0)*(obj.childCount||0))*_paidRooms;
+      // เบรกดาวน์อาหารเช้า: guestCount/childCount เป็นจำนวนต่อ 1 ห้อง/คืน ต้องคูณทั้งจำนวนห้องและจำนวนคืน
+      const _bfTotal=((obj.bdBfPrice||0)*(obj.guestCount||0)+(obj.bdBfChildPrice||0)*(obj.childCount||0))*_paidRooms*_n;
       const _declaredTotal=(obj.bdRoomPrice*_paidRooms*_n)+_bfTotal;
       const _tolerance=Math.max(1,_paidRooms);
       if(Math.abs(_declaredTotal-_actualTotal)>_tolerance){
