@@ -1228,7 +1228,24 @@ function _migrateBk(bk){
   if(typeof bk.roomRates==='string'){try{bk.roomRates=JSON.parse(bk.roomRates);}catch(e){bk.roomRates=[];}}
   if(typeof bk.history==='string'){try{bk.history=JSON.parse(bk.history);}catch(e){bk.history=[];}}
   if(bk.roomRates&&bk.roomRates.length){
-    bk.roomRates=bk.roomRates.map(r=>({...r,price:parseFloat(r.price)||0,count:parseInt(r.count)||0}));
+    // เบรกดาวน์ต่อแถว (roomPrice/bfPrice/bfChildPrice/guests/children) — เพิ่มใหม่เพื่อรองรับหลายราคาต่อ 1 booking
+    // booking เก่าที่ยังไม่มีค่าพวกนี้ในแต่ละแถว → ใช้ค่าเบรกดาวน์ระดับ booking (bdRoomPrice ฯลฯ) เป็นค่าเริ่มต้นทุกแถว
+    // (ถูกต้องสำหรับข้อมูลเก่า เพราะของเดิมบังคับให้ราคาทุกแถวใช้เบรกดาวน์ตัวเดียวกันอยู่แล้ว ผ่าน validateRoomBreakdown)
+    const _legacyRoomPr=parseFloat(bk.bdRoomPrice)||0;
+    const _legacyBfPr=parseFloat(bk.bdBfPrice)||0;
+    const _legacyBfChildPr=parseFloat(bk.bdBfChildPrice)||0;
+    const _legacyGuests=parseInt(bk.guestCount)||0;
+    const _legacyChildren=parseInt(bk.childCount)||0;
+    bk.roomRates=bk.roomRates.map(r=>({
+      ...r,
+      price:parseFloat(r.price)||0,
+      count:parseInt(r.count)||0,
+      roomPrice:r.roomPrice!==undefined?(parseFloat(r.roomPrice)||0):_legacyRoomPr,
+      bfPrice:r.bfPrice!==undefined?(parseFloat(r.bfPrice)||0):_legacyBfPr,
+      bfChildPrice:r.bfChildPrice!==undefined?(parseFloat(r.bfChildPrice)||0):_legacyBfChildPr,
+      guests:r.guests!==undefined?(parseInt(r.guests)||0):_legacyGuests,
+      children:r.children!==undefined?(parseInt(r.children)||0):_legacyChildren,
+    }));
   }
   return bk;
 }
@@ -1720,16 +1737,28 @@ function calcRoomAmt(b){
   }
   return (b.roomPrice||0)*n*numRooms(b);
 }
+// อาหารเช้าต่อห้อง/คืน จากแถวราคาแถวเดียว (ไม่คูณจำนวนห้อง/คืน)
+function bfAmtForRow(r){
+  return (parseFloat(r.bfPrice)||0)*(parseInt(r.guests)||0)+(parseFloat(r.bfChildPrice)||0)*(parseInt(r.children)||0);
+}
 function calcBfAmt(b){
   if(!b.includeBreakfast) return 0;
   const n=nights(b.checkIn,b.checkOut);
-  const paidRooms=paidRoomCount(b);
-  const bdBfPr=parseFloat(b.bdBfPrice)||0;
-  const bdBfChildPr=parseFloat(b.bdBfChildPrice)||0;
-  const gCount=parseInt(b.guestCount)||0;
-  const cCount=parseInt(b.childCount)||0;
-  const bdTotal=(bdBfPr*gCount+bdBfChildPr*cCount)*paidRooms*n;
-  if(bdTotal>0) return bdTotal;
+  if(b.roomRates&&b.roomRates.length){
+    const bdTotal=b.roomRates.reduce((s,r)=>{
+      if((parseFloat(r.price)||0)<=0) return s; // ห้อง Comp. ไม่คิดอาหารเช้าเป็นเงิน (คงพฤติกรรมเดิม)
+      return s+bfAmtForRow(r)*(parseInt(r.count)||1)*n;
+    },0);
+    if(bdTotal>0) return bdTotal;
+  } else {
+    const bdBfPr=parseFloat(b.bdBfPrice)||0;
+    const bdBfChildPr=parseFloat(b.bdBfChildPrice)||0;
+    const gCount=parseInt(b.guestCount)||0;
+    const cCount=parseInt(b.childCount)||0;
+    const paidRooms=paidRoomCount(b);
+    const bdTotal=(bdBfPr*gCount+bdBfChildPr*cCount)*paidRooms*n;
+    if(bdTotal>0) return bdTotal;
+  }
 
   const nr=numRooms(b);
   const perRoom=parseInt(b.breakfastPerRoom)||0;
@@ -1776,6 +1805,58 @@ function roomRateCostForRoom(b, rn, n){
 function isCompForRoom(b, rn){
   return (parseFloat(getRateForRoom(b,rn).price)||0)===0;
 }
+// ── เบรกดาวน์ราคาต่อห้อง (ใช้ในรายงานที่วนรายห้อง เช่น Guest In House / Departure / Arrival) ──
+// ค่าห้องเบรกดาวน์ของห้องนี้ (บาท/ห้อง/คืน) — fallback เป็นราคารวมจริงถ้ายังไม่กรอกเบรกดาวน์
+function bdRoomPriceForRoom(b, rn){
+  const r=getRateForRoom(b,rn);
+  const rp=parseFloat(r.roomPrice)||0;
+  if(rp>0) return rp;
+  return parseFloat(r.price)||0;
+}
+// จำนวนผู้พัก/เด็ก ของห้องนี้ (สำหรับคิดอาหารเช้า)
+function guestCellTextForRoom(b, rn){
+  const r=getRateForRoom(b,rn);
+  const gCount=parseInt(r.guests)||0, cCount=parseInt(r.children)||0;
+  let txt=gCount>0?gCount+' ท่าน':'';
+  if(cCount>0) txt+=(txt?' / เด็ก ':' เด็ก ')+cCount+' ท่าน';
+  return txt||'-';
+}
+function guestCellHtmlForRoom(b, rn){
+  const r=getRateForRoom(b,rn);
+  const gCount=parseInt(r.guests)||0, cCount=parseInt(r.children)||0;
+  if(!gCount&&!cCount) return '-';
+  let html=gCount>0?gCount+' ท่าน':'';
+  if(cCount>0) html+=(html?'<br>':'')+'<small style="color:var(--text2);">เด็ก '+cCount+' ท่าน</small>';
+  return html||'-';
+}
+// ค่าอาหารเช้ารวม (ผู้ใหญ่+เด็ก) ของห้องนี้ ต่อคืน — ตัวเลขดิบ (ใช้บวกยอดรวมในรายงาน)
+function bfAmtForRoomActual(b, rn){
+  if(!b.includeBreakfast||isCompForRoom(b,rn)) return 0;
+  return bfAmtForRow(getRateForRoom(b,rn));
+}
+// ค่าอาหารเช้ารวม (ผู้ใหญ่+เด็ก) ของห้องนี้ ต่อคืน — ใช้แสดงในรายงานรายห้อง
+function bfCellTextForRoom(b, rn, isComp){
+  if(isComp) return 'Comp.';
+  if(!b.includeBreakfast) return '-';
+  const r=getRateForRoom(b,rn);
+  const adultTotal=(parseFloat(r.bfPrice)||0)*(parseInt(r.guests)||0);
+  const childTotal=(parseFloat(r.bfChildPrice)||0)*(parseInt(r.children)||0);
+  if(adultTotal<=0&&childTotal<=0) return '-';
+  let txt=adultTotal>0?adultTotal.toLocaleString():'';
+  if(childTotal>0) txt+=(txt?' / เด็ก ':' เด็ก ')+childTotal.toLocaleString();
+  return txt||'-';
+}
+function bfCellHtmlForRoom(b, rn, isComp){
+  if(isComp) return '<span style="color:var(--gold);">Comp.</span>';
+  if(!b.includeBreakfast) return '-';
+  const r=getRateForRoom(b,rn);
+  const adultTotal=(parseFloat(r.bfPrice)||0)*(parseInt(r.guests)||0);
+  const childTotal=(parseFloat(r.bfChildPrice)||0)*(parseInt(r.children)||0);
+  if(adultTotal<=0&&childTotal<=0) return '-';
+  let html=adultTotal>0?adultTotal.toLocaleString():'';
+  if(childTotal>0) html+=(html?'<br>':'')+'<small style="color:var(--text2);">เด็ก '+childTotal.toLocaleString()+'</small>';
+  return html||'-';
+}
 // compat: เดิมใช้ idx ไว้ใช้กับ Room Chart ที่ยังไม่มีหมายเลขห้อง
 function roomRateCostForIdx(b, roomIdx, n){
   if(b.roomRates&&b.roomRates.length){
@@ -1799,56 +1880,57 @@ function isCompRoom(b, roomIdx){
   return (parseFloat(b.roomPrice)||0)===0;
 }
 function displayPrice(val){ return val===0?'Comp.':val.toLocaleString(); }
-// คำนวณค่า BF รวม (ผู้ใหญ่ + เด็ก) ต่อห้อง
+// รวมจำนวนผู้พัก/เด็กที่ทานอาหารเช้าทั้ง booking (รวมทุกแถวราคา × จำนวนห้องของแถวนั้น) — ใช้ในตารางที่แสดง 1 แถว/booking
+function _bkGuestTotals(b){
+  if(b.roomRates&&b.roomRates.length){
+    return b.roomRates.reduce((s,r)=>{
+      const c=parseInt(r.count)||1;
+      s.g+=(parseInt(r.guests)||0)*c;
+      s.c+=(parseInt(r.children)||0)*c;
+      return s;
+    },{g:0,c:0});
+  }
+  return {g:parseInt(b.guestCount)||0, c:parseInt(b.childCount)||0};
+}
+// รวมค่า BF (ผู้ใหญ่+เด็ก) ทั้ง booking — ใช้ในตารางที่แสดง 1 แถว/booking
 function calcBfTotal(b){
+  if(b.roomRates&&b.roomRates.length){
+    return b.roomRates.reduce((s,r)=>{
+      if((parseFloat(r.price)||0)<=0) return s; // Comp. ไม่คิดอาหารเช้าเป็นเงิน
+      return s+bfAmtForRow(r)*(parseInt(r.count)||1);
+    },0);
+  }
   const bdBfPr=b.bdBfPrice||0;
   const bdBfChildPr=b.bdBfChildPrice||0;
   const gCount=parseInt(b.guestCount)||0;
   const cCount=parseInt(b.childCount)||0;
   return (bdBfPr*gCount)+(bdBfChildPr*cCount);
 }
-// แสดง BF cell: ผู้ใหญ่ + เด็ก แยกบรรทัด
+// แสดง BF cell: ผู้ใหญ่ + เด็ก แยกบรรทัด (รวมทั้ง booking — ใช้ isComp เมื่อทุกห้อง Comp.)
 function bfCellHtml(b, comp, isComp){
   if(isComp) return '<span style="color:var(--gold);">Comp.</span>';
   if(!b.includeBreakfast) return '-';
-  const bdBfPr=b.bdBfPrice||0;
-  const bdBfChildPr=b.bdBfChildPrice||0;
-  const gCount=parseInt(b.guestCount)||0;
-  const cCount=parseInt(b.childCount)||0;
-  const adultTotal=bdBfPr*gCount;
-  const childTotal=bdBfChildPr*cCount;
-  if(adultTotal<=0&&childTotal<=0) return '-';
-  let html=adultTotal>0?adultTotal.toLocaleString():'';
-  if(childTotal>0) html+=(html?'<br>':'')+'<small style="color:var(--text2);">เด็ก '+childTotal.toLocaleString()+'</small>';
-  return html||'-';
+  const total=calcBfTotal(b);
+  if(total<=0) return '-';
+  return total.toLocaleString();
 }
 // แสดง BF cell (text สำหรับพิมพ์)
 function bfCellText(b, isComp){
   if(isComp) return 'Comp.';
   if(!b.includeBreakfast) return '-';
-  const bdBfPr=b.bdBfPrice||0;
-  const bdBfChildPr=b.bdBfChildPrice||0;
-  const gCount=parseInt(b.guestCount)||0;
-  const cCount=parseInt(b.childCount)||0;
-  const adultTotal=bdBfPr*gCount;
-  const childTotal=bdBfChildPr*cCount;
-  if(adultTotal<=0&&childTotal<=0) return '-';
-  let txt=adultTotal>0?adultTotal.toLocaleString():'';
-  if(childTotal>0) txt+=(txt?' / เด็ก ':' เด็ก ')+childTotal.toLocaleString();
-  return txt||'-';
+  const total=calcBfTotal(b);
+  return total>0?total.toLocaleString():'-';
 }
-// แสดง guest count cell
+// แสดง guest count cell (รวมทั้ง booking)
 function guestCellHtml(b){
-  const gCount=parseInt(b.guestCount)||0;
-  const cCount=parseInt(b.childCount)||0;
+  const {g:gCount,c:cCount}=_bkGuestTotals(b);
   if(!gCount&&!cCount) return '-';
   let html=gCount>0?gCount+' ท่าน':'';
   if(cCount>0) html+=(html?'<br>':'')+'<small style="color:var(--text2);">เด็ก '+cCount+' ท่าน</small>';
   return html||'-';
 }
 function guestCellText(b){
-  const gCount=parseInt(b.guestCount)||0;
-  const cCount=parseInt(b.childCount)||0;
+  const {g:gCount,c:cCount}=_bkGuestTotals(b);
   let txt=gCount>0?gCount+' ท่าน':'';
   if(cCount>0) txt+=(txt?' / เด็ก ':' เด็ก ')+cCount+' ท่าน';
   return txt||'-';
@@ -1910,13 +1992,17 @@ function calcMonthlyStats(year, month){
           else{ paidRms+=c; }
         });
     }
-    // ใช้ bdRoomPrice (เบรกดาวน์ราคาห้อง) × paidRms แทน roomRates
-    const bdRoomPr=parseFloat(b.bdRoomPrice)||0;
-    roomPerNight=bdRoomPr*paidRms;
-    // BF per night — bdBfPrice × guestCount × paidRms (ห้องที่ไม่ใช่ Comp.)
-    if(b.includeBreakfast&&paidRms>0){
-      bfPerNight=calcBfTotal(b)*paidRms;
-    }
+    // ใช้เบรกดาวน์ "ต่อแถวราคา" (roomPrice/bfPrice ของแต่ละแถว) แทนค่าเดียวทั้ง booking
+    // รองรับกรณี 1 booking มีหลายราคา/หลายห้องพักไม่เท่ากัน
+    const _rates=(b.roomRates&&b.roomRates.length)?b.roomRates
+      :[{price:b.roomPrice||0,count:b.roomCount||1,roomPrice:b.bdRoomPrice||0,bfPrice:b.bdBfPrice||0,bfChildPrice:b.bdBfChildPrice||0,guests:b.guestCount||0,children:b.childCount||0}];
+    _rates.forEach(r=>{
+      const p=parseFloat(r.price)||0, c=Math.max(0,parseInt(r.count)||0);
+      if(p<=0) return; // ห้อง Comp. ไม่คิดรายได้
+      const rp=(parseFloat(r.roomPrice)||0)>0?parseFloat(r.roomPrice):p; // ยังไม่กรอกเบรกดาวน์ → ใช้ราคารวมแทน
+      roomPerNight+=rp*c;
+      if(b.includeBreakfast) bfPerNight+=bfAmtForRow(r)*c;
+    });
     roomRevenue+=roomPerNight*realNights;
     bfRevenue+=bfPerNight*realNights;
     roomNights+=paidRms*realNights;
@@ -2445,12 +2531,22 @@ function openResModal(id){
   const coVal=b?b.checkOut:tStr;
 
   // Initialise formRates from existing booking or default 1 row
+  // (roomPrice/bfPrice/bfChildPrice/guests/children = เบรกดาวน์ต่อแถว, fallback ไปที่ค่าเบรกดาวน์เดิมระดับ booking ถ้าแถวยังไม่มี)
   if(b&&b.roomRates&&b.roomRates.length){
-    formRates=b.roomRates.map(r=>({price:r.price,count:r.count,rooms:r.rooms||''}));
+    formRates=b.roomRates.map(r=>({
+      price:r.price, count:r.count, rooms:r.rooms||'',
+      roomPrice:r.roomPrice!==undefined?r.roomPrice:(b.bdRoomPrice||0),
+      bfPrice:r.bfPrice!==undefined?r.bfPrice:(b.bdBfPrice||0),
+      bfChildPrice:r.bfChildPrice!==undefined?r.bfChildPrice:(b.bdBfChildPrice||0),
+      guests:r.guests!==undefined?r.guests:(b.guestCount||1),
+      children:r.children!==undefined?r.children:(b.childCount||0),
+    }));
   } else if(b){
-    formRates=[{price:b.roomPrice||0, count:numRooms(b), rooms:''}];
+    formRates=[{price:b.roomPrice||0, count:numRooms(b), rooms:'',
+      roomPrice:b.bdRoomPrice||0, bfPrice:b.bdBfPrice||0, bfChildPrice:b.bdBfChildPrice||0,
+      guests:b.guestCount||1, children:b.childCount||0}];
   } else {
-    formRates=[{price:0, count:1, rooms:''}];
+    formRates=[{price:0, count:1, rooms:'', roomPrice:0, bfPrice:0, bfChildPrice:0, guests:1, children:0}];
   }
   syncRateCountsFromRooms(); // แก้ไขชั่วคราว: sync count ให้ตรงกับห้องที่เลือกจริงทันทีที่เปิดฟอร์ม กันข้อมูลเก่าที่ค้างผิด
 
@@ -2525,41 +2621,8 @@ function openResModal(id){
         <span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1.5"/><rect x="9" y="2" width="6" height="3" rx="1"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> จำนวนห้องจะดึงจากช่องราคาด้านล่าง — สามารถกำหนดหมายเลขห้องได้ตอนเช็คอิน
       </div>
 
-      <div class="section-title" style="margin-top:14px;">ราคาห้องพัก (บาท)/ห้อง/คืน</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">ราคานี้ใช้คำนวณยอดรวมทั้งหมด — สามารถเพิ่มแถวได้หากมีหลายประเภทห้อง</div>
-      <div id="rate-rows"></div>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="addRateRow()" style="margin-top:6px;margin-bottom:10px;">+ เพิ่มแถวราคา</button>
-
-      <!-- Price Breakdown (Info Only) -->
-      <div style="background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;">
-        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (บังคับกรอก — ค่าห้อง+อาหารเช้ารวมกันต้องตรงกับยอดรวมค่าห้อง — ต่อ 1 ห้อง)</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;">
-          <span style="font-size:12px;color:var(--text2);min-width:130px;">ค่าห้องพัก</span>
-          <input type="number" class="form-input" id="f-bdrp" value="${b?b.bdRoomPrice||0:0}" min="0" style="width:110px;" placeholder="0">
-          <span style="font-size:12px;color:var(--text2);">บาท/ห้อง/คืน</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;">
-          <span style="font-size:12px;color:var(--text2);min-width:130px;">ค่าอาหารเช้า</span>
-          <input type="number" class="form-input" id="f-bdbfp" value="${b?b.bdBfPrice||0:0}" min="0" style="width:110px;" oninput="calcBdBf()" placeholder="0">
-          <span style="font-size:12px;color:var(--text2);">บาท/ท่าน/คืน</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-          <span style="font-size:12px;color:var(--text2);min-width:130px;">ค่าอาหารเช้า (เด็ก)</span>
-          <input type="number" class="form-input" id="f-bdbfchild" value="${b?b.bdBfChildPrice||0:0}" min="0" style="width:110px;" oninput="calcBdBf()" placeholder="0">
-          <span style="font-size:12px;color:var(--text2);">บาท/ท่าน/คืน</span>
-        </div>
-        <div id="bd-bf-result" style="font-size:12px;color:var(--text2);padding-left:138px;min-height:16px;"></div>
-      </div>
-
-      <div class="section-title" style="margin-top:4px;">ผู้เข้าพัก & อาหารเช้า</div>
+      <div class="section-title" style="margin-top:4px;">อาหารเช้า</div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;">
-        <span style="font-size:13px;color:var(--text2);">จำนวนผู้พัก</span>
-        <input type="number" class="form-input" id="f-guests" value="${b?b.guestCount||1:1}" min="1" style="width:72px;" oninput="calcBdBf()">
-        <span style="font-size:13px;color:var(--text2);">ท่าน</span>
-        <span style="font-size:13px;color:var(--text2);margin-left:8px;">เด็ก</span>
-        <input type="number" class="form-input" id="f-childcount" value="${b?b.childCount||0:0}" min="0" style="width:72px;" oninput="calcBdBf()">
-        <span style="font-size:13px;color:var(--text2);">ท่าน</span>
-        <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
         <label class="form-check">
           <input type="checkbox" id="f-bf" ${bfChecked?'checked':''} onchange="onBfChange()"> รวมอาหารเช้า
         </label>
@@ -2567,6 +2630,11 @@ function openResModal(id){
           <input type="checkbox" id="f-nobf" ${noBfChecked?'checked':''} onchange="onNoBfChange()"> ไม่รวมอาหารเช้า
         </label>
       </div>
+
+      <div class="section-title" style="margin-top:14px;">ราคาห้องพัก (บาท)/ห้อง/คืน</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">ราคารวมใช้คำนวณยอดรวมทั้งหมด — เบรกดาวน์ (ค่าห้อง/อาหารเช้า/จำนวนผู้พัก) กรอกแยกต่อแถว รองรับหลายราคาใน 1 การจอง</div>
+      <div id="rate-rows"></div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="addRateRow()" style="margin-top:6px;margin-bottom:10px;">+ เพิ่มแถวราคา</button>
 
       <label class="form-check" style="margin:10px 0 4px;">
         <input type="checkbox" id="f-extra" ${b&&b.extraBed?'checked':''}> เตียงเสริม
@@ -2612,30 +2680,69 @@ function renderRateRows(){
   formRates.forEach((r,i)=>{
     const isComp=(parseFloat(r.price)||0)===0;
     const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap;';
+    row.style.cssText='margin-bottom:10px;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(200,168,74,.03);';
     row.innerHTML=`
-      <span style="font-size:12px;color:var(--text2);white-space:nowrap;">ราคา/คืน/ห้อง</span>
-      <input type="number" class="form-input" style="width:100px;" value="${r.price}" min="0"
-        oninput="formRates[${i}].price=parseFloat(this.value)||0;updateRateComp(${i},this)">\n      ${isComp?`<span id="comp-badge-${i}" style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`
-               :`<span id="comp-badge-${i}" style="display:none;font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`}
-      ${isComp?`<span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`
-               :`<span style="font-size:12px;color:var(--text2);">บาท &nbsp;×</span>`}
-      <input type="number" class="form-input" style="width:58px;" value="${r.count}" min="1"
-        oninput="formRates[${i}].count=parseInt(this.value)||1;syncRoomCount();calcDisplay()">
-      <span style="font-size:12px;color:var(--text2);">ห้อง</span>
-      <input type="text" class="form-input" style="width:130px;font-size:12px;" value="${r.rooms||''}"
-        placeholder="ระบุห้อง เช่น 301,302" title="กำหนดหมายเลขห้องสำหรับแถวนี้"
-        oninput="formRates[${i}].rooms=this.value">
-      ${formRates.length>1?`<button type="button" class="btn btn-xs btn-danger" onclick="removeRateRow(${i})">✕</button>`:''}`;
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <span style="font-size:12px;color:var(--text2);white-space:nowrap;">ราคารวม/คืน/ห้อง</span>
+        <input type="number" class="form-input" style="width:100px;" value="${r.price}" min="0"
+          oninput="formRates[${i}].price=parseFloat(this.value)||0;updateRateComp(${i},this)">
+        ${isComp?`<span id="comp-badge-${i}" style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`
+                 :`<span id="comp-badge-${i}" style="display:none;font-size:11px;font-weight:700;color:var(--gold);background:rgba(200,168,74,.15);padding:2px 8px;border-radius:4px;">Comp.</span>`}
+        ${isComp?'':`<span style="font-size:12px;color:var(--text2);">บาท &nbsp;×</span>`}
+        <input type="number" class="form-input" style="width:58px;" value="${r.count}" min="1"
+          oninput="formRates[${i}].count=parseInt(this.value)||1;syncRoomCount();calcDisplay()">
+        <span style="font-size:12px;color:var(--text2);">ห้อง</span>
+        <input type="text" class="form-input" style="width:130px;font-size:12px;" value="${r.rooms||''}"
+          placeholder="ระบุห้อง เช่น 301,302" title="กำหนดหมายเลขห้องสำหรับแถวนี้"
+          oninput="formRates[${i}].rooms=this.value">
+        ${formRates.length>1?`<button type="button" class="btn btn-xs btn-danger" onclick="removeRateRow(${i})">✕</button>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12px;color:var(--text2);padding-top:8px;border-top:1px dashed var(--border);">
+        <span style="white-space:nowrap;">เบรกดาวน์ (ต่อห้อง)</span>
+        <span>ค่าห้อง</span>
+        <input type="number" class="form-input" id="f-rp-${i}" style="width:76px;" value="${r.roomPrice||0}" min="0" oninput="calcRowBd(${i})">
+        <span>+ อาหารเช้า</span>
+        <input type="number" class="form-input" id="f-bfp-${i}" style="width:64px;" value="${r.bfPrice||0}" min="0" oninput="calcRowBd(${i})">
+        <span>×</span>
+        <input type="number" class="form-input" id="f-g-${i}" style="width:46px;" value="${r.guests!==undefined?r.guests:1}" min="0" oninput="calcRowBd(${i})">
+        <span>ท่าน</span>
+        <span>+ เด็ก</span>
+        <input type="number" class="form-input" id="f-bfcp-${i}" style="width:64px;" value="${r.bfChildPrice||0}" min="0" oninput="calcRowBd(${i})">
+        <span>×</span>
+        <input type="number" class="form-input" id="f-c-${i}" style="width:46px;" value="${r.children||0}" min="0" oninput="calcRowBd(${i})">
+        <span>ท่าน</span>
+        <span id="bd-result-${i}" style="flex-basis:100%;margin-top:3px;"></span>
+      </div>`;
     wrap.appendChild(row);
   });
   syncRoomCount();
   calcDisplay();
+  formRates.forEach((r,i)=>calcRowBd(i));
   // ตั้งค่า room mode หลัง render (ใช้ _pendingRoomMode ที่ set ใน openResModal)
   if(_pendingRoomMode){ toggleRoomMode(_pendingRoomMode); _pendingRoomMode=null; }
 }
+// คำนวณ+ตรวจเบรกดาวน์ของแถวราคาที่ i (ค่าห้อง + อาหารเช้า ต้องรวมได้เท่ากับราคารวมของแถวนั้น)
+function calcRowBd(i){
+  const r=formRates[i]; if(!r) return;
+  r.roomPrice=parseFloat(document.getElementById('f-rp-'+i)?.value)||0;
+  r.bfPrice=parseFloat(document.getElementById('f-bfp-'+i)?.value)||0;
+  r.bfChildPrice=parseFloat(document.getElementById('f-bfcp-'+i)?.value)||0;
+  r.guests=parseInt(document.getElementById('f-g-'+i)?.value)||0;
+  r.children=parseInt(document.getElementById('f-c-'+i)?.value)||0;
+  const el=document.getElementById('bd-result-'+i);
+  if(!el) return;
+  const price=parseFloat(r.price)||0;
+  if(price<=0){ el.innerHTML=''; return; } // Comp. ไม่ต้องเช็ค
+  const declared=r.roomPrice+(r.bfPrice*r.guests)+(r.bfChildPrice*r.children);
+  const diff=Math.abs(declared-price);
+  if(diff<0.5){
+    el.innerHTML=`<span style="color:var(--green);">✓ รวม ${declared.toLocaleString()} บาท ตรงกับราคารวม</span>`;
+  } else {
+    el.innerHTML=`<span style="color:var(--orange);">⚠ รวม ${declared.toLocaleString()} บาท — ราคารวมของแถวนี้คือ ${price.toLocaleString()} บาท (ต่าง ${diff.toLocaleString()} บาท)</span>`;
+  }
+}
 function addRateRow(){
-  formRates.push({price:0,count:1,rooms:''});
+  formRates.push({price:0,count:1,rooms:'',roomPrice:0,bfPrice:0,bfChildPrice:0,guests:1,children:0});
   renderRateRows();
 }
 function removeRateRow(i){
@@ -2718,20 +2825,6 @@ function toggleRoom(rn){
   syncRateCountsFromRooms();
   renderRateRows();
 }
-function calcBdBf(){
-  const bfPr=parseFloat(document.getElementById('f-bdbfp')?.value)||0;
-  const bfChildPr=parseFloat(document.getElementById('f-bdbfchild')?.value)||0;
-  const guests=parseInt(document.getElementById('f-guests')?.value)||0;
-  const children=parseInt(document.getElementById('f-childcount')?.value)||0;
-  const ci=gv('f-ci'), co=gv('f-co2'), n=nights(ci,co);
-  const paidRooms=formRates.reduce((s,r)=>(parseFloat(r.price)||0)>0?s+(parseInt(r.count)||1):s,0)||1;
-  const el=document.getElementById('bd-bf-result');
-  if(!el) return;
-  const parts=[];
-  if(bfPr>0&&guests>0) parts.push(`${bfPr.toLocaleString()} × ${guests} ท่าน × ${paidRooms} ห้อง × ${n} คืน = ${(bfPr*guests*paidRooms*n).toLocaleString()} บาท`);
-  if(bfChildPr>0&&children>0) parts.push(`เด็ก ${bfChildPr.toLocaleString()} × ${children} ท่าน × ${paidRooms} ห้อง × ${n} คืน = ${(bfChildPr*children*paidRooms*n).toLocaleString()} บาท`);
-  el.textContent=parts.length?'= '+parts.join(' | '):'';
-}
 function calcDisplay(){
   const ci=gv('f-ci'), co=gv('f-co2'), n=nights(ci,co);
   const pbRoomRows=document.getElementById('pb-room-rows');
@@ -2747,7 +2840,6 @@ function calcDisplay(){
   if(pbRoomRows) pbRoomRows.innerHTML=roomRowsHtml;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('pb-total', rTotal.toLocaleString()+' บาท');
-  calcBdBf();
 }
 
 async function saveReservation(){
@@ -2800,19 +2892,27 @@ async function saveReservation(){
     }
     _hideLoading();
   }
+  const _roomRates=formRates.map(r=>({
+    price:parseFloat(r.price)||0, count:parseInt(r.count)||1, rooms:r.rooms||'',
+    roomPrice:parseFloat(r.roomPrice)||0, bfPrice:parseFloat(r.bfPrice)||0, bfChildPrice:parseFloat(r.bfChildPrice)||0,
+    guests:parseInt(r.guests)||0, children:parseInt(r.children)||0,
+  }));
+  // เบรกดาวน์ระดับ booking (bdRoomPrice ฯลฯ) เก็บไว้เพื่อความเข้ากันได้ย้อนหลังเท่านั้น — ค่าจริงอยู่ที่ roomRates แต่ละแถว
+  const _firstPaidRow=_roomRates.find(r=>r.price>0)||_roomRates[0]||{};
+  const _guestTotals=_roomRates.reduce((s,r)=>{s.g+=r.guests*r.count;s.c+=r.children*r.count;return s;},{g:0,c:0});
   const obj={
     id:editingId||_newBookingId,
     status:S_RES,
     rooms:[...pickRooms].sort((a,x)=>a-x),
     roomCount:pickRooms.length||totalRm,
-    roomRates:formRates.map(r=>({price:parseFloat(r.price)||0,count:parseInt(r.count)||1,rooms:r.rooms||''})),
+    roomRates:_roomRates,
     roomPrice:formRates.length===1?parseFloat(formRates[0].price)||0:0,
     guestType:guestType,
-    guestCount:parseInt(gv('f-guests'))||1,
-    childCount:parseInt(gv('f-childcount'))||0,
-    bdRoomPrice:parseFloat(gv('f-bdrp'))||0,
-    bdBfPrice:parseFloat(gv('f-bdbfp'))||0,
-    bdBfChildPrice:parseFloat(gv('f-bdbfchild'))||0,
+    guestCount:_guestTotals.g||1,
+    childCount:_guestTotals.c||0,
+    bdRoomPrice:_firstPaidRow.roomPrice||0,
+    bdBfPrice:_firstPaidRow.bfPrice||0,
+    bdBfChildPrice:_firstPaidRow.bfChildPrice||0,
     guestName:name, nationality:gv('f-nat'),
     company:gv('f-co'), phone:gv('f-tel'),
     taxId:gv('f-taxid'), address:gv('f-addr'),
@@ -2827,25 +2927,25 @@ async function saveReservation(){
     createdAt:new Date().toISOString()
   };
 
-  // ตรวจ "เบรกดาวน์ค่าห้อง + อาหารเช้า" ต้องกรอกและตรงกับยอดรวมจริงจากราคาห้อง ก่อนส่งไป server
+  // ตรวจ "เบรกดาวน์ค่าห้อง + อาหารเช้า" ของแต่ละแถวราคา ต้องกรอกและตรงกับราคารวมของแถวนั้นๆ ก่อนส่งไป server
   // (เช็คซ้ำอีกทีฝั่ง server เป็นตัวจริง — เช็คตรงนี้แค่ให้ feedback ทันทีไม่ต้องรอ round-trip)
   if(obj.status!==S_CANCEL){
     const _n=nights(obj.checkIn,obj.checkOut);
     if(_n>0){
-      const _paidRooms=obj.roomRates.reduce((s,r)=>r.price>0?s+(r.count||1):s,0);
-      const _actualTotal=obj.roomRates.reduce((s,r)=>s+r.price*(r.count||1),0)*_n;
-      if(obj.bdRoomPrice<=0){
-        alert('❌ กรุณากรอก "เบรกดาวน์ค่าห้อง" ก่อนบันทึก (ห้ามเว้นว่างหรือเป็น 0)');
-        return;
-      }
-      // เบรกดาวน์อาหารเช้า (สูตรเดียวกับ calcBfTotal — ไม่คูณจำนวนคืน/ห้อง เป็นยอดรวมทั้ง booking)
-      // เบรกดาวน์อาหารเช้า: guestCount/childCount เป็นจำนวนต่อ 1 ห้อง ต้องคูณด้วยจำนวนห้องที่จ่ายจริง (สูตรเดียวกับ preview calcBdBf)
-      // เบรกดาวน์อาหารเช้า: guestCount/childCount เป็นจำนวนต่อ 1 ห้อง/คืน ต้องคูณทั้งจำนวนห้องและจำนวนคืน
-      const _bfTotal=((obj.bdBfPrice||0)*(obj.guestCount||0)+(obj.bdBfChildPrice||0)*(obj.childCount||0))*_paidRooms*_n;
-      const _declaredTotal=(obj.bdRoomPrice*_paidRooms*_n)+_bfTotal;
-      const _tolerance=Math.max(1,_paidRooms);
-      if(Math.abs(_declaredTotal-_actualTotal)>_tolerance){
-        alert(`❌ เบรกดาวน์ค่าห้อง+อาหารเช้ารวมกัน (${_declaredTotal.toLocaleString()} บาท) ไม่ตรงกับยอดรวมค่าห้องจริง (${_actualTotal.toLocaleString()} บาท)\n\nกรุณาแก้ไขให้ตรงกันก่อนบันทึก`);
+      const _rowErrors=[];
+      obj.roomRates.forEach((r,i)=>{
+        if(r.price<=0) return; // ห้อง Comp. ไม่ต้องเช็คเบรกดาวน์
+        if(r.roomPrice<=0){
+          _rowErrors.push(`แถวราคาที่ ${i+1} — กรุณากรอก "เบรกดาวน์ค่าห้อง" ก่อนบันทึก (ห้ามเว้นว่างหรือเป็น 0)`);
+          return;
+        }
+        const _declared=r.roomPrice+(r.bfPrice*r.guests)+(r.bfChildPrice*r.children);
+        if(Math.abs(_declared-r.price)>0.5){
+          _rowErrors.push(`แถวราคาที่ ${i+1} — เบรกดาวน์รวม ${_declared.toLocaleString()} บาท ไม่ตรงกับราคารวม ${r.price.toLocaleString()} บาท`);
+        }
+      });
+      if(_rowErrors.length){
+        alert('❌ กรุณาแก้ไขเบรกดาวน์ราคาก่อนบันทึก\n\n'+_rowErrors.join('\n'));
         return;
       }
     }
@@ -2959,7 +3059,7 @@ async function viewBooking(id){
         <div><div class="form-label">วันเข้าพัก</div>${fmtDate(b.checkIn)}</div>
         <div><div class="form-label">วันออก</div>${fmtDate(b.checkOut)}</div>
         <div><div class="form-label">จำนวนคืน</div><span style="font-size:18px;font-weight:700;color:var(--gold);">${n} คืน</span></div>
-        <div><div class="form-label">จำนวนผู้พัก</div><strong>${b.guestCount||'-'} ท่าน${b.childCount>0?' + เด็ก '+b.childCount+' ท่าน':''}</strong></div>
+        <div><div class="form-label">จำนวนผู้พัก</div>${(()=>{const {g,c}=_bkGuestTotals(b);return `<strong>${g||'-'} ท่าน${c>0?' + เด็ก '+c+' ท่าน':''}</strong>`;})()}</div>
         <div><div class="form-label">ราคาห้องพัก (คำนวณ)</div>
           ${(b.roomRates&&b.roomRates.length?b.roomRates:([{price:b.roomPrice||0,count:numRooms(b)}]))
             .map(r=>`${(r.price||0).toLocaleString()} บาท × ${r.count} ห้อง`).join('<br>')}</div>
@@ -2971,12 +3071,14 @@ async function viewBooking(id){
       </div>
       <div style="background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-top:10px;">
         <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (อ้างอิง — ต่อ 1 ห้อง)</div>
-        <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px;">
-          <div><span style="color:var(--text2);">ค่าห้องพัก:</span> <strong>${(b.bdRoomPrice||0).toLocaleString()}</strong> บาท/ห้อง/คืน</div>
-          <div><span style="color:var(--text2);">ค่าอาหารเช้า:</span> <strong>${(b.bdBfPrice||0).toLocaleString()}</strong> บาท/ท่าน/คืน
-            ${b.bdBfChildPrice>0?`<br><span style="color:var(--text2);font-size:12px;">เด็ก: <strong>${b.bdBfChildPrice.toLocaleString()}</strong> บาท/ท่าน/คืน × ${b.childCount||0} ท่าน</span>`:''}
-          </div>
-        </div>
+        ${(b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:numRooms(b),roomPrice:b.bdRoomPrice||0,bfPrice:b.bdBfPrice||0,bfChildPrice:b.bdBfChildPrice||0,guests:b.guestCount||0,children:b.childCount||0}])
+          .map((r,ri)=>`<div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px;${ri>0?'margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);':''}">
+            ${r.rooms?`<div style="color:var(--text2);min-width:100%;font-size:12px;">ห้อง ${esc(r.rooms)}</div>`:(b.roomRates&&b.roomRates.length>1?`<div style="color:var(--text2);min-width:100%;font-size:12px;">แถวราคา ${(r.price||0).toLocaleString()} บาท × ${r.count} ห้อง</div>`:'')}
+            <div><span style="color:var(--text2);">ค่าห้องพัก:</span> <strong>${(r.roomPrice||0).toLocaleString()}</strong> บาท/ห้อง/คืน</div>
+            <div><span style="color:var(--text2);">ค่าอาหารเช้า:</span> <strong>${(r.bfPrice||0).toLocaleString()}</strong> บาท/ท่าน/คืน${r.guests?` × ${r.guests} ท่าน`:''}
+              ${r.bfChildPrice>0?`<br><span style="color:var(--text2);font-size:12px;">เด็ก: <strong>${r.bfChildPrice.toLocaleString()}</strong> บาท/ท่าน/คืน × ${r.children||0} ท่าน</span>`:''}
+            </div>
+          </div>`).join('')}
       </div>
       <div class="price-box" style="margin-top:10px;">
         ${(b.roomRates&&b.roomRates.length?b.roomRates:([{price:b.roomPrice||0,count:numRooms(b)}]))
@@ -3190,8 +3292,9 @@ function renderGuests(){
   bks.forEach(b=>{if(!seen.has(b.id))seen.add(b.id);});
   rows.forEach(({rnStr,b,roomIdx})=>{
     if(b.includeBreakfast){
-      totalBfP+=(parseInt(b.guestCount)||0);
-      totalBfChild+=(parseInt(b.childCount)||0);
+      const _r=getRateForRoom(b,rnStr);
+      totalBfP+=(parseInt(_r.guests)||0);
+      totalBfChild+=(parseInt(_r.children)||0);
     }
     if(!isCompForRoom(b,rnStr)) grandRoom+=roomRateCostForRoom(b,rnStr,1);
   });
@@ -3210,13 +3313,10 @@ function renderGuests(){
     const n=nights(b.checkIn,b.checkOut);
     const pricePerNight=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
-    const bdRoomPr=b.bdRoomPrice||0;
-    const bdBfPr=b.bdBfPrice||0;
-    const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=bfCellHtml(b, comp, comp);
-    const displayBdRoom=bdRoomPr>0?bdRoomPr:pricePerNight;
+    const displayBdRoom=bdRoomPriceForRoom(b,rnStr);
+    const bfTotal=bfCellHtmlForRoom(b,rnStr,comp);
     sumBdRoom+=comp?0:displayBdRoom;
-    sumBdBf+=(!comp&&b.includeBreakfast)?calcBfTotal(b):0;
+    sumBdBf+=bfAmtForRoomActual(b,rnStr);
     sumRoomTotal+=comp?0:pricePerNight;
     html+=`<tr>
       <td><strong style="font-size:15px;color:var(--gold);">${rnStr}</strong></td>
@@ -3228,7 +3328,7 @@ function renderGuests(){
         ${fmtDate(b.checkOut)}${b.checkOut===d?'&nbsp;<span class="txt-ico"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></span>':''}
       </td>
       <td style="text-align:center;">${n}</td>
-      <td style="text-align:center;">${guestCellHtml(b)}</td>
+      <td style="text-align:center;">${guestCellHtmlForRoom(b,rnStr)}</td>
       <td style="text-align:right;">${comp?'<span style="color:var(--gold);">Comp.</span>':displayBdRoom.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;color:var(--gold);font-weight:600;">${comp?'<span style="color:var(--text2);">Comp.</span>':pricePerNight.toLocaleString()}</td>
@@ -3537,12 +3637,13 @@ function printDepartureList(){
   rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
-    const gCount=parseInt(b.guestCount)||0;
-    const bdBfPr=b.bdBfPrice||0;
-    const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast){ totalBfP+=gCount; totalBfChild+=(parseInt(b.childCount)||0); }
-    sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
-    if(!comp&&b.includeBreakfast) sumBdBf+=calcBfTotal(b);
+    const displayBdRoom=bdRoomPriceForRoom(b,rnStr);
+    if(b.includeBreakfast){
+      const _r=getRateForRoom(b,rnStr);
+      totalBfP+=(parseInt(_r.guests)||0); totalBfChild+=(parseInt(_r.children)||0);
+    }
+    sumBdRoom+=comp?0:displayBdRoom;
+    sumBdBf+=bfAmtForRoomActual(b,rnStr);
     sumRoomTotal+=comp?0:rCost;
     seen.add(b.id);
   });
@@ -3552,17 +3653,15 @@ function printDepartureList(){
     const n=nights(b.checkIn,b.checkOut);
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
-    const bdRoomPr=b.bdRoomPrice||0;
-    const bdBfPr=b.bdBfPrice||0;
-    const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=bfCellText(b,comp);
+    const displayBdRoom=bdRoomPriceForRoom(b,rnStr);
+    const bfTotal=bfCellTextForRoom(b,rnStr,comp);
     const statusTxt=b.status===S_CO?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> เช็คเอาท์แล้ว':'<span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="6" y1="3" x2="18" y2="3"/><line x1="6" y1="21" x2="18" y2="21"/><path d="M8 3c0 5 3.5 6 4 9-.5 3-4 4-4 9M16 3c0 5-3.5 6-4 9 .5 3 4 4 4 9"/></svg></span> รอเช็คเอาท์';
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${esc(b.guestName)}</td><td>${esc(b.nationality||'-')}</td><td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${guestCellText(b)}</td>
-      <td style="text-align:right;">${comp?'Comp.':(bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString())}</td>
+      <td>${guestCellTextForRoom(b,rnStr)}</td>
+      <td style="text-align:right;">${comp?'Comp.':displayBdRoom.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
       <td>${payText(b.payment)}</td>
@@ -3777,12 +3876,13 @@ function printDailySummary(){
   rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
-    const gCount=parseInt(b.guestCount)||0;
-    const cCount=parseInt(b.childCount)||0;
-    const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast){ totalBfP+=gCount; totalBfChild+=cCount; }
-    sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
-    if(!comp&&b.includeBreakfast) sumBdBf+=calcBfTotal(b);
+    const displayBdRoom=bdRoomPriceForRoom(b,rnStr);
+    if(b.includeBreakfast){
+      const _r=getRateForRoom(b,rnStr);
+      totalBfP+=(parseInt(_r.guests)||0); totalBfChild+=(parseInt(_r.children)||0);
+    }
+    sumBdRoom+=comp?0:displayBdRoom;
+    sumBdBf+=bfAmtForRoomActual(b,rnStr);
     sumRoomPerNight+=comp?0:rCost;
   });
 
@@ -3791,16 +3891,14 @@ function printDailySummary(){
     const n=nights(b.checkIn,b.checkOut);
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
-    const bdRoomPr=b.bdRoomPrice||0;
-    const bdBfPr=b.bdBfPrice||0;
-    const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=bfCellText(b,comp);
+    const displayBdRoom=bdRoomPriceForRoom(b,rnStr);
+    const bfTotal=bfCellTextForRoom(b,rnStr,comp);
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${esc(b.guestName)}</td><td>${esc(b.nationality||'-')}</td><td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${guestCellText(b)}</td>
-      <td style="text-align:right;">${comp?'Comp.':bdRoomPr>0?bdRoomPr.toLocaleString():rCost.toLocaleString()}</td>
+      <td>${guestCellTextForRoom(b,rnStr)}</td>
+      <td style="text-align:right;">${comp?'Comp.':displayBdRoom.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
       <td>${payText(b.payment)}</td></tr>`;
@@ -3844,12 +3942,13 @@ function printArrival(){
   rows.forEach(({rnStr,b,roomIdx})=>{
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
-    const gCount=parseInt(b.guestCount)||0;
-    const bdBfPr=b.bdBfPrice||0;
-    const bdRoomPr=b.bdRoomPrice||0;
-    if(b.includeBreakfast){ totalBfP+=gCount; totalBfChild+=(parseInt(b.childCount)||0); }
-    sumBdRoom+=comp?0:(bdRoomPr>0?bdRoomPr:rCost);
-    if(!comp&&b.includeBreakfast) sumBdBf+=calcBfTotal(b);
+    const displayBdRoom=bdRoomPriceForRoom(b,rnStr);
+    if(b.includeBreakfast){
+      const _r=getRateForRoom(b,rnStr);
+      totalBfP+=(parseInt(_r.guests)||0); totalBfChild+=(parseInt(_r.children)||0);
+    }
+    sumBdRoom+=comp?0:displayBdRoom;
+    sumBdBf+=bfAmtForRoomActual(b,rnStr);
     sumRoomTotal+=comp?0:rCost;
   });
 
@@ -3858,16 +3957,13 @@ function printArrival(){
     const n=nights(b.checkIn,b.checkOut);
     const rCost=roomRateCostForRoom(b,rnStr,1);
     const comp=isCompForRoom(b,rnStr);
-    const bdRoomPr=b.bdRoomPrice||0;
-    const bdBfPr=b.bdBfPrice||0;
-    const gCount=parseInt(b.guestCount)||0;
-    const bfTotal=bfCellText(b,comp);
-    const displayBdRoom=bdRoomPr>0?bdRoomPr:(comp?0:rCost);
+    const displayBdRoom=comp?0:bdRoomPriceForRoom(b,rnStr);
+    const bfTotal=bfCellTextForRoom(b,rnStr,comp);
     trs+=`<tr>
       <td><strong>${rnStr}</strong></td>
       <td>${esc(b.guestName)}</td><td>${esc(b.nationality||'-')}</td><td>${esc(b.company||'-')}</td>
       <td>${fmtDate(b.checkIn)}</td><td>${fmtDate(b.checkOut)}</td><td>${n}</td>
-      <td>${guestCellText(b)}</td>
+      <td>${guestCellTextForRoom(b,rnStr)}</td>
       <td style="text-align:right;">${comp?'Comp.':displayBdRoom.toLocaleString()}</td>
       <td style="text-align:right;">${bfTotal}</td>
       <td style="text-align:right;"><strong>${comp?'Comp.':rCost.toLocaleString()}</strong></td>
@@ -4356,11 +4452,6 @@ function printBookingAll(id){
   const n=nights(b.checkIn,b.checkOut);
   const rT=calcRoomAmt(b);
   const nRooms=numRooms(b);
-  const bdRoomPr=b.bdRoomPrice||0;
-  const bdBfPr=b.bdBfPrice||0;
-  const bdBfChildPr=b.bdBfChildPrice||0;
-  const gCount=parseInt(b.guestCount)||0;
-  const cCount=parseInt(b.childCount)||0;
   // นับห้องที่ราคา > 0 โดยอิงจากหมายเลขห้องจริง (ถ้ามี) หรือ rate rows
   let paidRooms=0, compRooms=0;
   if(b.rooms&&b.rooms.length){
@@ -4376,12 +4467,11 @@ function printBookingAll(id){
     paidRooms=(parseFloat(b.roomPrice)||0)>0?nRooms:0;
     compRooms=nRooms-paidRooms;
   }
-  const totalBfPersons=gCount*paidRooms;
-  const totalBfChildPersons=cCount*paidRooms;
-  const bdRoomTotal=bdRoomPr*paidRooms;
-  const bdBfTotal=bdBfPr*totalBfPersons;
-  const bdBfChildTotal=bdBfChildPr*totalBfChildPersons;
-  const guestStr=gCount>0?gCount+' ท่าน/ห้อง'+(cCount>0?' + เด็ก '+cCount+' ท่าน/ห้อง':''):'-';
+  const {g:gCount,c:cCount}=_bkGuestTotals(b);
+  const guestStr=gCount>0?gCount+' ท่าน'+(cCount>0?' + เด็ก '+cCount+' ท่าน':''):'-';
+  // เบรกดาวน์ต่อแถว สำหรับแสดงผล
+  const bdRows=(b.roomRates&&b.roomRates.length?b.roomRates:[{price:b.roomPrice||0,count:nRooms,roomPrice:b.bdRoomPrice||0,bfPrice:b.bdBfPrice||0,bfChildPrice:b.bdBfChildPrice||0,guests:b.guestCount||0,children:b.childCount||0}]);
+  const hasAnyBd=bdRows.some(r=>(r.roomPrice||0)>0||(r.bfPrice||0)>0||(r.bfChildPrice||0)>0);
 
   openPrint(`
     <h2 style="text-align:center;margin-bottom:4px;">ข้อมูลการจองห้องพัก</h2>
@@ -4424,26 +4514,32 @@ function printBookingAll(id){
       <div style="font-size:20px;font-weight:700;">รวม ${rT.toLocaleString()} บาท</div>
     </div>
 
-    ${(bdRoomPr>0||bdBfPr>0||bdBfChildPr>0)?`
+    ${hasAnyBd?`
     <div style="border:1px solid #ddd;border-radius:8px;padding:12px 16px;background:#f9f9f9;margin-top:4px;">
       <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
         <span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (สำหรับอ้างอิงเท่านั้น)
       </div>
-      ${bdRoomPr>0&&paidRooms>0?`
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-        <span style="color:#555;">ค่าห้องพัก ${bdRoomPr.toLocaleString()} บาท/คืน × ${paidRooms} ห้อง${compRooms>0?` (ไม่รวม Comp. ${compRooms} ห้อง)`:''}</span>
-        <strong>= ${bdRoomTotal.toLocaleString()} บาท</strong>
-      </div>`:''}
-      ${bdBfPr>0&&b.includeBreakfast&&paidRooms>0?`
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
-        <span style="color:#555;">ค่าอาหารเช้า ${bdBfPr.toLocaleString()} บาท × ${totalBfPersons} ท่าน (${gCount} ท่าน × ${paidRooms} ห้อง${compRooms>0?`, ไม่รวม Comp. ${compRooms} ห้อง`:''})</span>
-        <strong>= ${bdBfTotal.toLocaleString()} บาท</strong>
-      </div>`:''}
-      ${bdBfChildPr>0&&cCount>0&&b.includeBreakfast&&paidRooms>0?`
-      <div style="display:flex;justify-content:space-between;font-size:13px;">
-        <span style="color:#555;">ค่าอาหารเช้า (เด็ก) ${bdBfChildPr.toLocaleString()} บาท × ${totalBfChildPersons} ท่าน (${cCount} ท่าน × ${paidRooms} ห้อง)</span>
-        <strong>= ${bdBfChildTotal.toLocaleString()} บาท</strong>
-      </div>`:''}
+      ${bdRows.map((r,ri)=>{
+        const rp=parseFloat(r.roomPrice)||0, bfp=parseFloat(r.bfPrice)||0, bfcp=parseFloat(r.bfChildPrice)||0;
+        const c=Math.max(0,parseInt(r.count)||0), rGuests=parseInt(r.guests)||0, rChildren=parseInt(r.children)||0;
+        if((parseFloat(r.price)||0)<=0) return ''; // Comp. ไม่มีเบรกดาวน์
+        const label=r.rooms?`ห้อง ${esc(r.rooms)}`:(bdRows.length>1?`แถวราคา ${(r.price||0).toLocaleString()} × ${c} ห้อง`:'');
+        return `<div style="${ri>0?'margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;':''}">
+          ${label?`<div style="font-size:11px;color:#888;margin-bottom:4px;">${label}</div>`:''}
+          ${rp>0?`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span style="color:#555;">ค่าห้องพัก ${rp.toLocaleString()} บาท/คืน × ${c} ห้อง</span>
+            <strong>= ${(rp*c*n).toLocaleString()} บาท</strong>
+          </div>`:''}
+          ${bfp>0&&b.includeBreakfast?`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span style="color:#555;">ค่าอาหารเช้า ${bfp.toLocaleString()} บาท × ${rGuests} ท่าน × ${c} ห้อง × ${n} คืน</span>
+            <strong>= ${(bfp*rGuests*c*n).toLocaleString()} บาท</strong>
+          </div>`:''}
+          ${bfcp>0&&rChildren>0&&b.includeBreakfast?`<div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:#555;">ค่าอาหารเช้า (เด็ก) ${bfcp.toLocaleString()} บาท × ${rChildren} ท่าน × ${c} ห้อง × ${n} คืน</span>
+            <strong>= ${(bfcp*rChildren*c*n).toLocaleString()} บาท</strong>
+          </div>`:''}
+        </div>`;
+      }).join('')}
     </div>`:''}
 
     ${(()=>{
@@ -4491,20 +4587,12 @@ function printBookingByRoom(id){
   if(!b||!b.rooms||!b.rooms.length){alert('ไม่มีหมายเลขห้องพัก');return;}
   const sorted=[...b.rooms].sort((a,x)=>parseInt(a)-parseInt(x));
   const n=nights(b.checkIn,b.checkOut);
-  const bT=calcBfAmt(b);
   let sections='';
   sorted.forEach((rn,idx)=>{
-    // Find which rate row this room belongs to
-    const rCost=(()=>{
-      if(b.roomRates&&b.roomRates.length){
-        let rem=idx+1,cumRooms=0;
-        for(const r of b.roomRates){
-          cumRooms+=r.count;
-          if(idx<cumRooms) return (r.price||0)*n;
-        }
-      }
-      return (b.roomPrice||0)*n;
-    })();
+    const rCost=roomRateCostForRoom(b,rn,n);
+    const comp=isCompForRoom(b,rn);
+    // อาหารเช้าคิดต่อห้องตามเบรกดาวน์ของห้องนั้นๆ เอง (× จำนวนคืน) ไม่ผูกกับห้องแรกอีกต่อไป
+    const bT=bfAmtForRoomActual(b,rn)*n;
     sections+=`
       <div style="border:2px solid #ccc;border-radius:8px;padding:18px;margin-bottom:18px;${idx>0?'page-break-before:always;':''}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
@@ -4526,18 +4614,18 @@ function printBookingByRoom(id){
           <tr><td style="padding:4px;color:#666;">วันออก</td><td style="padding:4px;font-weight:600;">${fmtDate(b.checkOut)}</td></tr>
           <tr><td style="padding:4px;color:#666;">จำนวนคืน</td><td style="padding:4px;">${n} คืน</td></tr>
           <tr><td style="padding:4px;color:#666;">อาหารเช้า</td><td style="padding:4px;">${b.includeBreakfast
-            ?guestCellText(b)
+            ?guestCellTextForRoom(b,rn)
             :(b.noBreakfast?'ไม่รวมอาหารเช้า':'-')}</td></tr>
           <tr><td style="padding:4px;color:#666;">การชำระเงิน</td><td style="padding:4px;">${payText(b.payment)}</td></tr>
         </table>
         <hr style="border:1px solid #eee;margin:8px 0;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="font-size:12px;color:#888;">
-            <div>ราคาห้อง: ${rCost.toLocaleString()} บาท</div>
-            ${idx===0&&bT>0?`<div>อาหารเช้า: ${bT.toLocaleString()} บาท</div>`:''}
+            <div>ราคาห้อง: ${comp?'Comp.':rCost.toLocaleString()+' บาท'}</div>
+            ${bT>0?`<div>อาหารเช้า: ${bT.toLocaleString()} บาท</div>`:''}
           </div>
           <div style="font-size:18px;font-weight:700;">
-            ${idx===0?(rCost+bT).toLocaleString():rCost.toLocaleString()} บาท
+            ${(rCost+bT).toLocaleString()} บาท
           </div>
         </div>
       </div>`;
