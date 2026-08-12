@@ -1164,7 +1164,11 @@ window.addEventListener('online', ()=>{
 });
 
 /* ── API helper (direct — ไม่ผ่าน queue) ── */
-async function _gasCallDirect(action, body, params){
+const _GAS_PARSE_RETRY_MAX = 2;      // ลองใหม่สูงสุด 2 ครั้ง (รวมครั้งแรกทั้งหมด 3 ครั้ง)
+const _GAS_PARSE_RETRY_DELAY_MS = 1200; // หน่วงก่อนลองใหม่แต่ละครั้ง
+
+async function _gasCallDirect(action, body, params, _retryCount){
+  _retryCount = _retryCount || 0;
   let url=`${GAS_URL}?action=${action}&key=${GAS_KEY}&token=${encodeURIComponent(SESSION_TOKEN||'')}`;
   if(params) Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
   const opts=body
@@ -1184,7 +1188,20 @@ async function _gasCallDirect(action, body, params){
   clearTimeout(tid);
   const text=await res.text();
   let data;
-  try{data=JSON.parse(text);}catch(e){throw new Error('Parse error: '+text.slice(0,200));}
+  try{
+    data=JSON.parse(text);
+  }catch(e){
+    // Parse ไม่ผ่าน = ได้ response ที่ไม่ใช่ JSON กลับมา (เช่น หน้า HTML error ของ Google เอง แทนที่จะเป็นผลลัพธ์จาก Code.gs)
+    // Code.gs ทุก action ตอบกลับผ่าน jsonOut() เสมอ (รวมถึง error ที่ throw ในนั้นก็ถูกจับแล้วห่อเป็น JSON ก่อนตอบ)
+    // ดังนั้นถ้าได้ HTML กลับมาแทน แปลว่า request ยังไปไม่ถึงโค้ดใน Code.gs เลย (ถูก infra ของ Apps Script บล็อกไว้ก่อน
+    // เช่น ชน concurrent execution limit) — โค้ดฝั่ง server ยังไม่ได้ทำงาน จึง retry ซ้ำได้อย่างปลอดภัย ไม่เสี่ยงบันทึกซ้ำ
+    if(_retryCount < _GAS_PARSE_RETRY_MAX){
+      console.warn(`[GAS] Parse error on ${action} — retry ${_retryCount+1}/${_GAS_PARSE_RETRY_MAX} in ${_GAS_PARSE_RETRY_DELAY_MS}ms`);
+      await new Promise(r=>setTimeout(r, _GAS_PARSE_RETRY_DELAY_MS));
+      return _gasCallDirect(action, body, params, _retryCount+1);
+    }
+    throw new Error('Parse error: '+text.slice(0,200));
+  }
   // verifyLogin: คืน response ดิบ ให้ caller จัดการ error เอง (เพื่อส่ง attemptsLeft, locked ได้)
   if(action==='verifyLogin') return data;
   if(data&&data.error) throw new Error(data.message || data.error);
@@ -3032,8 +3049,14 @@ async function viewBooking(id){
   const b=ST.bookings.find(x=>x.id===id);
   if(!b) return;
   // lazy load charges ก่อนแสดง modal
-  try{ await _loadCharges(id); }
-  catch(e){ console.warn('[viewBooking] charges load failed:',e.message); }
+  let _chargesLoadFailed=false;
+  try{
+    await _loadCharges(id);
+  }catch(e){
+    _chargesLoadFailed=true;
+    alert('⚠️ โหลดรายการ Extra Charges ไม่สำเร็จ\n'+e.message+
+      '\n\nยอดรวมที่แสดงด้านล่างอาจไม่รวมค่าใช้จ่ายเพิ่มเติม — กรุณาอย่าใช้ยอดนี้เช็คเอาท์จนกว่าจะลองโหลดใหม่แล้วสำเร็จ');
+  }
   const n=nights(b.checkIn,b.checkOut);
   const rT=calcRoomAmt(b), bT=calcBfAmt(b);
   showModal(`
@@ -3084,6 +3107,9 @@ async function viewBooking(id){
             </div>
           </div>`).join('')}
       </div>
+      ${_chargesLoadFailed?`<div style="background:rgba(223,88,88,.1);border:1px solid rgba(223,88,88,.28);border-radius:var(--radius);padding:9px 13px;margin-top:10px;color:var(--red);font-size:12.5px;font-weight:600;">
+        ⚠️ โหลด Extra Charges ไม่สำเร็จ — ยอด "รวมทั้งสิ้น" ด้านล่างอาจไม่ครบ อย่าใช้เช็คเอาท์จนกว่าจะลองใหม่แล้วสำเร็จ
+      </div>`:''}
       <div class="price-box" style="margin-top:10px;">
         ${(b.roomRates&&b.roomRates.length?b.roomRates:([{price:b.roomPrice||0,count:numRooms(b)}]))
           .map(r=>`<div class="pb-row"><span>ราคาห้อง (${(r.price||0).toLocaleString()} × ${r.count} ห้อง × ${n} คืน)</span><span>${((r.price||0)*(r.count||1)*n).toLocaleString()} บาท</span></div>`).join('')}
@@ -4018,8 +4044,14 @@ async function printGuestFolio(id){
     return;
   }
   // lazy load charges ก่อน render
-  try{ await _loadCharges(id); }
-  catch(e){ console.warn('[printGuestFolio] charges load failed:',e.message); }
+  try{
+    await _loadCharges(id);
+  }catch(e){
+    _hideLoading();
+    alert('❌ โหลดรายการ Extra Charges ไม่สำเร็จ\n'+e.message+
+      '\n\nยกเลิกการพิมพ์ Guest Folio ไว้ก่อน เพราะยอดที่จะแสดงอาจไม่ครบ (ขาดค่าใช้จ่ายเพิ่มเติม)\nกรุณาลองใหม่อีกครั้ง');
+    return;
+  }
   _hideLoading();
 
   // paid rooms count
@@ -4941,8 +4973,14 @@ async function printGroupFolio(groupId){
   if(!bookings.length){ alert('ไม่พบการจองในกรุ๊ป: ' + groupId); return; }
   // lazy load charges ของทุก booking ในกลุ่มพร้อมกัน
   _showLoading('กำลังโหลดข้อมูล Group Folio...');
-  try{ await _loadChargesMulti(bookings.map(b=>b.id)); }
-  catch(e){ console.warn('[printGroupFolio] charges load failed:',e.message); }
+  try{
+    await _loadChargesMulti(bookings.map(b=>b.id));
+  }catch(e){
+    _hideLoading();
+    alert('❌ โหลดรายการ Extra Charges ไม่สำเร็จ\n'+e.message+
+      '\n\nยกเลิกการพิมพ์ Group Folio ไว้ก่อน เพราะยอดที่จะแสดงอาจไม่ครบ (ขาดค่าใช้จ่ายเพิ่มเติม)\nกรุณาลองใหม่อีกครั้ง');
+    return;
+  }
   _hideLoading();
 
   const first = bookings[0];
@@ -5781,29 +5819,22 @@ async function doChangePassword(){
 if(!ST.charges) ST.charges={};
 
 // ── Lazy charge loader — ดึงเฉพาะ booking ที่ต้องการ แล้ว cache ไว้ใน ST.charges ──
+// หมายเหตุ: ถ้าโหลดไม่สำเร็จ จะ "throw" ขึ้นไปให้ caller จัดการ (ต้องแจ้งเตือนที่เห็นได้จริง ไม่ log เงียบๆ)
+// และจะไม่ cache [] ทับไว้ — ปล่อยเป็น undefined เพื่อให้ลองโหลดใหม่ได้ในครั้งถัดไป แทนที่จะจำผิดๆ ว่า "ไม่มีค่าใช้จ่ายเพิ่มเติม" ตลอดไป
 async function _loadCharges(bookingId){
-  if(ST.charges[bookingId] !== undefined) return; // มีใน cache แล้ว (รวม [] ด้วย)
-  try{
-    const res=await _gasCall('getCharges',null,{bookingId});
-    ST.charges[bookingId]=Array.isArray(res)?res:[];
-  }catch(e){
-    console.warn('[Charges] load failed for',bookingId,e.message);
-    ST.charges[bookingId]=[]; // ใส่ค่าว่างเพื่อไม่ให้ fetch ซ้ำ
-  }
+  if(ST.charges[bookingId] !== undefined) return; // มีใน cache แล้ว (รวม [] ที่โหลดสำเร็จจริงด้วย)
+  const res=await _gasCall('getCharges',null,{bookingId});
+  ST.charges[bookingId]=Array.isArray(res)?res:[];
 }
 
 // โหลด charges หลาย bookingId พร้อมกัน (สำหรับ group folio) — ดึงทีเดียว 1 request แทนยิงพร้อมกันทีละตัว
+// หมายเหตุ: ถ้าโหลดไม่สำเร็จ จะ throw ขึ้นไปให้ caller จัดการ ไม่ cache [] ทับ (เหตุผลเดียวกับ _loadCharges)
 async function _loadChargesMulti(bookingIds){
   const needed=bookingIds.filter(id=>ST.charges[id]===undefined);
   if(!needed.length) return;
-  try{
-    const res = await _gasCall('getChargesForBookings', {bookingIds: needed});
-    const grouped = (res && res.charges) ? res.charges : {};
-    needed.forEach(id => { ST.charges[id] = Array.isArray(grouped[id]) ? grouped[id] : []; });
-  }catch(e){
-    console.warn('[ChargesMulti] load failed:', e.message);
-    needed.forEach(id => { if(ST.charges[id] === undefined) ST.charges[id] = []; });
-  }
+  const res = await _gasCall('getChargesForBookings', {bookingIds: needed});
+  const grouped = (res && res.charges) ? res.charges : {};
+  needed.forEach(id => { ST.charges[id] = Array.isArray(grouped[id]) ? grouped[id] : []; });
 }
 
 // โหลด charges สำหรับ Dashboard — ดึงทั้งเดือนในทีเดียว (1 request) แทนการยิงทีละ booking พร้อมกันหลายสิบตัว
@@ -5847,8 +5878,15 @@ async function openEcModal(bookingId){
   if(!b) return;
   // lazy load charges ถ้ายังไม่มีใน cache
   _showLoading('กำลังโหลด Extra Charges...');
-  try{ await _loadCharges(bookingId); }
-  catch(e){ console.warn('[openEcModal] charges load failed:',e.message); }
+  try{
+    await _loadCharges(bookingId);
+  }catch(e){
+    _hideLoading();
+    _ecBookingId=null;
+    alert('❌ โหลดรายการ Extra Charges เดิมไม่สำเร็จ\n'+e.message+
+      '\n\nไม่เปิดหน้าแก้ไขให้ เพราะถ้าบันทึกทับตอนนี้ รายการเดิมของแขกอาจหายไปทั้งหมด\nกรุณาลองใหม่อีกครั้ง');
+    return;
+  }
   _hideLoading();
   document.getElementById('ec-guest-name').textContent=
     b.guestName+' | ห้อง '+(b.rooms||[]).join(', ');
