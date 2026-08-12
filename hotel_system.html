@@ -64,6 +64,8 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 /* FORM */
 .form-group{margin-bottom:13px;}
 .form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;}
+.vb-info-grid{font-size:12.5px;color:var(--text);}
+.vb-info-grid .form-label{font-size:13px;color:var(--text2);margin-bottom:4px;}
 .form-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
   padding:8px 12px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
 .form-input:focus{border-color:var(--gold);}
@@ -3038,17 +3040,17 @@ async function viewBooking(id){
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="fg2" style="gap:9px 13px;">
-        <div><div class="form-label">สถานะ</div>${statusBadge(b.status)}</div>
+      <div class="fg2 vb-info-grid" style="gap:9px 13px;">
+        <div style="grid-column:1 / -1;"><div class="form-label">สถานะ</div>${statusBadge(b.status)}</div>
+        <div><div class="form-label">รหัสการจอง</div><div>${b.id}</div></div>
         <div><div class="form-label">ประเภทการจอง</div>${guestTypeLabel(b.guestType)}</div>
-        <div><div class="form-label">รหัสการจอง</div><div class="text-sm text-muted">${b.id}</div></div>
-        <div><div class="form-label">ชื่อผู้เข้าพัก</div><div style="font-size:15px;font-weight:700;">${esc(b.guestName)}</div></div>
+        <div><div class="form-label">ชื่อผู้เข้าพัก</div><div style="font-weight:700;">${esc(b.guestName)}</div></div>
         <div><div class="form-label">สัญชาติ</div>${esc(b.nationality||'-')}</div>
         <div><div class="form-label">บริษัท/หน่วยงาน</div>${esc(b.company||'-')}</div>
         <div><div class="form-label">เบอร์โทร</div>${esc(b.phone||'-')}</div>
         <div><div class="form-label">ห้องพัก</div>
-          <div style="font-size:15px;font-weight:700;color:var(--gold);">${roomsDisplay(b)}</div>
-          ${b.rooms&&b.rooms.length?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">
+          <div style="font-weight:700;color:var(--gold);">${roomsDisplay(b)}</div>
+          ${b.rooms&&b.rooms.length?`<div style="font-size:11px;color:var(--text2);margin-top:4px;">
             ${[...new Set(b.rooms.map(r=>roomTypeFull(r)))].map(t=>{
               const cnt=b.rooms.filter(r=>roomTypeFull(r)===t).length;
               return `${t}${cnt>1?' ('+cnt+' ห้อง)':''}`;
@@ -3058,16 +3060,16 @@ async function viewBooking(id){
         <div><div class="form-label">จำนวนห้อง</div>${numRooms(b)} ห้อง</div>
         <div><div class="form-label">วันเข้าพัก</div>${fmtDate(b.checkIn)}</div>
         <div><div class="form-label">วันออก</div>${fmtDate(b.checkOut)}</div>
-        <div><div class="form-label">จำนวนคืน</div><span style="font-size:18px;font-weight:700;color:var(--gold);">${n} คืน</span></div>
+        <div><div class="form-label">จำนวนคืน</div><span style="font-weight:700;color:var(--gold);">${n} คืน</span></div>
         <div><div class="form-label">จำนวนผู้พัก</div>${(()=>{const {g,c}=_bkGuestTotals(b);return `<strong>${g||'-'} ท่าน${c>0?' + เด็ก '+c+' ท่าน':''}</strong>`;})()}</div>
-        <div><div class="form-label">ราคาห้องพัก (คำนวณ)</div>
-          ${(b.roomRates&&b.roomRates.length?b.roomRates:([{price:b.roomPrice||0,count:numRooms(b)}]))
-            .map(r=>`${(r.price||0).toLocaleString()} บาท × ${r.count} ห้อง`).join('<br>')}</div>
         <div><div class="form-label">อาหารเช้า</div>${b.includeBreakfast
           ?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> รวมอาหารเช้า'
           :(b.noBreakfast?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg></span> ไม่รวมอาหารเช้า':'-')}</div>
         <div><div class="form-label">เตียงเสริม</div>${b.extraBed?'<span class="txt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/></svg></span> มี':'-'}</div>
         <div><div class="form-label">การชำระเงิน</div>${payLabel(b.payment)}</div>
+        <div><div class="form-label">ราคาห้องพัก (คำนวณ)</div>
+          ${(b.roomRates&&b.roomRates.length?b.roomRates:([{price:b.roomPrice||0,count:numRooms(b)}]))
+            .map(r=>`${(r.price||0).toLocaleString()} บาท × ${r.count} ห้อง`).join('<br>')}</div>
       </div>
       <div style="background:rgba(200,168,74,.04);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-top:10px;">
         <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;"><span class="txt-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="20" x2="21" y2="20"/><rect x="5" y="12" width="3.2" height="8"/><rect x="10.4" y="7" width="3.2" height="13"/><rect x="15.8" y="14.5" width="3.2" height="5.5"/></svg></span> เบรกดาวน์ราคา (อ้างอิง — ต่อ 1 ห้อง)</div>
