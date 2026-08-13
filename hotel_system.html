@@ -2127,8 +2127,9 @@ async function renderDashboard(){
   renderDashMonthly();
   // Revenue Phase 2 — โหลด charges ก่อน render (lazy load)
   updateRevLabel();
+  _dashLoadWarning = null;
   try{ await _loadDashboardCharges(_revYear, _revMonth); }
-  catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
+  catch(e){ _dashLoadWarning = 'โหลด Extra Charges เดือนนี้ไม่สำเร็จ ('+e.message+')'; }
   await renderRevSummary(_revYear, _revMonth);
   let vac=0,res=0,occ=0;
   ALL_ROOMS.forEach(r=>{
@@ -5251,6 +5252,7 @@ async function printGroupFolio(groupId){
 ════════════════════════════════════════ */
 let _revYear  = new Date().getFullYear();
 let _revMonth = new Date().getMonth(); // 0-indexed
+let _dashLoadWarning = null; // ข้อความเตือนถ้าโหลดข้อมูลสำหรับ Dashboard ไม่สำเร็จ (แสดงเป็นแบนเนอร์ใน rev-summary)
 
 const EC_CATS = {
   food:'<span class="txt-ico"><svg viewBox="0 0 24 24"><ellipse cx="6" cy="5.5" rx="3" ry="4"/><line x1="6" y1="9.5" x2="6" y2="22"/><path d="M15 2v6M17 2v6M19 2v6"/><path d="M15 8a2 2 0 0 0 4 0"/><line x1="17" y1="8" x2="17" y2="22"/></svg></span> อาหาร-เครื่องดื่ม',
@@ -5326,6 +5328,7 @@ async function calcMonthRevenue(year, month){
       }
     }catch(e){
       console.warn('[Dashboard] ดึงรายได้ค่าห้องย้อนหลังจาก server ไม่สำเร็จ:', e.message);
+      days._loadFailed = true; // ให้ renderRevSummary แสดงแบนเนอร์เตือนที่เห็นได้จริง แทนที่จะโชว์ยอด 0 เงียบๆ
     }
   }
   return days;
@@ -5362,7 +5365,12 @@ async function renderRevSummary(year, month){
 
   const todayTotal = todayRoom + todayEc.total;
 
-  document.getElementById('rev-summary').innerHTML = `
+  const _warnMsgs=[];
+  if(_dashLoadWarning) _warnMsgs.push(_dashLoadWarning);
+  if(days._loadFailed) _warnMsgs.push('ดึงรายได้ค่าห้องย้อนหลังจาก server ไม่สำเร็จ — ยอดค่าห้องเดือนนี้บางวันอาจแสดงเป็น 0 ทั้งที่จริงมีรายได้');
+  const _warnBanner=_warnMsgs.length?`<div style="background:rgba(223,88,88,.1);border:1px solid rgba(223,88,88,.28);border-radius:var(--radius);padding:9px 13px;margin-bottom:10px;color:var(--red);font-size:12.5px;font-weight:600;">${_warnMsgs.map(m=>'⚠️ '+m).join('<br>')}</div>`:'';
+
+  document.getElementById('rev-summary').innerHTML = _warnBanner + `
     <div class="rev-section">
       <div class="rev-title"><span class="txt-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>วันนี้ — ${fmtDate(todayStr)}</div>
       <div class="rev-row">
@@ -5436,16 +5444,18 @@ async function revShiftMonth(delta){
   if(_revMonth > 11){ _revMonth = 0; _revYear++; }
   if(_revMonth < 0) { _revMonth = 11; _revYear--; }
   updateRevLabel();
+  _dashLoadWarning = null;
   try{ await _loadDashboardCharges(_revYear, _revMonth); }
-  catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
+  catch(e){ _dashLoadWarning = 'โหลด Extra Charges เดือนนี้ไม่สำเร็จ ('+e.message+')'; }
   await renderRevSummary(_revYear, _revMonth);
 }
 async function revGoToday(){
   _revYear  = new Date().getFullYear();
   _revMonth = new Date().getMonth();
   updateRevLabel();
+  _dashLoadWarning = null;
   try{ await _loadDashboardCharges(_revYear, _revMonth); }
-  catch(e){ console.warn('[Dashboard] charges load failed:',e.message); }
+  catch(e){ _dashLoadWarning = 'โหลด Extra Charges เดือนนี้ไม่สำเร็จ ('+e.message+')'; }
   await renderRevSummary(_revYear, _revMonth);
 }
 function updateRevLabel(){
@@ -5844,13 +5854,12 @@ async function _loadDashboardCharges(year, month){
   const monthStart = `${year}-${pad(month+1)}-01`;
   const monthEnd   = `${year}-${pad(month+1)}-${new Date(year,month+1,0).getDate()}`;
 
-  try{
-    const res = await _gasCall('getChargesByDateRange', {from: monthStart, to: monthEnd});
-    if(res && res.charges){
-      Object.keys(res.charges).forEach(bid => { ST.charges[bid] = res.charges[bid]; });
-    }
-  }catch(e){
-    console.warn('[Dashboard] ดึง Extra Charges ไม่สำเร็จ:', e.message);
+  // หมายเหตุ: ถ้า _gasCall ด้านล่าง throw จะข้ามส่วน mark-ว่าง ทั้งหมดไปเลย (ตั้งใจ) —
+  // กัน ST.charges ถูกเติม [] ปลอมทับ booking ที่ยังไม่ได้โหลดจริง ซึ่งจะทำให้ _loadCharges/_loadChargesMulti
+  // เข้าใจผิดว่า "โหลดแล้ว" และข้ามการ fetch ใหม่ไปตลอด แม้จะเปิดหน้าที่มี alert ป้องกันไว้แล้วก็ตาม
+  const res = await _gasCall('getChargesByDateRange', {from: monthStart, to: monthEnd});
+  if(res && res.charges){
+    Object.keys(res.charges).forEach(bid => { ST.charges[bid] = res.charges[bid]; });
   }
 
   // booking ที่ overlap เดือนนี้แต่ไม่มี charge เลย → mark ว่าโหลดแล้ว กัน fetch ซ้ำภายหลัง (เช่นตอนเปิด modal)
